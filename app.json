@@ -12,7 +12,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.comunaapp",
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Usamos HealthKit para leer datos de tu ciclo menstrual y adaptar tus suplementos.",
+        "NSHealthUpdateUsageDescription": "Usamos HealthKit para registrar datos de salud relevantes."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +26,21 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.comunaapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": true,
+          "useSQLCipher": false
+        }
+      ],
+      "expo-dev-client"
+    ]
   }
 }

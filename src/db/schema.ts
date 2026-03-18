@@ -1,0 +1,43 @@
+import { int, sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
+
+export const supplements = sqliteTable('supplements', {
+  id: int('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  dose: text('dose').notNull(),
+  unit: text('unit').notNull(),
+  phases: text('phases').notNull().default('[]'), // JSON array of CyclePhase
+  notionId: text('notion_id'),
+  active: int('active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default(''),
+  updatedAt: text('updated_at').notNull().default(''),
+});
+
+export const dailyLogs = sqliteTable('daily_logs', {
+  id: int('id').primaryKey({ autoIncrement: true }),
+  supplementId: int('supplement_id')
+    .notNull()
+    .references(() => supplements.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(), // YYYY-MM-DD
+  taken: int('taken', { mode: 'boolean' }).notNull().default(false),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default(''),
+});
+
+export const stock = sqliteTable('stock', {
+  id: int('id').primaryKey({ autoIncrement: true }),
+  supplementId: int('supplement_id')
+    .notNull()
+    .unique()
+    .references(() => supplements.id, { onDelete: 'cascade' }),
+  quantity: real('quantity').notNull().default(0),
+  unit: text('unit').notNull(),
+  lastUpdated: text('last_updated').notNull().default(''),
+});
+
+export const phases = sqliteTable('phases', {
+  id: int('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(), // CyclePhase
+  startDate: text('start_date').notNull(),
+  endDate: text('end_date').notNull(),
+  notionPageId: text('notion_page_id'),
+});
