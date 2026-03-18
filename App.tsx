@@ -26,6 +26,9 @@ export default function App() {
   const [user, setUser] = React.useState<User>('diana');
 
   if (error) {
+    console.error('Migration error full:', error);
+    console.error('Migration error message:', error.message);
+    console.error('Migration error stack:', error.stack);
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.screen}>
@@ -34,6 +37,7 @@ export default function App() {
       </SafeAreaView>
     );
   }
+
 
   if (!success) {
     return (
@@ -53,7 +57,7 @@ export default function App() {
         <View style={styles.screen}>
           {activeTab === 'home' && <Home />}
           {activeTab === 'checklist' && <Checklist />}
-          {activeTab === 'stock' && <Stock />}
+          {activeTab === 'stock' && <Stock user={user} />}
           {activeTab === 'perfil' && <Profile />}
         </View>
 

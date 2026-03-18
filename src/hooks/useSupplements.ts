@@ -18,24 +18,47 @@ export function useSupplements(user: 'diana' | 'estefania') {
         setError(null);
         const data = await getSupplements(user);
 
-        // Intenta mapear cada suplemento de Notion a su fila local en SQLite
+        // Sincroniza suplementos de Notion a SQLite (inserta los que faltan)
         let mapping: Record<string, number> = {};
         try {
           const notionIds = data.map((s) => s.notion_id);
           if (notionIds.length) {
-            const rows = await db
+            const existing = await db
+              .select()
+              .from(supplementsTable)
+              .where(inArray(supplementsTable.notionId, notionIds));
+
+            const existingNotionIds = new Set(existing.map((r) => r.notionId));
+            const toInsert = data.filter((s) => !existingNotionIds.has(s.notion_id));
+
+            if (toInsert.length) {
+              const now = new Date().toISOString();
+              await db.insert(supplementsTable).values(
+                toInsert.map((s) => ({
+                  name: s.name,
+                  dose: s.dose,
+                  unit: '',
+                  phases: JSON.stringify(s.phase_specific === 'all' ? [] : [s.phase_specific]),
+                  notionId: s.notion_id,
+                  createdAt: now,
+                  updatedAt: now,
+                }))
+              );
+            }
+
+            const allRows = await db
               .select()
               .from(supplementsTable)
               .where(inArray(supplementsTable.notionId, notionIds));
             mapping = Object.fromEntries(
-              rows
+              allRows
                 .filter((r) => r.notionId)
                 .map((r) => [r.notionId as string, r.id])
             );
           }
         } catch (err) {
-          // Si falla el mapeo local, no bloquea la UI; solo deja el tracking desactivado.
-          console.warn('Failed to map Notion supplements to local IDs', err);
+          // Si falla el sync local, no bloquea la UI; solo deja el tracking desactivado.
+          console.warn('Failed to sync Notion supplements to local DB', err);
         }
 
         if (!cancelled) {

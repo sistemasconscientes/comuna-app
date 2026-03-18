@@ -32,6 +32,9 @@ export const stock = sqliteTable('stock', {
   quantity: real('quantity').notNull().default(0),
   unit: text('unit').notNull(),
   lastUpdated: text('last_updated').notNull().default(''),
+  bottleOpenedAt: text('bottle_opened_at'),
+  totalPills: real('total_pills'),
+  pillsPerDay: real('pills_per_day'),
 });
 
 export const phases = sqliteTable('phases', {

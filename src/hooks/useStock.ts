@@ -59,5 +59,36 @@ export function useStock() {
     [data]
   );
 
-  return { data, loading, error, updateQuantity, decrementStock, getLowStock, refetch: load };
+  const updateBottle = useCallback(
+    async (
+      supplementId: number,
+      bottleOpenedAt: string,
+      totalPills: number,
+      pillsPerDay: number
+    ) => {
+      const existing = data.find((s) => s.supplementId === supplementId);
+      const now = new Date().toISOString();
+
+      if (existing) {
+        await db
+          .update(stock)
+          .set({ bottleOpenedAt, totalPills, pillsPerDay, lastUpdated: now })
+          .where(eq(stock.supplementId, supplementId));
+      } else {
+        await db.insert(stock).values({
+          supplementId,
+          quantity: 0,
+          unit: 'pastillas',
+          lastUpdated: now,
+          bottleOpenedAt,
+          totalPills,
+          pillsPerDay,
+        });
+      }
+      await load();
+    },
+    [data, load]
+  );
+
+  return { data, loading, error, updateQuantity, decrementStock, getLowStock, updateBottle, refetch: load };
 }

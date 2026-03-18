@@ -45,6 +45,9 @@ export interface StockEntry {
   quantity: number;
   unit: string;
   lastUpdated: string;
+  bottleOpenedAt: string | null;
+  totalPills: number | null;
+  pillsPerDay: number | null;
 }
 
 export interface LocalPhase {
