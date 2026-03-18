@@ -1,0 +1,31 @@
+---
+description: Reglas generales del proyecto Comuna App
+alwaysApply: true
+---
+
+# Comuna App — Reglas generales
+
+## Stack
+- React Native + Expo (SDK 55) + TypeScript
+- SQLite local con Drizzle ORM (`expo-sqlite`)
+- Notion API como fuente de verdad remota
+
+## Usuarios
+- Dos perfiles: `'diana'` y `'estefania'`
+- Tipo: `User = 'diana' | 'estefania'` en `src/context/UserContext.tsx`
+- Todos los datos de Notion están segmentados por usuario
+
+## Estructura de código
+- Lógica de negocio va en `src/hooks/`, no en screens
+- Types centralizados en `src/types/index.ts` — no crear types locales en componentes
+- Screens en `src/screens/` deben tener mínima lógica propia
+- Hooks nombrados `use<Domain>.ts`
+
+## Convenciones TypeScript
+- Usar los types existentes: `User`, `Phase`, `CyclePhase`, `Supplement`, `LocalSupplement`, `DailyLog`, `StockEntry`
+- `Phase` es para datos de Notion; `CyclePhase` es para la DB local (difieren en `ovulatoria` vs `ovulacion`)
+
+## General
+- No crear archivos nuevos si se puede extender uno existente
+- No hardcodear IDs de Notion ni API keys — usar variables de entorno
+- No meter lógica de negocio en screens

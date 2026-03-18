@@ -1,0 +1,33 @@
+---
+description: Reglas para trabajar con la base de datos SQLite y Drizzle ORM
+globs: src/db/**
+alwaysApply: false
+---
+
+# Comuna App — Base de datos
+
+## Stack
+- `expo-sqlite` como driver SQLite
+- `drizzle-orm` para queries type-safe
+- `drizzle-kit` para gestión de migraciones
+
+## Tablas (src/db/schema.ts)
+- `supplements` — suplementos sincronizados desde Notion (`notion_id` como referencia)
+- `daily_logs` — registro diario de tomas (FK a supplements, cascade delete)
+- `stock` — inventario por suplemento (FK a supplements, unique por suplemento)
+- `phases` — fases del ciclo con fechas y referencia a Notion page
+
+## Flujo de cambios al schema
+1. Modificar `src/db/schema.ts`
+2. Correr `npm run db:generate` para generar la migración
+3. Correr `npm run db:migrate` para aplicarla
+4. **No editar migraciones generadas manualmente**
+
+## Tipos de datos en SQLite
+- Arrays (como `phases` en supplements): serializar como JSON text
+- Booleanos: `int({ mode: 'boolean' })`
+- Fechas: `text` en formato ISO (`YYYY-MM-DD` o ISO 8601)
+- Decimales: `real` (ej: quantity en stock)
+
+## Inspección
+- `npm run db:studio` abre Drizzle Studio para inspeccionar la DB visualmente

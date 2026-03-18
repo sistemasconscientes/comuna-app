@@ -1,0 +1,36 @@
+---
+description: Reglas para trabajar con la integración de Notion API
+globs: src/api/notion.ts
+alwaysApply: false
+---
+
+# Comuna App — Notion API
+
+## Archivo
+`src/api/notion.ts` — cliente completo de Notion para la app
+
+## Variables de entorno requeridas
+- `NOTION_API_KEY` — token de integración de Notion
+- `NOTION_SUPPLEMENTS_DB_ID` — ID de la base de datos de suplementos
+- `NOTION_PHASES_PAGE_ID` — ID de la página con la tabla de fases por usuario
+
+## Funciones públicas
+- `getSupplements(user)` — Fetch de suplementos filtrados por usuario y disponibilidad. Retorna `Supplement[]`
+- `getCurrentPhase(user)` — Fase actual y próximo ciclo del usuario. Retorna `{ phase: string; nextCycle: Date }`
+- `updatePhase(user, phase, nextCycle)` — Actualiza la fase del usuario en Notion
+- `markForRestock(notion_id)` — Marca un suplemento para restock en Notion
+
+## Schema de Notion
+
+### Base de datos de suplementos
+Columnas relevantes: nombre, categoría (multi-select), dosis, fase (select), disponible (checkbox), usuario (multi-select o similar)
+
+### Página de fases
+Tabla inline con columnas por usuario: fase actual, fecha próximo ciclo
+
+## Convenciones
+- Las funciones manejan paginación internamente — no implementar paginación manual desde fuera
+- Los nombres de usuario en Notion se normalizan (sin tildes, lowercase) para matching
+- Fechas aceptadas en dos formatos: ISO (`YYYY-MM-DD`) y DMY (`DD/MM/YYYY`)
+- Usar los types `Supplement` y `Phase` de `src/types/index.ts` para datos de Notion
+- No agregar lógica de negocio a este archivo — solo I/O con Notion
