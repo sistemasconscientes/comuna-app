@@ -44,3 +44,10 @@ export const phases = sqliteTable('phases', {
   endDate: text('end_date').notNull(),
   notionPageId: text('notion_page_id'),
 });
+
+export const cycleStates = sqliteTable('cycle_states', {
+  id: int('id').primaryKey({ autoIncrement: true }),
+  user: text('user').notNull().unique(), // 'diana' | 'estefania'
+  lastPeriodStart: text('last_period_start'), // ISO date string (YYYY-MM-DD) o ISO completo
+  updatedAt: text('updated_at').notNull().default(''),
+});

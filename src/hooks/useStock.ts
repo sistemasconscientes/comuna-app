@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
+import { usePostHog } from 'posthog-react-native';
 import { eq } from 'drizzle-orm';
 import { db, stock } from '../db';
 import type { StockEntry } from '../types';
 
 export function useStock() {
+  const posthog = usePostHog();
   const [data, setData] = useState<StockEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -14,11 +16,16 @@ export function useStock() {
       const rows = await db.select().from(stock);
       setData(rows as StockEntry[]);
     } catch (e) {
-      setError(e instanceof Error ? e : new Error(String(e)));
+      const err = e instanceof Error ? e : new Error(String(e));
+      setError(err);
+      posthog?.capture('stock_load_failed', {
+        domain: 'sqlite',
+        message: err.message,
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [posthog]);
 
   useEffect(() => { load(); }, [load]);
 

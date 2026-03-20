@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { usePostHog } from 'posthog-react-native';
 import { inArray } from 'drizzle-orm';
 import { getSupplements } from '../api/notion';
 import type { Supplement } from '../types';
 import { db, supplements as supplementsTable } from '../db';
 
 export function useSupplements(user: 'diana' | 'estefania') {
+  const posthog = usePostHog();
   const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -59,6 +61,12 @@ export function useSupplements(user: 'diana' | 'estefania') {
         } catch (err) {
           // Si falla el sync local, no bloquea la UI; solo deja el tracking desactivado.
           console.warn('Failed to sync Notion supplements to local DB', err);
+          const msg = err instanceof Error ? err.message : String(err);
+          posthog?.capture('notion_supplements_local_sync_failed', {
+            domain: 'sqlite',
+            message: msg,
+            user,
+          });
         }
 
         if (!cancelled) {
@@ -66,7 +74,15 @@ export function useSupplements(user: 'diana' | 'estefania') {
           setIdByNotionId(mapping);
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e : new Error(String(e)));
+        if (!cancelled) {
+          const err = e instanceof Error ? e : new Error(String(e));
+          setError(err);
+          posthog?.capture('notion_supplements_sync_failed', {
+            domain: 'notion',
+            message: err.message,
+            user,
+          });
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -74,7 +90,7 @@ export function useSupplements(user: 'diana' | 'estefania') {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, posthog]);
 
   return {
     supplements,

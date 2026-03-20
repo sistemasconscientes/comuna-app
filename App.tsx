@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
+import { usePostHog } from 'posthog-react-native';
 import { db } from './src/db';
 import migrations from './src/db/migrations/migrations';
 import Home from './src/screens/Home';
@@ -10,6 +11,28 @@ import Stock from './src/screens/Stock';
 import Profile from './src/screens/Profile';
 import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
+
+function PostHogIdentifyUser({ user }: { user: User }) {
+  const posthog = usePostHog();
+  React.useEffect(() => {
+    posthog?.identify(user, { app: 'comuna' });
+  }, [posthog, user]);
+  return null;
+}
+
+function MigrationFailureReporter({ error }: { error: Error }) {
+  const posthog = usePostHog();
+  const reported = React.useRef(false);
+  React.useEffect(() => {
+    if (reported.current || !posthog) return;
+    reported.current = true;
+    posthog.capture('migration_failed', {
+      message: error.message,
+      error_name: error.name,
+    });
+  }, [posthog, error]);
+  return null;
+}
 
 type Tab = 'home' | 'checklist' | 'stock' | 'perfil';
 
@@ -31,6 +54,7 @@ export default function App() {
     console.error('Migration error stack:', error.stack);
     return (
       <SafeAreaView style={styles.container}>
+        <MigrationFailureReporter error={error} />
         <View style={styles.screen}>
           <Text>Error en migraciones: {error.message}</Text>
         </View>
@@ -51,6 +75,7 @@ export default function App() {
 
   return (
     <UserContext.Provider value={{ user, setUser }}>
+      <PostHogIdentifyUser user={user} />
       <SafeAreaView style={styles.container}>
         <StatusBar style="dark" />
 

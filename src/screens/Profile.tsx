@@ -1,7 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
+import { usePostHog } from 'posthog-react-native';
 import { useUser } from '../context/UserContext';
 import { useHealthData } from '../hooks/useHealthData';
+import type { CycleDataSource } from '../types';
+
+const SOURCE_LABELS: Record<CycleDataSource, string> = {
+  healthkit: 'Salud (HealthKit)',
+  sqlite: 'Base local (última sync)',
+  notion: 'Notion',
+};
 
 const PHASE_LABELS: Record<string, string> = {
   menstrual: 'Menstrual',
@@ -18,8 +26,34 @@ const PHASE_COLORS: Record<string, string> = {
 };
 
 export default function Profile() {
+  const posthog = usePostHog();
   const { user, setUser } = useUser();
-  const { cyclePhase, cycleDay, loading, error } = useHealthData(user);
+  const {
+    cyclePhase,
+    cycleDay,
+    loading,
+    error,
+    cycleDataSource,
+    healthKitDiagnostics,
+    refetch,
+  } = useHealthData(user);
+
+  const onRetryHealthKit = () => {
+    posthog?.capture('healthkit_sync_retried', { user });
+    refetch();
+  };
+
+  const sendPostHogTest = () => {
+    posthog?.capture('posthog_integration_verify_manual', {
+      trigger: 'profile_button',
+      user,
+      at: new Date().toISOString(),
+    });
+    Alert.alert(
+      'PostHog',
+      'Evento de prueba enviado. Búscalo en PostHog → Activity (puede tardar unos segundos).'
+    );
+  };
 
   const phaseColor = cyclePhase ? PHASE_COLORS[cyclePhase] : '#ccc';
   const phaseLabel = cyclePhase ? PHASE_LABELS[cyclePhase] : '—';
@@ -65,6 +99,49 @@ export default function Profile() {
           </>
         )}
       </View>
+
+      {Platform.OS === 'ios' && (
+        <View style={styles.qaCard}>
+          <Text style={styles.qaTitle}>Ciclo menstrual (QA)</Text>
+          <Text style={styles.qaLine}>
+            <Text style={styles.qaMuted}>Origen: </Text>
+            {loading ? '…' : SOURCE_LABELS[cycleDataSource]}
+          </Text>
+          {healthKitDiagnostics && (
+            <>
+              <Text style={styles.qaLine}>
+                <Text style={styles.qaMuted}>Módulo HealthKit: </Text>
+                {healthKitDiagnostics.nativeModuleLoaded ? 'cargado' : 'no disponible (¿Expo Go?)'}
+              </Text>
+              <Text style={styles.qaLine}>
+                <Text style={styles.qaMuted}>Salud en dispositivo: </Text>
+                {healthKitDiagnostics.healthStoreAvailable ? 'sí' : 'no'}
+              </Text>
+            </>
+          )}
+          <Text style={styles.qaHint}>
+            Dev build requerida. Si no pide permiso: Ajustes → Salud → Acceso a datos → La Comuna.
+          </Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={onRetryHealthKit}
+            activeOpacity={0.7}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#333" />
+            ) : (
+              <Text style={styles.retryBtnText}>Reintentar sincronización con Salud</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {__DEV__ && (
+        <TouchableOpacity style={styles.testBtn} onPress={sendPostHogTest} activeOpacity={0.7}>
+          <Text style={styles.testBtnText}>Enviar evento de prueba (PostHog)</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -97,4 +174,37 @@ const styles = StyleSheet.create({
   phaseValue: { fontSize: 28, fontWeight: '700', marginTop: 4 },
   cycleDay: { fontSize: 14, color: '#888', marginTop: 4 },
   errorText: { color: '#C62828', fontSize: 14, marginTop: 4 },
+  testBtn: {
+    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#CCC',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+  },
+  testBtnText: { fontSize: 13, color: '#666' },
+  qaCard: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    gap: 8,
+  },
+  qaTitle: { fontSize: 13, fontWeight: '700', color: '#444' },
+  qaLine: { fontSize: 13, color: '#333' },
+  qaMuted: { color: '#888' },
+  qaHint: { fontSize: 11, color: '#888', lineHeight: 16, marginTop: 4 },
+  retryBtn: {
+    marginTop: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#E8E8E8',
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  retryBtnText: { fontSize: 14, fontWeight: '600', color: '#333' },
 });

@@ -15,6 +15,13 @@
       "when": 1773799553026,
       "tag": "0001_dashing_lady_ursula",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773874966285,
+      "tag": "0002_sad_mysterio",
+      "breakpoints": true
     }
   ]
 }

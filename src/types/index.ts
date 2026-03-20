@@ -58,6 +58,14 @@ export interface LocalPhase {
   notionPageId: string | null;
 }
 
+/** De dónde sale la fase/día del ciclo en la última carga (ver docs/specs/healthkit-cycle-sync.md). */
+export type CycleDataSource = 'healthkit' | 'sqlite' | 'notion';
+
+export interface HealthKitDiagnostics {
+  nativeModuleLoaded: boolean;
+  healthStoreAvailable: boolean;
+}
+
 export interface HealthData {
   cyclePhase: CyclePhase | null;
   cycleDay: number | null;
