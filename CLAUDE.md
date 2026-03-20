@@ -1,6 +1,6 @@
 # Comuna App
 
-App móvil (iOS/Android) de seguimiento de suplementos basada en fases del ciclo menstrual.
+App móvil iOS de seguimiento de suplementos basada en fases del ciclo menstrual.
 
 ## Stack
 - React Native + Expo (SDK 55)
@@ -13,6 +13,9 @@ App móvil (iOS/Android) de seguimiento de suplementos basada en fases del ciclo
 - El contexto de usuario vive en `src/context/UserContext.tsx`
 - Tipo: `User = 'diana' | 'estefania'`
 - Los datos de Notion están separados por usuario
+
+## Specs (spec-driven)
+- Convención: `docs/specs/*.md` — ver `docs/specs/README.md` y `.cursor/rules/spec-driven.mdc`.
 
 ## Arquitectura clave
 - `src/api/notion.ts` — Fetch desde Notion API. La app sincroniza al iniciar. Funciones principales: `getSupplements(user)`, `getCurrentPhase(user)`, `updatePhase(user, phase, nextCycle)`, `markForRestock(notion_id)`
@@ -44,6 +47,10 @@ Ver `.env`. Requiere:
 - `NOTION_API_KEY`
 - `NOTION_SUPPLEMENTS_DB_ID`
 - `NOTION_PHASES_PAGE_ID`
+
+Opcional (PostHog: errores automáticos + eventos críticos en hooks):
+- `POSTHOG_API_KEY` — si no está definida, PostHog no envía datos (`disabled`)
+- `POSTHOG_HOST` — ej. `https://us.i.posthog.com`
 
 ## Qué NO hacer
 - No hardcodear credenciales de Notion fuera de `.env`

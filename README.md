@@ -1,6 +1,6 @@
 # Comuna App
 
-App móvil (iOS/Android) de seguimiento de suplementos basada en fases del ciclo menstrual. Sincroniza con Notion como fuente de verdad y guarda los datos localmente con SQLite.
+App móvil **iOS** de seguimiento de suplementos basada en fases del ciclo menstrual. Sincroniza con Notion como fuente de verdad y guarda los datos localmente con SQLite.
 
 ## Stack
 
@@ -27,8 +27,7 @@ Correr la app:
 
 ```bash
 expo start        # Dev server
-expo run:ios      # Simulador iOS
-expo run:android  # Simulador Android
+expo run:ios      # Simulador / dispositivo iOS
 ```
 
 ## Estructura
@@ -73,8 +72,7 @@ Los datos se persisten en SQLite local (`comuna.db`) para uso offline.
 
 ```bash
 npm start              # Expo dev server
-npm run ios            # Simulador iOS
-npm run android        # Simulador Android
+npm run ios            # Simulador / dispositivo iOS
 npm run db:generate    # Generar migraciones tras cambiar schema.ts
 npm run db:migrate     # Correr migraciones pendientes
 npm run db:studio      # Abrir Drizzle Studio (inspector de DB)

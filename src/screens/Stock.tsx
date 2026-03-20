@@ -2,10 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
+  Keyboard,
+  KeyboardAvoidingView,
   FlatList,
   Modal,
-  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -57,7 +60,17 @@ export default function Stock({ user }: Props) {
   const { supplements, loading: suppLoading, error: suppError, idByNotionId } = useSupplements(user);
   const { data: stockData, loading: stockLoading, updateBottle } = useStock();
   const [editState, setEditState] = useState<EditState | null>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const restockedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const getEntry = useCallback(
     (localId: number) => stockData.find((s) => s.supplementId === localId),
@@ -203,53 +216,71 @@ export default function Stock({ user }: Props) {
         transparent
         onRequestClose={() => setEditState(null)}
       >
-        <Pressable style={styles.overlay} onPress={() => setEditState(null)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <Text style={styles.sheetTitle}>{editState?.supplement.name}</Text>
+        <Pressable
+          style={styles.overlay}
+          onPress={() => {
+            if (keyboardVisible) {
+              Keyboard.dismiss();
+              return;
+            }
+            setEditState(null);
+          }}
+        >
+          <View style={styles.sheet}>
+            <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={8} style={styles.sheetKav}>
+              <ScrollView
+                style={styles.sheetScroll}
+                contentContainerStyle={styles.sheetScrollContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={styles.sheetTitle}>{editState?.supplement.name}</Text>
 
-            <Text style={styles.label}>Fecha de apertura del frasco</Text>
-            <TextInput
-              style={styles.input}
-              value={editState?.bottleOpenedAt ?? ''}
-              onChangeText={(v) => setEditState((s) => s && { ...s, bottleOpenedAt: v })}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor="#bbb"
-              keyboardType="numbers-and-punctuation"
-            />
+                <Text style={styles.label}>Fecha de apertura del frasco</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editState?.bottleOpenedAt ?? ''}
+                  onChangeText={(v) => setEditState((s) => s && { ...s, bottleOpenedAt: v })}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="#bbb"
+                  keyboardType="numbers-and-punctuation"
+                />
 
-            <Text style={styles.label}>Total de pastillas en el frasco</Text>
-            <TextInput
-              style={styles.input}
-              value={editState?.totalPills ?? ''}
-              onChangeText={(v) => setEditState((s) => s && { ...s, totalPills: v })}
-              placeholder="60"
-              placeholderTextColor="#bbb"
-              keyboardType="decimal-pad"
-            />
+                <Text style={styles.label}>Total de pastillas en el frasco</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editState?.totalPills ?? ''}
+                  onChangeText={(v) => setEditState((s) => s && { ...s, totalPills: v })}
+                  placeholder="60"
+                  placeholderTextColor="#bbb"
+                  keyboardType="decimal-pad"
+                />
 
-            <Text style={styles.label}>Pastillas por día</Text>
-            <TextInput
-              style={styles.input}
-              value={editState?.pillsPerDay ?? ''}
-              onChangeText={(v) => setEditState((s) => s && { ...s, pillsPerDay: v })}
-              placeholder="1"
-              placeholderTextColor="#bbb"
-              keyboardType="decimal-pad"
-            />
+                <Text style={styles.label}>Pastillas por día</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editState?.pillsPerDay ?? ''}
+                  onChangeText={(v) => setEditState((s) => s && { ...s, pillsPerDay: v })}
+                  placeholder="1"
+                  placeholderTextColor="#bbb"
+                  keyboardType="decimal-pad"
+                />
 
-            <TouchableOpacity style={styles.newBottleBtn} onPress={handleOpenNewBottle}>
-              <Text style={styles.newBottleBtnText}>Abrí frasco nuevo</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.newBottleBtn} onPress={handleOpenNewBottle}>
+                  <Text style={styles.newBottleBtnText}>Abrí frasco nuevo</Text>
+                </TouchableOpacity>
 
-            <View style={styles.sheetActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditState(null)}>
-                <Text style={styles.cancelBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                <Text style={styles.saveBtnText}>Guardar</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
+                <View style={styles.sheetActions}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditState(null)}>
+                    <Text style={styles.cancelBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+                    <Text style={styles.saveBtnText}>Guardar</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </View>
         </Pressable>
       </Modal>
     </View>
@@ -317,9 +348,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    width: '100%',
+    maxHeight: Math.round(Dimensions.get('window').height * 0.88),
     padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+    paddingBottom: 36,
+  },
+  /** Sin flex:1 en el padre, el sheet tenía altura 0. Kav solo envuelve el scroll. */
+  sheetKav: {
+    width: '100%',
+  },
+  /** Altura máxima del viewport scrollable para que el teclado no tape y haya scroll real. */
+  sheetScroll: {
+    maxHeight: Math.round(Dimensions.get('window').height * 0.62),
+  },
+  sheetScrollContent: {
+    flexGrow: 1,
     gap: 8,
+    paddingBottom: 8,
   },
   sheetTitle: { fontSize: 18, fontWeight: '700', color: '#222', marginBottom: 8 },
   label: { fontSize: 13, color: '#666', marginTop: 6 },
