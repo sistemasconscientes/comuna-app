@@ -24,12 +24,16 @@ No es obligatorio subir versión en cada PR interno: sí cuando el cambio forma 
 |---|----------|
 | R1 | `package.json` → `version` (semver) y `nativeBuild` (entero ≥ 1) actualizados según el release. |
 | R2 | Ejecutar `npm run version:sync` para propagar a `app.json`: `expo.version`, `ios.buildNumber`, `android.versionCode`. |
-| R3 | Confirmar semver: `package.json` y `expo.version` iguales; `nativeBuild` coincide con `ios.buildNumber` (como string) y `android.versionCode` (como número). |
-| R4 | Tras `eas build`, verificar en el binario / tiendas que versión de marketing y build nativo coinciden con el commit. |
+| R3 | **`npm run version:check`** debe pasar (o **`npm test`**, que lo ejecuta antes de Jest): valida que `app.json` no se desalinee de `package.json`. |
+| R4 | Confirmar semver: `package.json` y `expo.version` iguales; `nativeBuild` coincide con `ios.buildNumber` (como string) y `android.versionCode` (como número). |
+| R5 | Tras `eas build`, verificar en el binario / tiendas que versión de marketing y build nativo coinciden con el commit. |
+
+**Features publicables:** al cerrar una feature que vaya a build de tienda/TestFlight, incluir en el mismo PR el bump R1–R2 y que R3 sea verde; el check automático evita olvidar sincronizar `app.json` tras editar `package.json`.
 
 ## Comandos
 
 - **`npm run version:sync`** — Lee `package.json` y escribe en `app.json`: `expo.version`, `ios.buildNumber`, `android.versionCode`. Ejecutar tras cambiar `version` y/o `nativeBuild`.
+- **`npm run version:check`** — Solo lectura: falla con código distinto de 0 si `app.json` no refleja `version` y `nativeBuild` de `package.json`. Incluido al inicio de **`npm test`**.
 
 Flujo típico al cerrar una feature con bump:
 

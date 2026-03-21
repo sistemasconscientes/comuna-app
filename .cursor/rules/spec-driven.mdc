@@ -17,6 +17,8 @@ Los agentes de Cursor **deben** trabajar en modo **spec-driven** en este repo.
 
 3. **PostHog / analítica / errores:** cualquier nuevo evento, cambio de provider o variable de entorno relacionada debe reflejarse en [`docs/specs/posthog-analytics.md`](docs/specs/posthog-analytics.md).
 
+4. **Release / versión de app (feature publicable):** si el cambio va a build de tienda o TestFlight, subir `version` y/o `nativeBuild` en `package.json`, ejecutar `npm run version:sync` y asegurar que `npm run version:check` pasa (ver [`docs/specs/release-versioning.md`](docs/specs/release-versioning.md)).
+
 ## Excepciones (rápidas, sin spec nuevo)
 
 - Typos, formato, renombres mecánicos sin cambio de comportamiento.

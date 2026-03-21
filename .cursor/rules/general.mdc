@@ -33,3 +33,4 @@ alwaysApply: true
 ## Spec-driven (default para agentes)
 - Ver **`.cursor/rules/spec-driven.mdc`**: features y cambios no triviales van precedidos o acompañados de spec en **`docs/specs/`**.
 - PostHog: **`docs/specs/posthog-analytics.md`**
+- Release con bump: **`docs/specs/release-versioning.md`** — `version:sync` tras editar `version`/`nativeBuild`; `npm test` incluye `version:check`.

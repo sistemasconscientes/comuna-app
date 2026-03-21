@@ -38,6 +38,7 @@ Cuatro fases: `menstrual`, `folicular`, `ovulatoria` / `ovulacion`, `lutea`
 - `npm test` — correr tests con Jest
 - `npm run db:studio` — Drizzle Studio para inspeccionar la DB
 - `npm run version:sync` — sincroniza `package.json` (`version`, `nativeBuild`) → `app.json` (semver, `ios.buildNumber`, `android.versionCode`); ver `docs/specs/release-versioning.md`
+- `npm run version:check` — valida alineación sin escribir; `npm test` lo ejecuta antes de Jest
 
 ## Convenciones
 - Hooks en `src/hooks/`, nombrados `use<Domain>.ts`
