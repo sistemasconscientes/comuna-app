@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -58,10 +58,9 @@ interface EditState {
 
 export default function Stock({ user }: Props) {
   const { supplements, loading: suppLoading, error: suppError, idByNotionId } = useSupplements(user);
-  const { data: stockData, loading: stockLoading, updateBottle } = useStock();
+  const { data: stockData, loading: stockLoading, updateBottle, setRestockFlagged } = useStock();
   const [editState, setEditState] = useState<EditState | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const restockedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
@@ -77,23 +76,33 @@ export default function Stock({ user }: Props) {
     [stockData]
   );
 
-  // Mark low-stock supplements for restock — only once per session
+  // Mark low-stock in Notion once per fila (persistido en SQLite como restock_flagged)
   useEffect(() => {
     if (suppLoading || stockLoading) return;
-    for (const sup of supplements) {
-      const localId = idByNotionId[sup.notion_id];
-      if (localId == null) continue;
-      const entry = getEntry(localId);
-      if (!entry) continue;
-      const { daysRemaining } = calcDays(entry);
-      if (daysRemaining != null && daysRemaining < 7 && !restockedRef.current.has(sup.notion_id)) {
-        restockedRef.current.add(sup.notion_id);
-        markForRestock(sup.notion_id).catch((e) =>
-          console.warn('markForRestock failed', sup.notion_id, e)
-        );
+    let cancelled = false;
+    (async () => {
+      for (const sup of supplements) {
+        if (cancelled) return;
+        const localId = idByNotionId[sup.notion_id];
+        if (localId == null) continue;
+        const entry = getEntry(localId);
+        if (!entry) continue;
+        const { daysRemaining } = calcDays(entry);
+        if (daysRemaining != null && daysRemaining < 7 && !entry.restockFlagged) {
+          try {
+            await markForRestock(sup.notion_id);
+            if (cancelled) return;
+            await setRestockFlagged(localId, true);
+          } catch (e) {
+            console.warn('markForRestock failed', sup.notion_id, e);
+          }
+        }
       }
-    }
-  }, [supplements, stockData, suppLoading, stockLoading, idByNotionId, getEntry]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supplements, stockData, suppLoading, stockLoading, idByNotionId, getEntry, setRestockFlagged]);
 
   const openModal = (sup: Supplement) => {
     const localId = idByNotionId[sup.notion_id];
@@ -132,9 +141,7 @@ export default function Stock({ user }: Props) {
       return;
     }
     const today = todayISO();
-    await updateBottle(editState.localId, today, total, perDay);
-    // Remove from restocked set so it can be re-evaluated
-    restockedRef.current.delete(editState.supplement.notion_id);
+    await updateBottle(editState.localId, today, total, perDay, { resetRestockFlag: true });
     setEditState(null);
   };
 
@@ -186,7 +193,11 @@ export default function Stock({ user }: Props) {
           const isLow = daysRemaining != null && daysRemaining < 7;
 
           return (
-            <TouchableOpacity style={styles.row} onPress={() => openModal(item)} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={[styles.row, isLow && styles.rowLow]}
+              onPress={() => openModal(item)}
+              activeOpacity={0.7}
+            >
               <View style={styles.rowInfo}>
                 <Text style={styles.rowName}>{item.name}</Text>
                 <Text style={styles.rowDose}>{item.dose}</Text>
@@ -318,6 +329,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
+  },
+  rowLow: {
+    backgroundColor: '#FFF5F5',
+    borderWidth: 1,
+    borderColor: '#FFCDD2',
   },
   rowInfo: { flex: 1, marginRight: 12 },
   rowName: { fontSize: 16, fontWeight: '500', color: '#222' },

@@ -17,7 +17,7 @@ alwaysApply: false
 ## Funciones públicas
 - `getSupplements(user)` — Fetch de suplementos filtrados por usuario y disponibilidad. Retorna `Supplement[]`
 - `getCurrentPhase(user)` — Fase actual y próximo ciclo del usuario. Retorna `{ phase: string; nextCycle: Date }`
-- `updatePhase(user, phase, nextCycle)` — Actualiza la fase del usuario en Notion
+- `updatePhase(user, phase, nextCycle)` — Actualiza la fila del usuario en la tabla inline: columna de fase con texto fijo + emoji según clave (`menstrual` / `folicular` / `ovulatoria` o `ovulacion` / `lutea`); columna de próximo ciclo en `YYYY-MM-DD`
 - `markForRestock(notion_id)` — Marca un suplemento para restock en Notion
 
 ## Schema de Notion

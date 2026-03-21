@@ -35,6 +35,8 @@ export const stock = sqliteTable('stock', {
   bottleOpenedAt: text('bottle_opened_at'),
   totalPills: real('total_pills'),
   pillsPerDay: real('pills_per_day'),
+  /** Evita llamadas repetidas a Notion `markForRestock` cuando ya se marcó recompra. */
+  restockFlagged: int('restock_flagged', { mode: 'boolean' }).notNull().default(false),
 });
 
 export const phases = sqliteTable('phases', {

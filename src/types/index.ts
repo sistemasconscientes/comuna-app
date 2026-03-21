@@ -48,6 +48,7 @@ export interface StockEntry {
   bottleOpenedAt: string | null;
   totalPills: number | null;
   pillsPerDay: number | null;
+  restockFlagged: boolean;
 }
 
 export interface LocalPhase {

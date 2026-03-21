@@ -45,6 +45,7 @@ export function useStock() {
           quantity,
           unit: 'unidades',
           lastUpdated: now,
+          restockFlagged: false,
         });
       }
       await load();
@@ -71,7 +72,8 @@ export function useStock() {
       supplementId: number,
       bottleOpenedAt: string,
       totalPills: number,
-      pillsPerDay: number
+      pillsPerDay: number,
+      opts?: { resetRestockFlag?: boolean }
     ) => {
       const existing = data.find((s) => s.supplementId === supplementId);
       const now = new Date().toISOString();
@@ -79,7 +81,13 @@ export function useStock() {
       if (existing) {
         await db
           .update(stock)
-          .set({ bottleOpenedAt, totalPills, pillsPerDay, lastUpdated: now })
+          .set({
+            bottleOpenedAt,
+            totalPills,
+            pillsPerDay,
+            lastUpdated: now,
+            ...(opts?.resetRestockFlag ? { restockFlagged: false } : {}),
+          })
           .where(eq(stock.supplementId, supplementId));
       } else {
         await db.insert(stock).values({
@@ -90,6 +98,7 @@ export function useStock() {
           bottleOpenedAt,
           totalPills,
           pillsPerDay,
+          restockFlagged: false,
         });
       }
       await load();
@@ -97,5 +106,26 @@ export function useStock() {
     [data, load]
   );
 
-  return { data, loading, error, updateQuantity, decrementStock, getLowStock, updateBottle, refetch: load };
+  const setRestockFlagged = useCallback(
+    async (supplementId: number, flagged: boolean) => {
+      await db
+        .update(stock)
+        .set({ restockFlagged: flagged, lastUpdated: new Date().toISOString() })
+        .where(eq(stock.supplementId, supplementId));
+      await load();
+    },
+    [load]
+  );
+
+  return {
+    data,
+    loading,
+    error,
+    updateQuantity,
+    decrementStock,
+    getLowStock,
+    updateBottle,
+    setRestockFlagged,
+    refetch: load,
+  };
 }

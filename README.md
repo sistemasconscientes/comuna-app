@@ -35,11 +35,12 @@ expo run:ios      # Simulador / dispositivo iOS
 ```
 src/
 ├── api/
-│   └── notion.ts          # Cliente Notion — fetch de suplementos y fases
+│   ├── notion.ts          # Cliente Notion — suplementos, fases (tabla inline), recompra
+│   └── healthkit.ts       # iOS: Salud — última menstruación (dev build)
 ├── context/
 │   └── UserContext.tsx    # Contexto de usuario activo (diana | estefania)
 ├── db/
-│   ├── schema.ts          # Tablas SQLite: supplements, dailyLogs, stock, phases
+│   ├── schema.ts          # Tablas: supplements, dailyLogs, stock (restock_flagged), phases, cycle_states
 │   ├── index.ts           # Inicialización de la DB
 │   └── migrations/        # Migraciones generadas por drizzle-kit
 ├── hooks/
@@ -64,7 +65,11 @@ src/
 Al iniciar, la app consulta Notion para:
 
 1. **Suplementos** — desde `NOTION_SUPPLEMENTS_DB_ID`, filtrados por usuario y disponibilidad
-2. **Fase actual** — desde `NOTION_PHASES_PAGE_ID`, una tabla con la fase y próximo ciclo por usuario
+2. **Fase actual** — desde `NOTION_PHASES_PAGE_ID`, tabla inline con fase (texto + emoji) y próximo ciclo por usuario
+
+En **iOS** con datos de Salud, la app puede **escribir** de vuelta en esa tabla vía `updatePhase` cuando la fase calculada difiere de Notion (ver `docs/specs/healthkit-cycle-sync.md`).
+
+**Stock:** si un suplemento tiene menos de 7 días estimados, se llama una vez a `markForRestock` en Notion por fila (deduplicado con `restock_flagged` en SQLite; ver `docs/specs/stock-restock-notion.md`).
 
 Los datos se persisten en SQLite local (`comuna.db`) para uso offline.
 

@@ -205,6 +205,20 @@ function textCell(content: string): NotionCell {
   return content ? [{ type: 'text', text: { content } }] : [];
 }
 
+/** Texto con emoji escrito en la columna de fase de la tabla inline en Notion. */
+const PHASE_TO_LABEL: Record<string, string> = {
+  menstrual: 'Menstruación 🩸',
+  folicular: 'Folicular 🌸',
+  ovulatoria: 'Ovulación 🥵',
+  ovulacion: 'Ovulación 🥵',
+  lutea: 'Lútea 🦥',
+};
+
+function phaseKeyToNotionLabel(phase: string): string {
+  const key = phase.trim().toLowerCase();
+  return PHASE_TO_LABEL[key] ?? phase;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Public API
 // ─────────────────────────────────────────────────────────────────────────────
@@ -319,7 +333,6 @@ export async function getCurrentPhase(
 
   const cells = row.table_row.cells;
   const phaseText = cellToText(cells[1]).trim();
-  console.log('Fase raw de Notion:', cells[1]);
   const nextText = cellToText(cells[2]).trim();
 
   return {
@@ -338,9 +351,10 @@ export async function updatePhase(
   const prevPersona = cellToText(row.table_row.cells[0]).trim();
   const personaToWrite = prevPersona || user;
 
+  const phaseLabel = phaseKeyToNotionLabel(phase);
   const cells: NotionCell[] = [
     textCell(personaToWrite),
-    textCell(phase),
+    textCell(phaseLabel),
     textCell(toISODate(nextCycle)),
   ];
 

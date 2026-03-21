@@ -76,6 +76,7 @@ Todos los `capture` son no-op si PostHog está deshabilitado (`posthog?.capture`
 | `notion_supplements_sync_failed` | Fallo al obtener suplementos desde Notion | `domain: 'notion'`, `message`, `user` |
 | `notion_supplements_local_sync_failed` | Fallo al persistir suplementos en SQLite tras fetch OK | `domain: 'sqlite'`, `message`, `user` |
 | `health_data_load_failed` | Fallo en la carga general (DB/Notion) del hook de salud | `domain: 'health_data'`, `message`, `user` |
+| `health_data_notion_sync_failed` | Fallo al leer/escribir Notion tras sync exitoso de HealthKit (comparación o `updatePhase`) | `domain: 'health_data'`, `message`, `user` |
 | `healthkit_last_menstruation_failed` | Fallo al leer última menstruación en HealthKit (iOS) | `domain: 'healthkit'`, `message`, `user` |
 | `healthkit_sync_retried` | Pulsar «Reintentar sincronización con Salud» en Perfil (iOS) | `user` |
 | `stock_load_failed` | Fallo al leer tabla stock | `domain: 'sqlite'`, `message` |

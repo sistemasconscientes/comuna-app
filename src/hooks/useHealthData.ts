@@ -2,15 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { usePostHog } from 'posthog-react-native';
 import { Platform } from 'react-native';
 import { eq } from 'drizzle-orm';
-import { getCurrentPhase } from '../api/notion';
+import { getCurrentPhase, updatePhase } from '../api/notion';
 import {
   getLastMenstruation,
   getHealthKitDiagnostics,
   resetHealthKitInitForQA,
 } from '../api/healthkit';
 import { db, cycleStates } from '../db';
-import { normalizePhase, phaseToCyclePhase } from '../utils/phaseUtils';
-import { getCurrentCycleInfo } from '../utils/phaseCalculator';
+import { cyclePhaseToPhase, normalizePhase, phaseToCyclePhase } from '../utils/phaseUtils';
+import { DEFAULT_CYCLE_LENGTH_DAYS, getCurrentCycleInfo } from '../utils/phaseCalculator';
 import type { CycleDataSource, HealthData, HealthKitDiagnostics } from '../types';
 
 export type UseHealthDataResult = HealthData & {
@@ -20,6 +20,11 @@ export type UseHealthDataResult = HealthData & {
   healthKitDiagnostics: HealthKitDiagnostics | null;
   refetch: () => void;
 };
+
+function dateToIsoDayUtc(d: Date): string {
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
 
 async function loadNotionPhaseOnly(
   user: 'diana' | 'estefania',
@@ -121,6 +126,35 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
                   'día',
                   day,
                 );
+              }
+
+              try {
+                const nextCycleDate = new Date(
+                  lastFromHealthKit.getTime() +
+                    DEFAULT_CYCLE_LENGTH_DAYS * 24 * 60 * 60 * 1000,
+                );
+                const notionRow = await getCurrentPhase(user);
+                const notionPhaseNorm = normalizePhase(notionRow.phase);
+                const hkAsPhase = cyclePhaseToPhase(phase);
+                const notionDay = dateToIsoDayUtc(notionRow.nextCycle);
+                const hkNextDay = dateToIsoDayUtc(nextCycleDate);
+                const phaseDiff =
+                  notionPhaseNorm === null ||
+                  notionPhaseNorm === 'all' ||
+                  notionPhaseNorm !== hkAsPhase;
+                const dateDiff = notionDay !== hkNextDay;
+                if (phaseDiff || dateDiff) {
+                  await updatePhase(user, phase, nextCycleDate);
+                }
+              } catch (notionSyncErr) {
+                console.warn('[useHealthData] Notion sync tras HealthKit:', notionSyncErr);
+                const msg =
+                  notionSyncErr instanceof Error ? notionSyncErr.message : String(notionSyncErr);
+                posthog?.capture('health_data_notion_sync_failed', {
+                  domain: 'health_data',
+                  message: msg,
+                  user,
+                });
               }
             } else if (!cancelled && !lastFromDb) {
               const notion = await loadNotionPhaseOnly(user);
