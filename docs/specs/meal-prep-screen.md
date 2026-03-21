@@ -2,7 +2,7 @@
 
 ## Alcance
 
-- Pantalla [`src/screens/MealPrep.tsx`](../../src/screens/MealPrep.tsx): `getMealPrep()` (página completa, un nivel) → `expandMealPrepNotionBlocks(prep.blocks, listNotionBlockChildrenPage)` → `getTodayMeals(expanded)`.
+- Pantalla [`src/screens/MealPrep.tsx`](../../src/screens/MealPrep.tsx): `getMealPrep()` (hijos directos de la página del plan, `listBlockChildrenAll` en `notion.ts`) → `expandMealPrepNotionBlocks(prep.blocks, fetchHijosTabla)` → `getTodayMeals(expanded)`. El callback de expansión usa `fetch` a la API de Notion con `NOTION_API_KEY` desde `@env` (mismo criterio que `notion.ts`).
 - Navegación: pestaña **Comidas** en la barra inferior de [`App.tsx`](../../App.tsx), mismo patrón que Inicio / Checklist / Stock / Perfil.
 
 ## Parsing (`mealPrepParser.ts`)
@@ -28,4 +28,48 @@
 
 ## API Notion
 
-- `getMealPrep` usa solo `listBlockChildrenAll` en la página del plan. `listNotionBlockChildrenPage` (mismo `notionFetch` / headers que el cliente) se pasa a `expandMealPrepNotionBlocks` para traer hijos de cada `table` (`page_size` acotado, p. ej. 100).
+- `getMealPrep` (en `notion.ts`) lista **toda** la página del plan con `listBlockChildrenAll`; las filas `table_row` **no** vienen en ese listado.
+- La pantalla llama `expandMealPrepNotionBlocks`, que por cada bloque `table` pide `GET /v1/blocks/{id}/children?page_size=…` (vía callback `fetch` + `NOTION_API_KEY`).
+- Sigue existiendo `listNotionBlockChildrenPage` en `notion.ts` para otros usos; la pestaña Comidas no depende de ella.
+
+---
+
+## Cierre de feature (Comidas / meal prep)
+
+### Qué incluye
+
+| Pieza | Descripción |
+|-------|-------------|
+| Hub Notion | Página con `heading_2` **Comidas Activas** → primer `child_page` = plan semanal activo (`NOTION_MEAL_PREP_HUB_PAGE_ID`, opcional). |
+| `getMealPrep()` | Resuelve hub + plan; devuelve `{ title, pageId, blocks }` o `null`. |
+| Expansión de tablas | `expandMealPrepNotionBlocks` inserta tras cada `table` sus hijos `table_row` (un fetch por tabla en pantalla). |
+| `getTodayMeals()` | Día local en español, sección bajo `heading_3`, primera tabla, filas tipo/plato; cabecera si col0 es Comida/Tipo. |
+| UI | Pestaña **Comidas** en `App.tsx`; estados carga / vacío / error. |
+
+### Archivos tocados (referencia para commit)
+
+- `src/api/notion.ts` — `getMealPrep`, `listNotionBlockChildrenPage`, env hub opcional.
+- `src/screens/MealPrep.tsx` — efecto: prep → expand → `getTodayMeals`.
+- `src/utils/mealPrepParser.ts` — `expandMealPrepNotionBlocks`, `getTodayMeals`, tipos `NotionBlock`.
+- `src/utils/mealPrepParser.test.ts` — tests del parser.
+- `App.tsx` — tab `comidas`.
+- `src/types/env.d.ts` — `NOTION_MEAL_PREP_HUB_PAGE_ID`.
+- `README.md` — variable opcional en ejemplo `.env`.
+- Specs: `docs/specs/notion-meal-prep.md`, este archivo, `docs/specs/README.md`; reglas `notion-api.mdc`; `CLAUDE.md`.
+
+### Checklist antes de merge
+
+- [ ] `.env` con `NOTION_MEAL_PREP_HUB_PAGE_ID` si se usa Comidas (opcional).
+- [ ] Estructura Notion: bajo cada día, `heading_3` + tabla columnas tipo/plato; sección **Comidas Activas** en el hub.
+
+### Mensaje de commit sugerido
+
+```
+feat(comidas): meal prep desde Notion (hub Comidas Activas + pestaña Comidas)
+
+- getMealPrep: plan activo child_page + listBlockChildrenAll en la página
+- MealPrep: expandMealPrepNotionBlocks con fetch por tabla (NOTION_API_KEY @env)
+- getTodayMeals: día ES, tabla del tramo, skip cabecera Comida/Tipo
+- Tab Comidas en App; NOTION_MEAL_PREP_HUB_PAGE_ID opcional
+- Specs y tests en mealPrepParser
+```

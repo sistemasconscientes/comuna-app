@@ -2,7 +2,7 @@
 
 ## Alcance
 
-`getMealPrep()` en `src/api/notion.ts` obtiene el **plan de comidas activo** publicado en Notion: página hija bajo la sección **Comidas Activas** de una página hub configurada por entorno, y **todos** los bloques hijos directos de esa página del plan vía `listBlockChildrenAll` (sin expandir filas bajo tablas; eso lo hace la pantalla con `expandMealPrepNotionBlocks` + `listNotionBlockChildrenPage`).
+`getMealPrep()` en `src/api/notion.ts` obtiene el **plan de comidas activo** publicado en Notion: página hija bajo la sección **Comidas Activas** de una página hub configurada por entorno, y **todos** los bloques hijos directos de esa página del plan vía `listBlockChildrenAll` (sin `table_row` bajo tablas; la pantalla Comidas expande con `expandMealPrepNotionBlocks` y un callback `fetch` + `NOTION_API_KEY`, ver [`meal-prep-screen.md`](./meal-prep-screen.md)).
 
 ## Variable de entorno
 
