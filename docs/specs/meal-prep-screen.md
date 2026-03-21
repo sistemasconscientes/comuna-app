@@ -3,7 +3,7 @@
 ## Alcance
 
 - Pantalla [`src/screens/MealPrep.tsx`](../../src/screens/MealPrep.tsx): `getMealPrep()` (hijos directos de la página del plan, `listBlockChildrenAll` en `notion.ts`) → `expandMealPrepNotionBlocks(prep.blocks, fetchHijosTabla)` → `getTodayMeals(expanded)`. El callback de expansión usa `fetch` a la API de Notion con `NOTION_API_KEY` desde `@env` (mismo criterio que `notion.ts`).
-- Navegación: pestaña **Comidas** en la barra inferior de [`App.tsx`](../../App.tsx), mismo patrón que Inicio / Checklist / Stock / Perfil.
+- Navegación: pestaña **Comidas** en la barra inferior de [`App.tsx`](../../App.tsx), mismo patrón que Inicio / Stock / Perfil (ver [`app-tab-bar.md`](./app-tab-bar.md)).
 
 ## Parsing (`mealPrepParser.ts`)
 

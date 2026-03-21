@@ -51,10 +51,10 @@ src/
 │   ├── useStock.ts        # Gestión de inventario
 │   └── useHealthData.ts   # Datos del ciclo menstrual
 ├── screens/
-│   ├── Home.tsx           # Pantalla principal
-│   ├── Checklist.tsx      # Checklist diario de suplementos
+│   ├── Home.tsx           # Pantalla principal (suplementos del día)
+│   ├── MealPrep.tsx       # Pestaña Comidas
 │   ├── Stock.tsx          # Vista de inventario
-│   └── Profile.tsx        # Selector de usuario
+│   └── Profile.tsx        # Usuario activo y fase
 ├── types/
 │   └── index.ts           # Interfaces y tipos compartidos
 └── utils/

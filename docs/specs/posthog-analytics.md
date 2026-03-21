@@ -1,7 +1,7 @@
 # Spec: PostHog — analítica y errores críticos
 
 **Estado:** implementado  
-**Entrada:** [`index.tsx`](../../index.tsx) · **App:** [`App.tsx`](../../App.tsx) (persistencia usuario + picker) · **Hooks:** `src/hooks/useSupplements.ts`, `useHealthData.ts`, `useStock.ts`, `useDailyLog.ts` · **Pantallas:** `src/screens/MealPrep.tsx`, `src/screens/Profile.tsx`
+**Entrada:** [`index.tsx`](../../index.tsx) · **App:** [`App.tsx`](../../App.tsx) (persistencia usuario + picker, pestañas) · **Hooks:** `src/hooks/useSupplements.ts`, `useHealthData.ts`, `useStock.ts`, `useDailyLog.ts` · **Pantallas:** `src/screens/Home.tsx`, `MealPrep.tsx`, `Profile.tsx`, `Stock.tsx`
 
 ---
 
