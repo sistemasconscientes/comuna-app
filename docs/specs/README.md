@@ -8,5 +8,6 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 | [healthkit-cycle-sync.md](./healthkit-cycle-sync.md) | Ciclo menstrual: HealthKit, SQLite, Notion, QA iOS |
 | [stock-edit-modal-ios-keyboard.md](./stock-edit-modal-ios-keyboard.md) | Modal Stock + teclado en iOS |
 | [stock-restock-notion.md](./stock-restock-notion.md) | Bajo stock: `markForRestock`, `restock_flagged`, UI |
+| [notion-supplements-temporada.md](./notion-supplements-temporada.md) | `getSupplements`: filtro cliente por Temporada (año, Q1–Q4, fases) |
 
 Añadir aquí una fila al crear un spec nuevo.

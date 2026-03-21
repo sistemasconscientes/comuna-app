@@ -5,12 +5,24 @@ import { getSupplements } from '../api/notion';
 import type { Supplement } from '../types';
 import { db, supplements as supplementsTable } from '../db';
 
-export function useSupplements(user: 'diana' | 'estefania') {
+export type UseSupplementsOptions = {
+  /** Si es false, se traen todos los suplementos (p. ej. Stock); el filtro por temporada es en la UI. */
+  applyTemporadaFilter?: boolean;
+};
+
+export function useSupplements(
+  user: 'diana' | 'estefania',
+  currentPhase: string,
+  options?: UseSupplementsOptions,
+) {
   const posthog = usePostHog();
+  const applyTemporadaFilter = options?.applyTemporadaFilter !== false;
   const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [idByNotionId, setIdByNotionId] = useState<Record<string, number>>({});
+
+  const phaseDep = applyTemporadaFilter ? currentPhase : '';
 
   useEffect(() => {
     let cancelled = false;
@@ -18,7 +30,7 @@ export function useSupplements(user: 'diana' | 'estefania') {
       try {
         setLoading(true);
         setError(null);
-        const data = await getSupplements(user);
+        const data = await getSupplements(user, currentPhase, applyTemporadaFilter);
 
         // Sincroniza suplementos de Notion a SQLite (inserta los que faltan)
         let mapping: Record<string, number> = {};
@@ -90,7 +102,7 @@ export function useSupplements(user: 'diana' | 'estefania') {
     return () => {
       cancelled = true;
     };
-  }, [user, posthog]);
+  }, [user, phaseDep, applyTemporadaFilter, posthog]);
 
   return {
     supplements,

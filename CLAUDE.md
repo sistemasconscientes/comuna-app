@@ -18,7 +18,7 @@ App móvil iOS de seguimiento de suplementos basada en fases del ciclo menstrual
 - Convención: `docs/specs/*.md` — ver `docs/specs/README.md` y `.cursor/rules/spec-driven.mdc`.
 
 ## Arquitectura clave
-- `src/api/notion.ts` — Fetch desde Notion API. La app sincroniza al iniciar. Funciones principales: `getSupplements(user)`, `getCurrentPhase(user)`, `updatePhase(user, phase, nextCycle)` (tabla inline de fases con texto + emoji), `markForRestock(notion_id)`
+- `src/api/notion.ts` — Fetch desde Notion API. La app sincroniza al iniciar. Funciones principales: `getSupplements(user, currentPhase, applyTemporadaFilter?)`, `getCurrentPhase(user)`, `updatePhase(user, phase, nextCycle)` (tabla inline de fases con texto + emoji), `markForRestock(notion_id)`
 - `src/api/healthkit.ts` — iOS: lectura de última menstruación para derivar fase (ver spec HealthKit)
 - `src/db/schema.ts` — Schema SQLite local: `supplements`, `dailyLogs`, `stock` (incl. `restock_flagged` para deduplicar recompra en Notion), `phases`, `cycle_states`
 - `src/hooks/` — Lógica de negocio. Un hook por dominio. `useHealthData`: con datos de HealthKit, compara fase/fecha con Notion y llama a `updatePhase` solo si difieren. `useStock`: persiste `restock_flagged` al marcar recompra.

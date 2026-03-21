@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,9 +16,11 @@ import {
   View,
 } from 'react-native';
 import { markForRestock } from '../api/notion';
+import { useHealthData } from '../hooks/useHealthData';
 import { useSupplements } from '../hooks/useSupplements';
 import { useStock } from '../hooks/useStock';
 import type { Supplement, StockEntry } from '../types';
+import { filterSupplementsByCurrentTemporada } from '../utils/temporadaFilter';
 
 type User = 'diana' | 'estefania';
 
@@ -57,10 +59,21 @@ interface EditState {
 }
 
 export default function Stock({ user }: Props) {
-  const { supplements, loading: suppLoading, error: suppError, idByNotionId } = useSupplements(user);
+  const { cyclePhase } = useHealthData(user);
+  const { supplements, loading: suppLoading, error: suppError, idByNotionId } = useSupplements(
+    user,
+    cyclePhase ?? '',
+    { applyTemporadaFilter: false },
+  );
   const { data: stockData, loading: stockLoading, updateBottle, setRestockFlagged } = useStock();
   const [editState, setEditState] = useState<EditState | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [temporadaView, setTemporadaView] = useState<'all' | 'current'>('all');
+
+  const visibleSupplements = useMemo(() => {
+    if (temporadaView === 'all') return supplements;
+    return filterSupplementsByCurrentTemporada(supplements, cyclePhase ?? '');
+  }, [supplements, temporadaView, cyclePhase]);
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
@@ -174,6 +187,27 @@ export default function Stock({ user }: Props) {
     <View style={styles.container}>
       <Text style={styles.title}>Stock</Text>
 
+      <View style={styles.filterRow}>
+        <TouchableOpacity
+          style={[styles.filterChip, temporadaView === 'all' && styles.filterChipActive]}
+          onPress={() => setTemporadaView('all')}
+        >
+          <Text style={[styles.filterChipText, temporadaView === 'all' && styles.filterChipTextActive]}>
+            Todas
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterChip, temporadaView === 'current' && styles.filterChipActive]}
+          onPress={() => setTemporadaView('current')}
+        >
+          <Text
+            style={[styles.filterChipText, temporadaView === 'current' && styles.filterChipTextActive]}
+          >
+            Temporada actual
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {lowCount > 0 && (
         <View style={styles.alertBanner}>
           <Text style={styles.alertText}>
@@ -183,9 +217,16 @@ export default function Stock({ user }: Props) {
       )}
 
       <FlatList
-        data={supplements}
+        data={visibleSupplements}
         keyExtractor={(s) => s.notion_id}
         contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          temporadaView === 'current' ? (
+            <Text style={styles.emptyFilterText}>
+              Ningún suplemento coincide con mes + fase actuales.
+            </Text>
+          ) : null
+        }
         renderItem={({ item }) => {
           const localId = idByNotionId[item.notion_id];
           const entry = localId != null ? getEntry(localId) : undefined;
@@ -303,6 +344,29 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { color: '#E53935', textAlign: 'center', padding: 20 },
   title: { fontSize: 24, fontWeight: '700', color: '#222', padding: 20, paddingBottom: 8 },
+
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  filterChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: '#EEE',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  filterChipActive: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#81C784',
+  },
+  filterChipText: { fontSize: 14, color: '#555', fontWeight: '500' },
+  filterChipTextActive: { color: '#2E7D32' },
+  emptyFilterText: { textAlign: 'center', color: '#888', paddingVertical: 24, paddingHorizontal: 20 },
 
   alertBanner: {
     backgroundColor: '#FFF3E0',

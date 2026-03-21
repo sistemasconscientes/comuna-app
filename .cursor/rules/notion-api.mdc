@@ -15,7 +15,7 @@ alwaysApply: false
 - `NOTION_PHASES_PAGE_ID` — ID de la página con la tabla de fases por usuario
 
 ## Funciones públicas
-- `getSupplements(user)` — Fetch de suplementos filtrados por usuario y disponibilidad. Retorna `Supplement[]`
+- `getSupplements(user, currentPhase, applyTemporadaFilter?)` — Fetch de suplementos por usuario y disponibilidad en Notion. Con `applyTemporadaFilter !== false` (default), filtra por **Temporada** en cliente (año completo, Q1–Q4, fases). Con `false`, devuelve todos y cada ítem incluye `temporadaLabels` para filtrar en UI (Stock). Retorna `Supplement[]`
 - `getCurrentPhase(user)` — Fase actual y próximo ciclo del usuario. Retorna `{ phase: string; nextCycle: Date }`
 - `updatePhase(user, phase, nextCycle)` — Actualiza la fila del usuario en la tabla inline: columna de fase con texto fijo + emoji según clave (`menstrual` / `folicular` / `ovulatoria` o `ovulacion` / `lutea`); columna de próximo ciclo en `YYYY-MM-DD`
 - `markForRestock(notion_id)` — Marca un suplemento para restock en Notion

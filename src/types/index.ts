@@ -10,6 +10,8 @@ export interface Supplement {
   category: string[];
   dose: string;
   phase_specific: Phase | 'all';
+  /** Etiquetas Notion (Temporada / Season) para filtrar en Stock u otras vistas. */
+  temporadaLabels: string[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
