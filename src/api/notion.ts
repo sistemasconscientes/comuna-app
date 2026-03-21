@@ -329,19 +329,9 @@ export async function getMealPrep(): Promise<{
   pageId: string;
   blocks: any[];
 } | null> {
-  console.log('getMealPrep called, hubId raw:', JSON.stringify(MEAL_PREP_HUB_PAGE_ID));
-  console.log('hubId trimmed:', JSON.stringify(MEAL_PREP_HUB_PAGE_ID?.trim()));
   const hubId = MEAL_PREP_HUB_PAGE_ID.trim();
   if (!hubId) return null;
   const hubBlocks = await listBlockChildrenAll(hubId);
-  console.log('hubId:', hubId);
-console.log('hubBlocks count:', hubBlocks.length);
-console.log('hubBlocks types:', hubBlocks.map((b: any) => b.type).join(', '));
-console.log('heading_2 texts:', hubBlocks
-  .filter((b: any) => b.type === 'heading_2')
-  .map((b: any) => JSON.stringify(b.heading_2?.rich_text?.[0]?.plain_text))
-  .join(' | ')
-);
   const h2Index = hubBlocks.findIndex(
     (b) => b.type === 'heading_2' && heading2PlainText(b) === 'Comidas Activas',
   );

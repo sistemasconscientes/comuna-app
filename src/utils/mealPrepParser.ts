@@ -81,15 +81,11 @@ export async function expandMealPrepNotionBlocks(
   listChildren: (blockId: string, pageSize: number) => Promise<any[]>,
   tableChildPageSize = 100,
 ): Promise<NotionBlock[]> {
-  
   const out: NotionBlock[] = [];
   for (const b of blocks) {
-    console.log('expand block type:', b.type, b.id);
     out.push(b);
     if (b.type === 'table') {
       const rows = await listChildren(b.id, tableChildPageSize);
-      console.log('table', b.id, 'rows fetched:', rows.length);
-
       for (const row of rows) {
         out.push(row as NotionBlock);
       }

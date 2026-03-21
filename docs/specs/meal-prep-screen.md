@@ -57,6 +57,11 @@
 - `README.md` — variable opcional en ejemplo `.env`.
 - Specs: `docs/specs/notion-meal-prep.md`, este archivo, `docs/specs/README.md`; reglas `notion-api.mdc`; `CLAUDE.md`.
 
+### PostHog
+
+- `meal_prep_loaded` — al terminar la carga de la pestaña (con o sin plan semanal).
+- `notion_meal_prep_load_failed` — error en el flujo (fetch/expand/parse). Ver [`posthog-analytics.md`](./posthog-analytics.md).
+
 ### Checklist antes de merge
 
 - [ ] `.env` con `NOTION_MEAL_PREP_HUB_PAGE_ID` si se usa Comidas (opcional).

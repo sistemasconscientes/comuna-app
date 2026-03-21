@@ -6,8 +6,10 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { usePostHog } from 'posthog-react-native';
 import { NOTION_API_KEY } from '@env';
 import { getMealPrep } from '../api/notion';
+import { useUser } from '../context/UserContext';
 import {
   expandMealPrepNotionBlocks,
   getTodayMeals,
@@ -15,6 +17,8 @@ import {
 } from '../utils/mealPrepParser';
 
 export default function MealPrep() {
+  const posthog = usePostHog();
+  const { user } = useUser();
   const [weekTitle, setWeekTitle] = React.useState<string | null>(null);
   const [today, setToday] = React.useState<ReturnType<typeof getTodayMeals>>(null);
   const [loading, setLoading] = React.useState(true);
@@ -31,6 +35,14 @@ export default function MealPrep() {
           setWeekTitle(prep?.title ?? null);
           setToday(null);
           setLoading(false);
+          if (!cancelled) {
+            posthog?.capture('meal_prep_loaded', {
+              user,
+              has_week_plan: false,
+              has_today_meals: false,
+              meals_count: 0,
+            });
+          }
           return;
         }
         setWeekTitle(prep.title);
@@ -56,19 +68,34 @@ export default function MealPrep() {
         );
 
         if (cancelled) return;
-        setToday(getTodayMeals(expanded));
+        const todayMeals = getTodayMeals(expanded);
+        setToday(todayMeals);
+        posthog?.capture('meal_prep_loaded', {
+          user,
+          has_week_plan: true,
+          has_today_meals: Boolean(todayMeals),
+          meals_count: todayMeals?.meals.length ?? 0,
+          top_level_block_count: prep.blocks.length,
+          expanded_block_count: expanded.length,
+        });
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : String(e));
+          const message = e instanceof Error ? e.message : String(e);
+          setError(message);
           setWeekTitle(null);
           setToday(null);
+          posthog?.capture('notion_meal_prep_load_failed', {
+            domain: 'notion',
+            message,
+            user,
+          });
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [user, posthog]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>

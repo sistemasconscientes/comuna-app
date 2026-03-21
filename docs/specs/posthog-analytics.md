@@ -1,7 +1,7 @@
 # Spec: PostHog — analítica y errores críticos
 
 **Estado:** implementado  
-**Entrada:** [`index.tsx`](../../index.tsx) · **App:** [`App.tsx`](../../App.tsx) · **Hooks:** `src/hooks/useSupplements.ts`, `useHealthData.ts`, `useStock.ts`, `useDailyLog.ts`
+**Entrada:** [`index.tsx`](../../index.tsx) · **App:** [`App.tsx`](../../App.tsx) · **Hooks:** `src/hooks/useSupplements.ts`, `useHealthData.ts`, `useStock.ts`, `useDailyLog.ts` · **Pantalla:** `src/screens/MealPrep.tsx`
 
 ---
 
@@ -81,6 +81,8 @@ Todos los `capture` son no-op si PostHog está deshabilitado (`posthog?.capture`
 | `healthkit_sync_retried` | Pulsar «Reintentar sincronización con Salud» en Perfil (iOS) | `user` |
 | `stock_load_failed` | Fallo al leer tabla stock | `domain: 'sqlite'`, `message` |
 | `daily_log_load_failed` | Fallo al leer daily logs por fecha | `domain: 'sqlite'`, `message`, `date` |
+| `meal_prep_loaded` | Carga completa de la pestaña Comidas (éxito o sin plan en Notion) | `user`, `has_week_plan`, `has_today_meals`, `meals_count`; si hay plan: `top_level_block_count`, `expanded_block_count` |
+| `notion_meal_prep_load_failed` | Excepción al obtener/expandir/parsear meal prep | `domain: 'notion'`, `message`, `user` |
 
 ### Verificación de integración (no productivos)
 
