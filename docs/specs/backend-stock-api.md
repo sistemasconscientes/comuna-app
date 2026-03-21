@@ -16,7 +16,7 @@ Fuera de alcance: autenticación, CORS explícito, cliente móvil.
 
 ---
 
-## Variables de entorno (`backend/.env`)
+## Variables de entorno
 
 | Variable       | Descripción                          |
 |----------------|--------------------------------------|
@@ -24,7 +24,9 @@ Fuera de alcance: autenticación, CORS explícito, cliente móvil.
 | `appName`      | Nombre de aplicación para el driver (ej. `sistemasconscientes`) |
 | `PORT`         | Puerto HTTP (default `3000`)        |
 
-No versionar `.env`; copiar `MONGODB_URI` desde el `.env` raíz del repo o definirla localmente.
+Carga (`backend/src/loadEnv.ts`): primero el `.env` en la **raíz del monorepo**, luego `backend/.env` (puede sobrescribir). Así `npm run dev` en `backend/` usa el mismo `MONGODB_URI` que la app sin duplicar secretos.
+
+No versionar `.env`; opcional: solo raíz, solo `backend/.env`, o ambos.
 
 ---
 

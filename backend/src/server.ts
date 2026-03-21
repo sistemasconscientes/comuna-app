@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './loadEnv';
 import express from 'express';
 import { connectDB } from './db';
 import stockRoutes from './routes/stock';

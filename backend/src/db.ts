@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './loadEnv';
 import mongoose from 'mongoose';
 
 export async function connectDB(): Promise<void> {
