@@ -28,23 +28,23 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-  [
-    "expo-sqlite",
-    {
-      "enableFTS": true,
-      "useSQLCipher": false
-    }
-  ],
-  [
-    "@kingstinct/react-native-healthkit",
-    {
-      "NSHealthShareUsageDescription": "La Comuna necesita leer tu ciclo menstrual para personalizar tus suplementos",
-      "NSHealthUpdateUsageDescription": "La Comuna puede registrar datos de ciclo",
-      "background": false
-    }
-  ],
-  "expo-localization"
-  ],
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": true,
+          "useSQLCipher": false
+        }
+      ],
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "La Comuna necesita leer tu ciclo menstrual para personalizar tus suplementos",
+          "NSHealthUpdateUsageDescription": "La Comuna puede registrar datos de ciclo",
+          "background": false
+        }
+      ],
+      "expo-localization"
+    ],
     "android": {
       "package": "com.janee.comunaapp"
     },
