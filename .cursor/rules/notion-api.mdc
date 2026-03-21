@@ -13,12 +13,15 @@ alwaysApply: false
 - `NOTION_API_KEY` — token de integración de Notion
 - `NOTION_SUPPLEMENTS_DB_ID` — ID de la base de datos de suplementos
 - `NOTION_PHASES_PAGE_ID` — ID de la página con la tabla de fases por usuario
+- `NOTION_MEAL_PREP_HUB_PAGE_ID` — (opcional) ID de la página con `heading_2` **Comidas Activas**; si falta, `getMealPrep` devuelve `null`
 
 ## Funciones públicas
 - `getSupplements(user, currentPhase, applyTemporadaFilter?)` — Fetch de suplementos por usuario y disponibilidad en Notion. Con `applyTemporadaFilter !== false` (default), filtra por **Temporada** en cliente (año completo, Q1–Q4, fases). Con `false`, devuelve todos y cada ítem incluye `temporadaLabels` para filtrar en UI (Stock). Retorna `Supplement[]`
 - `getCurrentPhase(user)` — Fase actual y próximo ciclo del usuario. Retorna `{ phase: string; nextCycle: Date }`
 - `updatePhase(user, phase, nextCycle)` — Actualiza la fila del usuario en la tabla inline: columna de fase con texto fijo + emoji según clave (`menstrual` / `folicular` / `ovulatoria` o `ovulacion` / `lutea`); columna de próximo ciclo en `YYYY-MM-DD`
 - `markForRestock(notion_id)` — Marca un suplemento para restock en Notion
+- `getMealPrep()` — Plan de comidas activo: primer `child_page` tras **Comidas Activas** en el hub; retorna título, id de página y `blocks` (hijos directos de la página del plan, `listBlockChildrenAll`), o `null`
+- `listNotionBlockChildrenPage(blockId, pageSize)` — Una página de hijos de un bloque (p. ej. filas `table_row` bajo un `table`); uso típico desde `mealPrepParser` / pantalla Comidas
 
 ## Schema de Notion
 

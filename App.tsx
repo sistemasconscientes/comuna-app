@@ -8,6 +8,7 @@ import migrations from './src/db/migrations/migrations';
 import Home from './src/screens/Home';
 import Checklist from './src/screens/Checklist';
 import Stock from './src/screens/Stock';
+import MealPrep from './src/screens/MealPrep';
 import Profile from './src/screens/Profile';
 import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
@@ -34,12 +35,13 @@ function MigrationFailureReporter({ error }: { error: Error }) {
   return null;
 }
 
-type Tab = 'home' | 'checklist' | 'stock' | 'perfil';
+type Tab = 'home' | 'checklist' | 'stock' | 'comidas' | 'perfil';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'home', label: 'Inicio' },
   { key: 'checklist', label: 'Checklist' },
   { key: 'stock', label: 'Stock' },
+  { key: 'comidas', label: 'Comidas' },
   { key: 'perfil', label: 'Perfil' },
 ];
 
@@ -83,6 +85,7 @@ export default function App() {
           {activeTab === 'home' && <Home />}
           {activeTab === 'checklist' && <Checklist />}
           {activeTab === 'stock' && <Stock user={user} />}
+          {activeTab === 'comidas' && <MealPrep />}
           {activeTab === 'perfil' && <Profile />}
         </View>
 

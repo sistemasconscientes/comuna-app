@@ -44,6 +44,9 @@
         }
       ],
       "expo-localization"
-    ]
+    ],
+    "android": {
+      "package": "com.janee.comunaapp"
+    }
   }
 }

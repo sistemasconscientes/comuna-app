@@ -21,6 +21,8 @@ Crear archivo `.env` en la raíz con las siguientes variables:
 NOTION_API_KEY=
 NOTION_SUPPLEMENTS_DB_ID=
 NOTION_PHASES_PAGE_ID=
+# Opcional: pestaña Comidas / meal prep (página con heading "Comidas Activas")
+NOTION_MEAL_PREP_HUB_PAGE_ID=
 ```
 
 Correr la app:

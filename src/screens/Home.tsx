@@ -4,6 +4,7 @@ import { useHealthData } from '../hooks/useHealthData';
 import { useSupplements } from '../hooks/useSupplements';
 import { useDailyLog } from '../hooks/useDailyLog';
 import { useUser } from '../context/UserContext';
+import { getMealPrep } from '../api/notion';
 
 const PHASE_LABELS: Record<string, string> = {
   menstrual: 'Menstrual',
@@ -20,6 +21,11 @@ const PHASE_COLORS: Record<string, string> = {
 };
 
 export default function Home() {
+  getMealPrep().then(result => {
+    console.log('getMealPrep result:', JSON.stringify(result?.title), 'blocks:', result?.blocks?.length);
+  }).catch(e => {
+    console.log('getMealPrep error:', e.message);
+  });
   const { user } = useUser();
   const { cyclePhase, cycleDay, loading: healthLoading, error: healthError } = useHealthData(user);
   const { supplements, idByNotionId, error: supplementsError } = useSupplements(
