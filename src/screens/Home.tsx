@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { EnergyChart, type EnergyChartPhase } from '../components/EnergyChart';
 import { useHealthData } from '../hooks/useHealthData';
 import { useSupplements } from '../hooks/useSupplements';
 import { useDailyLog } from '../hooks/useDailyLog';
@@ -31,6 +32,13 @@ export default function Home() {
   const phaseColor = cyclePhase ? PHASE_COLORS[cyclePhase] : '#ccc';
   const phaseLabel = cyclePhase ? PHASE_LABELS[cyclePhase] : '—';
 
+  const energyChartPhase: EnergyChartPhase =
+    cyclePhase === 'ovulacion'
+      ? 'ovulatoria'
+      : cyclePhase === 'menstrual' || cyclePhase === 'folicular' || cyclePhase === 'lutea'
+        ? cyclePhase
+        : 'menstrual';
+
   const takenCount = supplements.reduce((count, s) => {
     const localId = idByNotionId[s.notion_id];
     if (!localId) return count;
@@ -61,6 +69,8 @@ export default function Home() {
           </>
         )}
       </View>
+
+      <EnergyChart currentPhase={energyChartPhase} dayInCycle={cycleDay ?? 1} />
 
       {/* Progreso del día */}
       <View style={styles.progressCard}>

@@ -14,5 +14,6 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 | [user-selected-persistence.md](./user-selected-persistence.md) | Usuario activo persistido en AsyncStorage, picker inicial, «Cambiar usuario» |
 | [app-tab-bar.md](./app-tab-bar.md) | Pestañas inferiores (`App.tsx`), retiro de Checklist vs Inicio |
 | [daily-log-by-date.md](./daily-log-by-date.md) | Registro de tomas por fecha, acceso desde Perfil |
+| [home-energy-chart.md](./home-energy-chart.md) | Inicio: tarjeta gráfica de nivel de energía (`EnergyChart`, `victory-native`) |
 
 Añadir aquí una fila al crear un spec nuevo.
