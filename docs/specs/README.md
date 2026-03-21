@@ -16,5 +16,6 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 | [daily-log-by-date.md](./daily-log-by-date.md) | Registro de tomas por fecha, acceso desde Perfil |
 | [home-energy-chart.md](./home-energy-chart.md) | Inicio: tarjeta gráfica de nivel de energía (`EnergyChart`, `victory-native`) |
 | [home-screen-ui.md](./home-screen-ui.md) | Inicio: layout cabecera, paleta terracota/crema, lista tipo checklist |
+| [npm-deprecation-warnings.md](./npm-deprecation-warnings.md) | `npm warn deprecated`: diagnóstico, overrides seguros, avisos restantes |
 
 Añadir aquí una fila al crear un spec nuevo.

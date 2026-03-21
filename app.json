@@ -20,33 +20,39 @@
       },
       "infoPlist": {
         "NSHealthShareUsageDescription": "Usamos HealthKit para leer datos de tu ciclo menstrual y adaptar tus suplementos.",
-        "NSHealthUpdateUsageDescription": "Usamos HealthKit para registrar datos de salud relevantes."
+        "NSHealthUpdateUsageDescription": "Usamos HealthKit para registrar datos de salud relevantes.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-sqlite",
-        {
-          "enableFTS": true,
-          "useSQLCipher": false
-        }
-      ],
-      "expo-dev-client",
-      [
-        "@kingstinct/react-native-healthkit",
-        {
-          "NSHealthShareUsageDescription": "La Comuna necesita leer tu ciclo menstrual para personalizar tus suplementos",
-          "NSHealthUpdateUsageDescription": "La Comuna puede registrar datos de ciclo",
-          "background": false
-        }
-      ],
-      "expo-localization"
-    ],
+  [
+    "expo-sqlite",
+    {
+      "enableFTS": true,
+      "useSQLCipher": false
+    }
+  ],
+  [
+    "@kingstinct/react-native-healthkit",
+    {
+      "NSHealthShareUsageDescription": "La Comuna necesita leer tu ciclo menstrual para personalizar tus suplementos",
+      "NSHealthUpdateUsageDescription": "La Comuna puede registrar datos de ciclo",
+      "background": false
+    }
+  ],
+  "expo-localization"
+  ],
     "android": {
       "package": "com.janee.comunaapp"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4c8d61f7-1bc4-439c-8ba8-aefe7803c24e"
+      }
+    },
+    "owner": "labsistemasconscientes"
   }
 }
