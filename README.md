@@ -53,6 +53,7 @@ src/
 ├── screens/
 │   ├── Home.tsx           # Pantalla principal (suplementos del día)
 │   ├── MealPrep.tsx       # Pestaña Comidas
+│   ├── DailyLogByDate.tsx # Tomas por fecha (desde Perfil)
 │   ├── Stock.tsx          # Vista de inventario
 │   └── Profile.tsx        # Usuario activo y fase
 ├── types/

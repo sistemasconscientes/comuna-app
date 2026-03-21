@@ -1,9 +1,21 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
 import { usePostHog } from 'posthog-react-native';
 import { useUser } from '../context/UserContext';
 import { useHealthData } from '../hooks/useHealthData';
+import DailyLogByDate from './DailyLogByDate';
 import type { CycleDataSource } from '../types';
+
+/** Poner en `true` para mostrar de nuevo diagnóstico HealthKit y reintentar sync en Perfil. */
+const SHOW_HEALTHKIT_QA = false;
 
 const SOURCE_LABELS: Record<CycleDataSource, string> = {
   healthkit: 'Salud (HealthKit)',
@@ -27,6 +39,7 @@ const PHASE_COLORS: Record<string, string> = {
 
 export default function Profile() {
   const posthog = usePostHog();
+  const [dailyLogOpen, setDailyLogOpen] = React.useState(false);
   const { user, setUser, clearStoredUserAndShowPicker } = useUser();
   const {
     cyclePhase,
@@ -43,23 +56,20 @@ export default function Profile() {
     refetch();
   };
 
-  const sendPostHogTest = () => {
-    posthog?.capture('posthog_integration_verify_manual', {
-      trigger: 'profile_button',
-      user,
-      at: new Date().toISOString(),
-    });
-    Alert.alert(
-      'PostHog',
-      'Evento de prueba enviado. Búscalo en PostHog → Activity (puede tardar unos segundos).'
-    );
-  };
-
   const phaseColor = cyclePhase ? PHASE_COLORS[cyclePhase] : '#ccc';
   const phaseLabel = cyclePhase ? PHASE_LABELS[cyclePhase] : '—';
 
+  if (dailyLogOpen) {
+    return <DailyLogByDate onBack={() => setDailyLogOpen(false)} />;
+  }
+
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator
+    >
       <Text style={styles.title}>Perfil</Text>
 
       <View style={styles.selectorCard}>
@@ -91,6 +101,15 @@ export default function Profile() {
         </TouchableOpacity>
       </View>
 
+      <TouchableOpacity
+        style={styles.linkCard}
+        onPress={() => setDailyLogOpen(true)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.linkCardTitle}>Mis tomas por día</Text>
+        <Text style={styles.linkCardSubtitle}>Ver o corregir suplementos tomados en cualquier fecha</Text>
+      </TouchableOpacity>
+
       <View style={[styles.phaseCard, { borderColor: phaseColor }]}>
         <Text style={styles.phaseLabelSmall}>Fase actual</Text>
         {loading ? (
@@ -107,7 +126,7 @@ export default function Profile() {
         )}
       </View>
 
-      {Platform.OS === 'ios' && (
+      {SHOW_HEALTHKIT_QA && Platform.OS === 'ios' && (
         <View style={styles.qaCard}>
           <Text style={styles.qaTitle}>Ciclo menstrual (QA)</Text>
           <Text style={styles.qaLine}>
@@ -143,18 +162,13 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
       )}
-
-      {__DEV__ && (
-        <TouchableOpacity style={styles.testBtn} onPress={sendPostHogTest} activeOpacity={0.7}>
-          <Text style={styles.testBtnText}>Enviar evento de prueba (PostHog)</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA', padding: 20, gap: 16 },
+  scroll: { flex: 1, backgroundColor: '#FAFAFA' },
+  scrollContent: { padding: 20, paddingBottom: 32, gap: 16 },
   title: { fontSize: 24, fontWeight: '700', color: '#222' },
   selectorCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20 },
   selectorLabel: { fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
@@ -176,6 +190,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   changeUserBtnText: { fontSize: 14, fontWeight: '600', color: '#666' },
+  linkCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+  },
+  linkCardTitle: { fontSize: 16, fontWeight: '600', color: '#222' },
+  linkCardSubtitle: { fontSize: 13, color: '#888', marginTop: 6, lineHeight: 18 },
   phaseCard: {
     borderWidth: 2,
     borderRadius: 16,
@@ -187,17 +210,6 @@ const styles = StyleSheet.create({
   phaseValue: { fontSize: 28, fontWeight: '700', marginTop: 4 },
   cycleDay: { fontSize: 14, color: '#888', marginTop: 4 },
   errorText: { color: '#C62828', fontSize: 14, marginTop: 4 },
-  testBtn: {
-    marginTop: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#CCC',
-    backgroundColor: '#fff',
-    alignItems: 'center',
-  },
-  testBtnText: { fontSize: 13, color: '#666' },
   qaCard: {
     backgroundColor: '#F5F5F5',
     borderRadius: 12,
@@ -207,9 +219,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   qaTitle: { fontSize: 13, fontWeight: '700', color: '#444' },
+  qaHint: { fontSize: 11, color: '#888', lineHeight: 16, marginTop: 4 },
   qaLine: { fontSize: 13, color: '#333' },
   qaMuted: { color: '#888' },
-  qaHint: { fontSize: 11, color: '#888', lineHeight: 16, marginTop: 4 },
   retryBtn: {
     marginTop: 8,
     paddingVertical: 12,

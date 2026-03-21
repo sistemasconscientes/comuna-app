@@ -1,7 +1,7 @@
 # Spec: PostHog — analítica y errores críticos
 
 **Estado:** implementado  
-**Entrada:** [`index.tsx`](../../index.tsx) · **App:** [`App.tsx`](../../App.tsx) (persistencia usuario + picker, pestañas) · **Hooks:** `src/hooks/useSupplements.ts`, `useHealthData.ts`, `useStock.ts`, `useDailyLog.ts` · **Pantallas:** `src/screens/Home.tsx`, `MealPrep.tsx`, `Profile.tsx`, `Stock.tsx`
+**Entrada:** [`index.tsx`](../../index.tsx) · **App:** [`App.tsx`](../../App.tsx) (persistencia usuario + picker, pestañas) · **Hooks:** `src/hooks/useSupplements.ts`, `useHealthData.ts`, `useStock.ts`, `useDailyLog.ts` · **Pantallas:** `src/screens/Home.tsx`, `MealPrep.tsx`, `Profile.tsx`, `DailyLogByDate.tsx`, `Stock.tsx`
 
 ---
 
@@ -89,13 +89,14 @@ Todos los `capture` son no-op si PostHog está deshabilitado (`posthog?.capture`
 | `user_switched_in_profile` | Cambio Diana/Estefanía en Perfil (solo si el perfil cambia) | `previous_user`, `user` |
 | `stored_user_cleared` | Pulsar «Cambiar usuario» en Perfil (tras borrar clave) | `previous_user` |
 | `user_persistence_failed` | Error al leer/escribir/borrar `selected_user` en AsyncStorage | `operation`: `read` \| `write` \| `remove`, `message` |
+| `daily_log_history_opened` | Abrir «Mis tomas por día» desde Perfil (montaje de `DailyLogByDate`) | `user` |
 
 ### Verificación de integración (no productivos)
 
 | Evento | Disparador |
 |--------|------------|
 | `posthog_integration_verify` | Cold start en **`__DEV__`** si PostHog está activo (`index.tsx`). |
-| `posthog_integration_verify_manual` | Botón en Perfil (solo **`__DEV__`**): “Enviar evento de prueba (PostHog)”. |
+| `posthog_integration_verify_manual` | ~~Botón en Perfil~~ retirado de la UI; el evento puede seguir documentado por si se vuelve a exponer en dev. |
 
 ### Reglas
 
