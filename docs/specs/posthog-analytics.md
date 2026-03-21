@@ -1,7 +1,7 @@
 # Spec: PostHog — analítica y errores críticos
 
 **Estado:** implementado  
-**Entrada:** [`index.tsx`](../../index.tsx) · **App:** [`App.tsx`](../../App.tsx) · **Hooks:** `src/hooks/useSupplements.ts`, `useHealthData.ts`, `useStock.ts`, `useDailyLog.ts` · **Pantalla:** `src/screens/MealPrep.tsx`
+**Entrada:** [`index.tsx`](../../index.tsx) · **App:** [`App.tsx`](../../App.tsx) (persistencia usuario + picker) · **Hooks:** `src/hooks/useSupplements.ts`, `useHealthData.ts`, `useStock.ts`, `useDailyLog.ts` · **Pantallas:** `src/screens/MealPrep.tsx`, `src/screens/Profile.tsx`
 
 ---
 
@@ -83,6 +83,12 @@ Todos los `capture` son no-op si PostHog está deshabilitado (`posthog?.capture`
 | `daily_log_load_failed` | Fallo al leer daily logs por fecha | `domain: 'sqlite'`, `message`, `date` |
 | `meal_prep_loaded` | Carga completa de la pestaña Comidas (éxito o sin plan en Notion) | `user`, `has_week_plan`, `has_today_meals`, `meals_count`; si hay plan: `top_level_block_count`, `expanded_block_count` |
 | `notion_meal_prep_load_failed` | Excepción al obtener/expandir/parsear meal prep | `domain: 'notion'`, `message`, `user` |
+| `selected_user_restored` | Hidratación en arranque: hay `selected_user` válido en AsyncStorage | `user` |
+| `user_picker_shown` | Se muestra la pantalla de selector de perfil (sin pestañas) | `reason`: `no_stored_value` \| `manual_clear` |
+| `user_picker_completed` | Elección de perfil en la pantalla de selector de `App` | `user`, `reason` (mismo valor que `user_picker_shown`) |
+| `user_switched_in_profile` | Cambio Diana/Estefanía en Perfil (solo si el perfil cambia) | `previous_user`, `user` |
+| `stored_user_cleared` | Pulsar «Cambiar usuario» en Perfil (tras borrar clave) | `previous_user` |
+| `user_persistence_failed` | Error al leer/escribir/borrar `selected_user` en AsyncStorage | `operation`: `read` \| `write` \| `remove`, `message` |
 
 ### Verificación de integración (no productivos)
 

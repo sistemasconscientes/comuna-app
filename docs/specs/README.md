@@ -11,5 +11,6 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 | [notion-supplements-temporada.md](./notion-supplements-temporada.md) | `getSupplements`: filtro cliente por Temporada (año, Q1–Q4, fases) |
 | [notion-meal-prep.md](./notion-meal-prep.md) | `getMealPrep`: plan activo, hijos directos de la página (`listBlockChildrenAll`) |
 | [meal-prep-screen.md](./meal-prep-screen.md) | Pantalla Comidas, `mealPrepParser`, tab en `App` |
+| [user-selected-persistence.md](./user-selected-persistence.md) | Usuario activo persistido en AsyncStorage, picker inicial, «Cambiar usuario» |
 
 Añadir aquí una fila al crear un spec nuevo.

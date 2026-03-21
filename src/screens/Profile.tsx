@@ -27,7 +27,7 @@ const PHASE_COLORS: Record<string, string> = {
 
 export default function Profile() {
   const posthog = usePostHog();
-  const { user, setUser } = useUser();
+  const { user, setUser, clearStoredUserAndShowPicker } = useUser();
   const {
     cyclePhase,
     cycleDay,
@@ -82,6 +82,13 @@ export default function Profile() {
             </Text>
           </TouchableOpacity>
         </View>
+        <TouchableOpacity
+          style={styles.changeUserBtn}
+          onPress={clearStoredUserAndShowPicker}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.changeUserBtnText}>Cambiar usuario</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={[styles.phaseCard, { borderColor: phaseColor }]}>
@@ -163,6 +170,12 @@ const styles = StyleSheet.create({
   selectorBtnActive: { borderColor: '#222', backgroundColor: '#222' },
   selectorBtnText: { fontSize: 16, fontWeight: '600', color: '#888' },
   selectorBtnTextActive: { color: '#fff' },
+  changeUserBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  changeUserBtnText: { fontSize: 14, fontWeight: '600', color: '#666' },
   phaseCard: {
     borderWidth: 2,
     borderRadius: 16,
