@@ -4,7 +4,7 @@ import {
   NOTION_SUPPLEMENTS_DB_ID,
   NOTION_PHASES_PAGE_ID,
 } from '@env';
-import type { Supplement } from '../types';
+import type { Supplement, SupplementPersona } from '../types';
 import { normalizePhase } from '../utils/phaseUtils';
 import { supplementMatchesCurrentTemporada } from '../utils/temporadaFilter';
 
@@ -113,6 +113,11 @@ function normalizePersonName(input: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
+function parseSupplementPersona(raw: string): SupplementPersona {
+  const t = raw.trim();
+  if (t === 'Ambas' || t === 'Diana' || t === 'Estefanía') return t;
+  return 'Diana';
+}
 
 function parseDateLoose(input: string): Date {
   const s = input.trim();
@@ -300,6 +305,7 @@ export async function getSupplements(
       propMultiSelect(props, ['Temporada', 'Season']).join(', ').trim();
 
     const normalized = normalizePhase(seasonRaw) ?? 'all';
+    const persona = parseSupplementPersona(propText(props, ['Persona']));
 
     return {
       notion_id: p.id,
@@ -308,6 +314,7 @@ export async function getSupplements(
       dose,
       phase_specific: normalized,
       temporadaLabels,
+      persona,
     };
   });
 }

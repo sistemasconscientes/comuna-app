@@ -4,6 +4,9 @@
 
 export type Phase = 'menstrual' | 'folicular' | 'ovulatoria' | 'lutea';
 
+/** Valor del select `Persona` en la base de suplementos de Notion. */
+export type SupplementPersona = 'Diana' | 'Estefanía' | 'Ambas';
+
 export interface Supplement {
   notion_id: string;
   name: string;
@@ -12,6 +15,8 @@ export interface Supplement {
   phase_specific: Phase | 'all';
   /** Etiquetas Notion (Temporada / Season) para filtrar en Stock u otras vistas. */
   temporadaLabels: string[];
+  /** Select `Persona` en Notion; determina si el stock vive en SQLite o en el backend compartido. */
+  persona: SupplementPersona;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

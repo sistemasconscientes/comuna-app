@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePostHog } from 'posthog-react-native';
 import { eq } from 'drizzle-orm';
+import { getSharedStock } from '../api/sharedStock';
+import type { SharedStock } from '../api/sharedStock';
 import { db, stock } from '../db';
-import type { StockEntry } from '../types';
+import type { StockEntry, Supplement } from '../types';
 
 export function useStock() {
   const posthog = usePostHog();
@@ -128,4 +130,59 @@ export function useStock() {
     setRestockFlagged,
     refetch: load,
   };
+}
+
+/** Stock compartido (Persona = Ambas) desde el backend MongoDB. */
+export function useSharedStockMap(supplements: Supplement[]) {
+  const [sharedByNotionId, setSharedByNotionId] = useState<Record<string, SharedStock | null>>({});
+  const [loading, setLoading] = useState(true);
+
+  const ambasKey = useMemo(
+    () =>
+      supplements
+        .filter((s) => s.persona === 'Ambas')
+        .map((s) => s.notion_id)
+        .sort()
+        .join('|'),
+    [supplements]
+  );
+
+  useEffect(() => {
+    const ids = ambasKey
+      ? ambasKey.split('|').filter(Boolean)
+      : [];
+    if (ids.length === 0) {
+      setSharedByNotionId({});
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const pairs = await Promise.all(
+        ids.map(async (id) => [id, await getSharedStock(id)] as const)
+      );
+      if (!cancelled) {
+        setSharedByNotionId(Object.fromEntries(pairs));
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ambasKey]);
+
+  const refetchShared = useCallback(async () => {
+    const ids = supplements.filter((s) => s.persona === 'Ambas').map((s) => s.notion_id);
+    if (ids.length === 0) {
+      setSharedByNotionId({});
+      return;
+    }
+    const pairs = await Promise.all(
+      ids.map(async (id) => [id, await getSharedStock(id)] as const)
+    );
+    setSharedByNotionId(Object.fromEntries(pairs));
+  }, [supplements]);
+
+  return { sharedByNotionId, loading, refetchShared };
 }

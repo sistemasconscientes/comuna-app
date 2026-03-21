@@ -16,9 +16,10 @@ import {
   View,
 } from 'react-native';
 import { markForRestock } from '../api/notion';
+import { sharedStockToStockEntry, updateSharedStock, type SharedStock } from '../api/sharedStock';
 import { useHealthData } from '../hooks/useHealthData';
 import { useSupplements } from '../hooks/useSupplements';
-import { useStock } from '../hooks/useStock';
+import { useSharedStockMap, useStock } from '../hooks/useStock';
 import type { Supplement, StockEntry } from '../types';
 import { filterSupplementsByCurrentTemporada } from '../utils/temporadaFilter';
 
@@ -50,9 +51,32 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function parseBottleDateInput(isoDay: string): Date {
+  const s = isoDay.trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m) return new Date(`${m[1]}-${m[2]}-${m[3]}T12:00:00.000Z`);
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? new Date() : d;
+}
+
+function resolveStockEntry(
+  sup: Supplement,
+  localId: number | undefined,
+  stockData: StockEntry[],
+  sharedByNotionId: Record<string, SharedStock | null>
+): StockEntry | undefined {
+  if (sup.persona === 'Ambas') {
+    const sh = sharedByNotionId[sup.notion_id];
+    if (!sh) return undefined;
+    return sharedStockToStockEntry(sh, localId ?? 0);
+  }
+  if (localId == null) return undefined;
+  return stockData.find((s) => s.supplementId === localId);
+}
+
 interface EditState {
   supplement: Supplement;
-  localId: number;
+  localId: number | null;
   bottleOpenedAt: string;
   totalPills: string;
   pillsPerDay: string;
@@ -66,6 +90,7 @@ export default function Stock({ user }: Props) {
     { applyTemporadaFilter: false },
   );
   const { data: stockData, loading: stockLoading, updateBottle, setRestockFlagged } = useStock();
+  const { sharedByNotionId, loading: sharedLoading, refetchShared } = useSharedStockMap(supplements);
   const [editState, setEditState] = useState<EditState | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [temporadaView, setTemporadaView] = useState<'all' | 'current'>('all');
@@ -85,27 +110,32 @@ export default function Stock({ user }: Props) {
   }, []);
 
   const getEntry = useCallback(
-    (localId: number) => stockData.find((s) => s.supplementId === localId),
-    [stockData]
+    (sup: Supplement, localId: number | undefined) =>
+      resolveStockEntry(sup, localId, stockData, sharedByNotionId),
+    [stockData, sharedByNotionId]
   );
 
-  // Mark low-stock in Notion once per fila (persistido en SQLite como restock_flagged)
+  // Mark low-stock in Notion once per fila (persistido en SQLite o backend como restock_flagged)
   useEffect(() => {
-    if (suppLoading || stockLoading) return;
+    if (suppLoading || stockLoading || sharedLoading) return;
     let cancelled = false;
     (async () => {
       for (const sup of supplements) {
         if (cancelled) return;
         const localId = idByNotionId[sup.notion_id];
-        if (localId == null) continue;
-        const entry = getEntry(localId);
+        const entry = getEntry(sup, localId);
         if (!entry) continue;
         const { daysRemaining } = calcDays(entry);
         if (daysRemaining != null && daysRemaining < 7 && !entry.restockFlagged) {
           try {
             await markForRestock(sup.notion_id);
             if (cancelled) return;
-            await setRestockFlagged(localId, true);
+            if (sup.persona === 'Ambas') {
+              await updateSharedStock(sup.notion_id, { restockFlagged: true });
+              await refetchShared();
+            } else if (localId != null) {
+              await setRestockFlagged(localId, true);
+            }
           } catch (e) {
             console.warn('markForRestock failed', sup.notion_id, e);
           }
@@ -115,18 +145,29 @@ export default function Stock({ user }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [supplements, stockData, suppLoading, stockLoading, idByNotionId, getEntry, setRestockFlagged]);
+  }, [
+    supplements,
+    stockData,
+    sharedByNotionId,
+    suppLoading,
+    stockLoading,
+    sharedLoading,
+    idByNotionId,
+    getEntry,
+    setRestockFlagged,
+    refetchShared,
+  ]);
 
   const openModal = (sup: Supplement) => {
     const localId = idByNotionId[sup.notion_id];
-    if (localId == null) {
+    if (sup.persona !== 'Ambas' && localId == null) {
       Alert.alert('Sin datos locales', 'Este suplemento aún no está sincronizado en la DB local.');
       return;
     }
-    const entry = getEntry(localId);
+    const entry = getEntry(sup, localId);
     setEditState({
       supplement: sup,
-      localId,
+      localId: localId ?? null,
       bottleOpenedAt: entry?.bottleOpenedAt ?? todayISO(),
       totalPills: entry?.totalPills?.toString() ?? '',
       pillsPerDay: entry?.pillsPerDay?.toString() ?? '',
@@ -141,8 +182,23 @@ export default function Stock({ user }: Props) {
       Alert.alert('Valores inválidos', 'Ingresá números positivos para total y pastillas/día.');
       return;
     }
-    await updateBottle(editState.localId, editState.bottleOpenedAt, total, perDay);
-    setEditState(null);
+    try {
+      if (editState.supplement.persona === 'Ambas') {
+        await updateSharedStock(editState.supplement.notion_id, {
+          bottleOpenedAt: parseBottleDateInput(editState.bottleOpenedAt),
+          totalPills: total,
+          pillsPerDay: perDay,
+        });
+        await refetchShared();
+      } else {
+        if (editState.localId == null) return;
+        await updateBottle(editState.localId, editState.bottleOpenedAt, total, perDay);
+      }
+      setEditState(null);
+    } catch (e) {
+      console.warn('handleSave stock failed', e);
+      Alert.alert('Error', 'No se pudo guardar el stock. Revisá la conexión o la clave del backend.');
+    }
   };
 
   const handleOpenNewBottle = async () => {
@@ -154,11 +210,27 @@ export default function Stock({ user }: Props) {
       return;
     }
     const today = todayISO();
-    await updateBottle(editState.localId, today, total, perDay, { resetRestockFlag: true });
-    setEditState(null);
+    try {
+      if (editState.supplement.persona === 'Ambas') {
+        await updateSharedStock(editState.supplement.notion_id, {
+          bottleOpenedAt: parseBottleDateInput(today),
+          totalPills: total,
+          pillsPerDay: perDay,
+          restockFlagged: false,
+        });
+        await refetchShared();
+      } else {
+        if (editState.localId == null) return;
+        await updateBottle(editState.localId, today, total, perDay, { resetRestockFlag: true });
+      }
+      setEditState(null);
+    } catch (e) {
+      console.warn('handleOpenNewBottle stock failed', e);
+      Alert.alert('Error', 'No se pudo guardar el stock. Revisá la conexión o la clave del backend.');
+    }
   };
 
-  if (suppLoading || stockLoading) {
+  if (suppLoading || stockLoading || sharedLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#888" />
@@ -176,8 +248,8 @@ export default function Stock({ user }: Props) {
 
   const lowCount = supplements.filter((sup) => {
     const localId = idByNotionId[sup.notion_id];
-    if (localId == null) return false;
-    const entry = getEntry(localId);
+    if (sup.persona !== 'Ambas' && localId == null) return false;
+    const entry = getEntry(sup, localId);
     if (!entry) return false;
     const { daysRemaining } = calcDays(entry);
     return daysRemaining != null && daysRemaining < 7;
@@ -229,7 +301,8 @@ export default function Stock({ user }: Props) {
         }
         renderItem={({ item }) => {
           const localId = idByNotionId[item.notion_id];
-          const entry = localId != null ? getEntry(localId) : undefined;
+          const entry =
+            item.persona === 'Ambas' || localId != null ? getEntry(item, localId) : undefined;
           const { daysRemaining } = entry ? calcDays(entry) : { daysRemaining: null };
           const isLow = daysRemaining != null && daysRemaining < 7;
 

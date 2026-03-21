@@ -26,7 +26,7 @@ alwaysApply: false
 ## Schema de Notion
 
 ### Base de datos de suplementos
-Columnas relevantes: nombre, categoría (multi-select), dosis, fase (select), disponible (checkbox), usuario (multi-select o similar)
+Columnas relevantes: nombre, categoría (multi-select), dosis, fase (select), disponible (checkbox), **Persona** (select: Diana, Estefanía, Ambas — expuesto en `Supplement.persona`), Temporada/Season
 
 ### Página de fases
 Tabla inline con columnas por usuario: fase actual, fecha próximo ciclo

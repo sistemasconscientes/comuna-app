@@ -3,16 +3,28 @@
 **Ubicación:** [`backend/`](../../backend/)  
 **Entry:** `backend/src/server.ts`  
 **Modelo:** `backend/src/models/stock.ts`  
-**Rutas:** `backend/src/routes/stock.ts`
+**Rutas:** `backend/src/routes/stock.ts`  
+**Auth:** [`backend/src/middleware/apiKey.ts`](../../backend/src/middleware/apiKey.ts)
 
 ---
 
 ## Alcance
 
 - Servidor HTTP standalone (Node.js + Express 4 + Mongoose 8 + TypeScript) que persiste estado de stock por suplemento Notion (`notionId` único).
-- No integración con la app React Native en esta fase.
+- **Cliente móvil:** la app React Native usa `GET`/`PUT /stock/:notionId` con header `x-api-key` para suplementos con **Persona = Ambas** en Notion (stock compartido en MongoDB). Suplementos con Persona Diana o Estefanía siguen usando SQLite en el dispositivo.
 
-Fuera de alcance: autenticación, CORS explícito, cliente móvil.
+Fuera de alcance explícito: CORS (el cliente es nativo).
+
+---
+
+## Autenticación
+
+- Todas las rutas bajo `/stock` requieren header **`x-api-key`** cuyo valor debe coincidir con la variable de entorno **`API_KEY`** del servidor.
+- Si falta el header, no coincide el valor, o **`API_KEY`** no está definida en el proceso: respuesta **401** con body `{ "error": "Unauthorized" }`.
+
+### Despliegue (Render)
+
+- En el dashboard del servicio, definir **`API_KEY`** con el mismo valor que **`BACKEND_API_KEY`** en la app (EAS / `.env` local).
 
 ---
 
@@ -23,10 +35,33 @@ Fuera de alcance: autenticación, CORS explícito, cliente móvil.
 | `MONGODB_URI`  | URI de conexión MongoDB (obligatoria) |
 | `appName`      | Nombre de aplicación para el driver (ej. `sistemasconscientes`) |
 | `PORT`         | Puerto HTTP (default `3000`)        |
+| `API_KEY`      | Secreto compartido con la app; obligatorio para usar `/stock` en producción |
 
-Carga (`backend/src/loadEnv.ts`): primero el `.env` en la **raíz del monorepo**, luego `backend/.env` (puede sobrescribir). Así `npm run dev` en `backend/` usa el mismo `MONGODB_URI` que la app sin duplicar secretos.
+Carga (`backend/src/loadEnv.ts`): solo `backend/.env` (resuelto con `path.resolve(__dirname, '../.env')` desde `src/`).
 
-No versionar `.env`; opcional: solo raíz, solo `backend/.env`, o ambos.
+Generar una clave segura localmente:
+
+```bash
+openssl rand -hex 32
+```
+
+Añadir en `backend/.env`:
+
+```bash
+API_KEY=<valor de openssl rand -hex 32>
+```
+
+No versionar `.env`.
+
+### App móvil (EAS)
+
+La variable **`BACKEND_API_KEY`** debe coincidir con **`API_KEY`** del backend. Para builds en la nube, crear el secreto de proyecto (ajustar perfil si hace falta):
+
+```bash
+eas secret:create --scope project --name BACKEND_API_KEY --value "<mismo valor que API_KEY en Render>"
+```
+
+(En versiones recientes del CLI también existe `eas env:create` con flags similares; usar `eas env --help` si el comando anterior no aplica.)
 
 ---
 
@@ -47,12 +82,14 @@ No versionar `.env`; opcional: solo raíz, solo `backend/.env`, o ambos.
 
 ### `GET /stock/:notionId`
 
+- Requiere `x-api-key` válido.
 - Busca por `notionId`.
 - **404** con body `{ "error": "not found" }` si no existe.
 - **200** con el documento completo (incl. `_id` de MongoDB) si existe.
 
 ### `PUT /stock/:notionId`
 
+- Requiere `x-api-key` válido.
 - Body JSON opcional: `bottleOpenedAt`, `totalPills`, `pillsPerDay`, `restockFlagged`.
 - **Upsert:** crea si no existe, actualiza si existe.
 - Siempre establece `updatedAt` a la fecha/hora actual del servidor.
@@ -72,6 +109,7 @@ No versionar `.env`; opcional: solo raíz, solo `backend/.env`, o ambos.
 | BS3 | `PUT` hace upsert y devuelve el documento actualizado con `updatedAt` reciente. |
 | BS4 | Conexión a MongoDB loguea éxito (`MongoDB connected`) o error en fallo. |
 | BS5 | Servidor escucha en `PORT` o 3000 por defecto; arranque solo tras conectar a la base. |
+| BS6 | Sin `x-api-key` correcto, `GET`/`PUT` bajo `/stock` responden 401 + `{ error: "Unauthorized" }`. |
 
 ---
 
@@ -79,12 +117,17 @@ No versionar `.env`; opcional: solo raíz, solo `backend/.env`, o ambos.
 
 ```gherkin
 Scenario: Obtener stock inexistente
-  When el cliente hace GET a "/stock/id-inexistente"
+  When el cliente hace GET a "/stock/id-inexistente" con x-api-key válido
   Then la respuesta tiene status 404
   And el body contiene "not found"
 
+Scenario: Sin autenticación
+  When el cliente hace GET a "/stock/cualquier-id" sin x-api-key o con clave incorrecta
+  Then la respuesta tiene status 401
+  And el body contiene "Unauthorized"
+
 Scenario: Crear o actualizar stock con PUT
-  When el cliente hace PUT a "/stock/notion-abc" con body JSON válido
+  When el cliente hace PUT a "/stock/notion-abc" con body JSON válido y x-api-key válido
   Then la respuesta tiene status 200
   And el documento incluye notionId "notion-abc" y updatedAt reciente
 ```

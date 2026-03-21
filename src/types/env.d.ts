@@ -8,4 +8,6 @@ declare module '@env' {
   export const POSTHOG_API_KEY: string;
   /** Ej. https://us.i.posthog.com */
   export const POSTHOG_HOST: string;
+  /** Misma clave que API_KEY en el backend Render (stock compartido Ambas) */
+  export const BACKEND_API_KEY: string;
 }
