@@ -36,3 +36,4 @@ La pestaña **Checklist** se eliminó: duplicaba la lista de suplementos del dí
 | TAB-1 | La barra inferior muestra exactamente: Inicio, Stock, Comidas, Perfil. |
 | TAB-2 | No existe ruta ni pestaña «Checklist» accesible desde la UI. |
 | TAB-3 | Inicio sigue permitiendo marcar/desmarcar suplementos para la fecha de hoy. |
+| TAB-4 | Estilo visual alineado con [`home-screen-ui.md`](./home-screen-ui.md): fondo crema en la zona de pestañas, pestaña activa con fondo terracota (`#C97B6E`) y texto claro. |

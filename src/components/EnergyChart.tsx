@@ -121,13 +121,15 @@ export function EnergyChart({ currentPhase, dayInCycle }: Props) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
+    borderWidth: 1,
+    borderColor: '#E8E4DC',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   headerRow: {
     flexDirection: 'row',

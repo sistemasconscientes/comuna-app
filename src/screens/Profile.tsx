@@ -8,8 +8,9 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePostHog } from 'posthog-react-native';
-import { useUser } from '../context/UserContext';
+import { useUser, type User } from '../context/UserContext';
 import { useHealthData } from '../hooks/useHealthData';
 import DailyLogByDate from './DailyLogByDate';
 import type { CycleDataSource } from '../types';
@@ -37,10 +38,46 @@ const PHASE_COLORS: Record<string, string> = {
   lutea: '#BA68C8',
 };
 
+const DEFAULT_USER_EMOJI = '🌿';
+const USER_EMOJIS = ['🌿', '🌸', '🦋', '🌙', '✨', '🔮', '🌺', '🍄', '🌊', '🦅'] as const;
+const emojiKeyForUser = (u: User) => `user_emoji_${u}`;
+
 export default function Profile() {
   const posthog = usePostHog();
   const [dailyLogOpen, setDailyLogOpen] = React.useState(false);
   const { user, setUser, clearStoredUserAndShowPicker } = useUser();
+  const [userEmojiByUser, setUserEmojiByUser] = React.useState<Record<User, string>>({
+    diana: DEFAULT_USER_EMOJI,
+    estefania: DEFAULT_USER_EMOJI,
+  });
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [dianaRaw, estefaniaRaw] = await Promise.all([
+          AsyncStorage.getItem(emojiKeyForUser('diana')),
+          AsyncStorage.getItem(emojiKeyForUser('estefania')),
+        ]);
+        if (cancelled) return;
+        setUserEmojiByUser({
+          diana: dianaRaw || DEFAULT_USER_EMOJI,
+          estefania: estefaniaRaw || DEFAULT_USER_EMOJI,
+        });
+      } catch {
+        // Fallback silencioso a DEFAULT_USER_EMOJI.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const persistEmoji = React.useCallback((u: User, emoji: string) => {
+    setUserEmojiByUser((prev) => ({ ...prev, [u]: emoji }));
+    void AsyncStorage.setItem(emojiKeyForUser(u), emoji).catch(() => {});
+  }, []);
+
   const {
     cyclePhase,
     cycleDay,
@@ -75,22 +112,57 @@ export default function Profile() {
       <View style={styles.selectorCard}>
         <Text style={styles.selectorLabel}>Usuario activo</Text>
         <View style={styles.selectorRow}>
-          <TouchableOpacity
-            style={[styles.selectorBtn, user === 'diana' && styles.selectorBtnActive]}
-            onPress={() => setUser('diana')}
-          >
-            <Text style={[styles.selectorBtnText, user === 'diana' && styles.selectorBtnTextActive]}>
-              Diana
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.selectorBtn, user === 'estefania' && styles.selectorBtnActive]}
-            onPress={() => setUser('estefania')}
-          >
-            <Text style={[styles.selectorBtnText, user === 'estefania' && styles.selectorBtnTextActive]}>
-              Estefanía
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.selectorUserStack}>
+            <TouchableOpacity
+              style={[styles.selectorBtn, user === 'diana' && styles.selectorBtnActive]}
+              onPress={() => setUser('diana')}
+            >
+              <Text style={[styles.selectorBtnText, user === 'diana' && styles.selectorBtnTextActive]}>
+                Diana
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.emojiPickerRow}>
+              {USER_EMOJIS.map((emoji) => {
+                const active = userEmojiByUser.diana === emoji;
+                return (
+                  <TouchableOpacity
+                    key={`diana-${emoji}`}
+                    onPress={() => persistEmoji('diana', emoji)}
+                    style={[styles.emojiChip, active && styles.emojiChipActive]}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.emojiChipText, active && styles.emojiChipTextActive]}>{emoji}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.selectorUserStack}>
+            <TouchableOpacity
+              style={[styles.selectorBtn, user === 'estefania' && styles.selectorBtnActive]}
+              onPress={() => setUser('estefania')}
+            >
+              <Text style={[styles.selectorBtnText, user === 'estefania' && styles.selectorBtnTextActive]}>
+                Estefanía
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.emojiPickerRow}>
+              {USER_EMOJIS.map((emoji) => {
+                const active = userEmojiByUser.estefania === emoji;
+                return (
+                  <TouchableOpacity
+                    key={`estefania-${emoji}`}
+                    onPress={() => persistEmoji('estefania', emoji)}
+                    style={[styles.emojiChip, active && styles.emojiChipActive]}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.emojiChipText, active && styles.emojiChipTextActive]}>{emoji}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
         </View>
         <TouchableOpacity
           style={styles.changeUserBtn}
@@ -172,18 +244,34 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '700', color: '#222' },
   selectorCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20 },
   selectorLabel: { fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
-  selectorRow: { flexDirection: 'row', gap: 10 },
+  selectorRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  selectorUserStack: { flex: 1 },
   selectorBtn: {
-    flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: '#E0E0E0',
     alignItems: 'center',
+    width: '100%',
   },
   selectorBtnActive: { borderColor: '#222', backgroundColor: '#222' },
   selectorBtnText: { fontSize: 16, fontWeight: '600', color: '#888' },
   selectorBtnTextActive: { color: '#fff' },
+  emojiPickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 10 },
+  emojiChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 32,
+  },
+  emojiChipActive: { borderColor: '#222', backgroundColor: '#222' },
+  emojiChipText: { fontSize: 18 },
+  emojiChipTextActive: { color: '#fff' },
   changeUserBtn: {
     marginTop: 16,
     paddingVertical: 12,

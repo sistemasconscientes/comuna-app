@@ -15,5 +15,6 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 | [app-tab-bar.md](./app-tab-bar.md) | Pestañas inferiores (`App.tsx`), retiro de Checklist vs Inicio |
 | [daily-log-by-date.md](./daily-log-by-date.md) | Registro de tomas por fecha, acceso desde Perfil |
 | [home-energy-chart.md](./home-energy-chart.md) | Inicio: tarjeta gráfica de nivel de energía (`EnergyChart`, `victory-native`) |
+| [home-screen-ui.md](./home-screen-ui.md) | Inicio: layout cabecera, paleta terracota/crema, lista tipo checklist |
 
 Añadir aquí una fila al crear un spec nuevo.

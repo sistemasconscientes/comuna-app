@@ -14,6 +14,8 @@ import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
 
 const SELECTED_USER_KEY = 'selected_user';
+const DEFAULT_USER_EMOJI = '🌿';
+const USER_EMOJIS = ['🌿', '🌸', '🦋', '🌙', '✨', '🔮', '🌺', '🍄', '🌊', '🦅'] as const;
 
 type PickerReason = 'no_stored_value' | 'manual_clear';
 
@@ -71,6 +73,37 @@ export default function App() {
   showPickerRef.current = showUserPicker;
 
   const pickerReasonRef = React.useRef<PickerReason>('no_stored_value');
+
+  const emojiKeyForUser = React.useCallback((u: User) => `user_emoji_${u}`, []);
+  const [userEmojiByUser, setUserEmojiByUser] = React.useState<Record<User, string>>({
+    diana: DEFAULT_USER_EMOJI,
+    estefania: DEFAULT_USER_EMOJI,
+  });
+
+  React.useEffect(() => {
+    if (!success || !showUserPicker) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [dianaRaw, estefaniaRaw] = await Promise.all([
+          AsyncStorage.getItem(emojiKeyForUser('diana')),
+          AsyncStorage.getItem(emojiKeyForUser('estefania')),
+        ]);
+        if (cancelled) return;
+        setUserEmojiByUser({
+          diana: dianaRaw || DEFAULT_USER_EMOJI,
+          estefania: estefaniaRaw || DEFAULT_USER_EMOJI,
+        });
+      } catch {
+        // Fallback silencioso a DEFAULT_USER_EMOJI.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [success, showUserPicker, emojiKeyForUser]);
 
   React.useEffect(() => {
     if (!success) return;
@@ -150,6 +183,8 @@ export default function App() {
       const reason = pickerReasonRef.current;
       void (async () => {
         try {
+          const emojiToSave = userEmojiByUser[u] || DEFAULT_USER_EMOJI;
+          await AsyncStorage.setItem(emojiKeyForUser(u), emojiToSave);
           await AsyncStorage.setItem(SELECTED_USER_KEY, u);
           setUserState(u);
           setShowUserPicker(false);
@@ -163,7 +198,7 @@ export default function App() {
         }
       })();
     },
-    [posthog],
+    [posthog, emojiKeyForUser, userEmojiByUser],
   );
 
   if (error) {
@@ -213,44 +248,80 @@ export default function App() {
             <Text style={styles.gateTitle}>¿Quién usa la app?</Text>
             <Text style={styles.gateSubtitle}>Elige tu perfil para continuar</Text>
             <View style={styles.gateRow}>
-              <TouchableOpacity
-                style={styles.gateBtn}
-                onPress={() => completeGateSelection('diana')}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.gateBtnText}>Diana</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.gateBtn}
-                onPress={() => completeGateSelection('estefania')}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.gateBtnText}>Estefanía</Text>
-              </TouchableOpacity>
+              <View style={styles.gateUserStack}>
+                <TouchableOpacity
+                  style={styles.gateBtn}
+                  onPress={() => completeGateSelection('diana')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.gateBtnText}>Diana</Text>
+                </TouchableOpacity>
+                <View style={styles.emojiPickerRow}>
+                  {USER_EMOJIS.map((emoji) => {
+                    const active = userEmojiByUser.diana === emoji;
+                    return (
+                      <TouchableOpacity
+                        key={`diana-${emoji}`}
+                        onPress={() => setUserEmojiByUser((prev) => ({ ...prev, diana: emoji }))}
+                        style={[styles.emojiChip, active && styles.emojiChipActive]}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.emojiChipText, active && styles.emojiChipTextActive]}>{emoji}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.gateUserStack}>
+                <TouchableOpacity
+                  style={styles.gateBtn}
+                  onPress={() => completeGateSelection('estefania')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.gateBtnText}>Estefanía</Text>
+                </TouchableOpacity>
+                <View style={styles.emojiPickerRow}>
+                  {USER_EMOJIS.map((emoji) => {
+                    const active = userEmojiByUser.estefania === emoji;
+                    return (
+                      <TouchableOpacity
+                        key={`estefania-${emoji}`}
+                        onPress={() => setUserEmojiByUser((prev) => ({ ...prev, estefania: emoji }))}
+                        style={[styles.emojiChip, active && styles.emojiChipActive]}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.emojiChipText, active && styles.emojiChipTextActive]}>{emoji}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
             </View>
           </View>
         ) : (
           <>
             <View style={styles.screen}>
-              {activeTab === 'home' && <Home />}
+              {activeTab === 'home' && <Home onOpenSettings={() => setActiveTab('perfil')} />}
               {activeTab === 'stock' && <Stock user={user} />}
               {activeTab === 'comidas' && <MealPrep />}
               {activeTab === 'perfil' && <Profile />}
             </View>
 
             <View style={styles.tabBar}>
-              {TABS.map((tab) => (
-                <TouchableOpacity
-                  key={tab.key}
-                  style={styles.tab}
-                  onPress={() => setActiveTab(tab.key)}
-                >
-                  <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
-                    {tab.label}
-                  </Text>
-                  {activeTab === tab.key && <View style={styles.tabIndicator} />}
-                </TouchableOpacity>
-              ))}
+              {TABS.map((tab) => {
+                const active = activeTab === tab.key;
+                return (
+                  <TouchableOpacity
+                    key={tab.key}
+                    style={[styles.tab, active && styles.tabActive]}
+                    onPress={() => setActiveTab(tab.key)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </>
         )}
@@ -260,40 +331,59 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA' },
+  container: { flex: 1, backgroundColor: '#F5F0E8' },
   screen: { flex: 1 },
   gateContent: { padding: 24, justifyContent: 'center', gap: 16 },
   gateTitle: { fontSize: 24, fontWeight: '700', color: '#222', textAlign: 'center' },
   gateSubtitle: { fontSize: 15, color: '#666', textAlign: 'center', marginBottom: 8 },
   gateRow: { flexDirection: 'row', gap: 12 },
+  gateUserStack: { flex: 1 },
   gateBtn: {
-    flex: 1,
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#222',
     backgroundColor: '#fff',
     alignItems: 'center',
+    width: '100%',
   },
   gateBtnText: { fontSize: 17, fontWeight: '600', color: '#222' },
+  emojiPickerRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 10 },
+  emojiChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 32,
+  },
+  emojiChipActive: { borderColor: '#222', backgroundColor: '#222' },
+  emojiChipText: { fontSize: 18 },
+  emojiChipTextActive: { color: '#fff' },
   tabBar: {
     flexDirection: 'row',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    paddingBottom: 12,
+    gap: 8,
+    backgroundColor: '#EDE8DF',
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    backgroundColor: '#fff',
+    borderTopColor: '#E0D9CE',
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 10,
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: 'transparent',
   },
-  tabLabel: { fontSize: 13, color: '#AAA', fontWeight: '500' },
-  tabLabelActive: { color: '#222' },
-  tabIndicator: {
-    height: 3,
-    width: 24,
-    backgroundColor: '#222',
-    borderRadius: 2,
-    marginTop: 4,
+  tabActive: {
+    backgroundColor: '#C97B6E',
   },
+  tabLabel: { fontSize: 12, color: '#7A756D', fontWeight: '600' },
+  tabLabelActive: { color: '#FFFFFF' },
 });
