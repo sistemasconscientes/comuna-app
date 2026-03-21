@@ -1,4 +1,9 @@
-import { NOTION_API_KEY, NOTION_SUPPLEMENTS_DB_ID, NOTION_PHASES_PAGE_ID } from '@env';
+import {
+  NOTION_API_KEY,
+  NOTION_MEAL_PREP_HUB_PAGE_ID,
+  NOTION_SUPPLEMENTS_DB_ID,
+  NOTION_PHASES_PAGE_ID,
+} from '@env';
 import type { Supplement } from '../types';
 import { normalizePhase } from '../utils/phaseUtils';
 import { supplementMatchesCurrentTemporada } from '../utils/temporadaFilter';
@@ -9,6 +14,7 @@ const NOTION_VERSION = '2022-06-28';
 const API_KEY = NOTION_API_KEY ?? '';
 const SUPPLEMENTS_DB_ID = NOTION_SUPPLEMENTS_DB_ID ?? '';
 const PHASES_PAGE_ID = NOTION_PHASES_PAGE_ID ?? '';
+const MEAL_PREP_HUB_PAGE_ID = NOTION_MEAL_PREP_HUB_PAGE_ID ?? '';
 
 const baseHeaders = {
   Authorization: `Bearer ${API_KEY}`,
@@ -207,6 +213,21 @@ async function listBlockChildrenAll(blockId: string): Promise<NotionBlock[]> {
   return out;
 }
 
+/** Una sola página de resultados (no sigue `next_cursor`). */
+async function listBlockChildrenPage(blockId: string, pageSize: number): Promise<NotionBlock[]> {
+  const q = new URLSearchParams({ page_size: String(pageSize) });
+  const resp: NotionListResponse<NotionBlock> = await notionFetch(
+    `/blocks/${encodeURIComponent(blockId)}/children?${q.toString()}`
+  );
+  return resp.results;
+}
+
+function heading2PlainText(block: NotionBlock): string {
+  if (block.type !== 'heading_2') return '';
+  const rich = (block as { heading_2?: { rich_text?: NotionRichText[] } }).heading_2?.rich_text;
+  return richTextToPlainText(rich).trim();
+}
+
 function richText(content: string): NotionRichText[] {
   return content ? [{ type: 'text', text: { content }, plain_text: content }] : [];
 }
@@ -301,6 +322,35 @@ export async function markForRestock(notion_id: string): Promise<void> {
       },
     }),
   });
+}
+
+export async function getMealPrep(): Promise<{
+  title: string;
+  pageId: string;
+  blocks: any[];
+} | null> {
+  const hubId = MEAL_PREP_HUB_PAGE_ID.trim();
+  if (!hubId) return null;
+  const hubBlocks = await listBlockChildrenAll(hubId);
+  const h2Index = hubBlocks.findIndex(
+    (b) => b.type === 'heading_2' && heading2PlainText(b) === 'Comidas Activas',
+  );
+  if (h2Index === -1) return null;
+
+  const child = hubBlocks.slice(h2Index + 1).find((b) => b.type === 'child_page') as
+    | (NotionBlockBase & { type: 'child_page'; child_page: { title?: string } })
+    | undefined;
+  if (!child?.child_page) return null;
+
+  const title = child.child_page.title ?? '';
+  const pageId = child.id;
+  const planBlocks = await listBlockChildrenAll(pageId);
+  return { title, pageId, blocks: planBlocks as any[] };
+}
+
+/** Listado paginado de hijos de un bloque (`page_size`); usa el mismo `notionFetch` que el resto del cliente. */
+export async function listNotionBlockChildrenPage(blockId: string, pageSize: number): Promise<any[]> {
+  return listBlockChildrenPage(blockId, pageSize) as Promise<any[]>;
 }
 
 async function findInlineTableInPage(pageId: string): Promise<NotionTableBlock> {
