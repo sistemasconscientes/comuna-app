@@ -1,6 +1,7 @@
 {
   "name": "La Comuna App",
-  "version": "1.0.1",
+  "version": "1.0.2",
+  "nativeBuild": 2,
   "main": "index.tsx",
   "scripts": {
     "start": "expo start",
@@ -10,7 +11,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "test": "jest",
-    "version:sync": "node -e \"const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));const a=JSON.parse(fs.readFileSync('app.json','utf8'));a.expo.version=p.version;fs.writeFileSync('app.json',JSON.stringify(a,null,2)+'\\n');\""
+    "version:sync": "node scripts/sync-version.js"
   },
   "jest": {
     "preset": "jest-expo",

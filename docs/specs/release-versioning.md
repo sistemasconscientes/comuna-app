@@ -2,9 +2,9 @@
 
 ## Alcance
 
-- **Versión de marketing (semver):** `version` en [`package.json`](../../package.json) (canónico) y `expo.version` en [`app.json`](../../app.json) — deben coincidir antes de mergear un release.
-- **EAS Build:** [`eas.json`](../../eas.json) usa `appVersionSource: "local"`: cada `eas build` toma el semver desde el proyecto en disco (vía Expo config), alineado con git.
-- **Números de build nativos:** `production.autoIncrement: true` en `eas.json` incrementa **iOS build number** / **Android versionCode** por build. Es independiente del semver (usuario ve 1.2.3; App Store puede llevar build 42).
+- **Versión de marketing (semver):** `version` en [`package.json`](../../package.json) (canónico) y `expo.version` en [`app.json`](../../app.json) — se alinean con `npm run version:sync`.
+- **Build nativos (por release / feature publicable):** un solo entero **`nativeBuild`** en [`package.json`](../../package.json) (canónico). El script [`scripts/sync-version.js`](../../scripts/sync-version.js) lo copia a `ios.buildNumber` (string) y `android.versionCode` (entero) en [`app.json`](../../app.json). Debe **subir al menos en 1** en cada release que suba a TestFlight / tiendas (Apple y Google exigen secuencia creciente).
+- **EAS Build:** [`eas.json`](../../eas.json) usa `appVersionSource: "local"`. **No** se usa `autoIncrement` en los perfiles: los números nativos salen del repo, no de incrementos automáticos en la nube.
 
 ## Cuándo subir versión
 
@@ -22,29 +22,30 @@ No es obligatorio subir versión en cada PR interno: sí cuando el cambio forma 
 
 | # | Criterio |
 |---|----------|
-| R1 | `package.json` → `version` actualizado al semver acordado (fuente canónica). |
-| R2 | Ejecutar `npm run version:sync` para copiar ese valor a `app.json` → `expo.version`. |
-| R3 | Confirmar que ambos archivos muestran el mismo string (p. ej. `1.2.3`). |
-| R4 | Tras `eas build`, verificar en el binario que la versión visible (p. ej. TestFlight / Ajustes) coincide con el commit. |
+| R1 | `package.json` → `version` (semver) y `nativeBuild` (entero ≥ 1) actualizados según el release. |
+| R2 | Ejecutar `npm run version:sync` para propagar a `app.json`: `expo.version`, `ios.buildNumber`, `android.versionCode`. |
+| R3 | Confirmar semver: `package.json` y `expo.version` iguales; `nativeBuild` coincide con `ios.buildNumber` (como string) y `android.versionCode` (como número). |
+| R4 | Tras `eas build`, verificar en el binario / tiendas que versión de marketing y build nativo coinciden con el commit. |
 
 ## Comandos
 
-- **`npm run version:sync`** — Copia `version` de `package.json` a `expo.version` en `app.json`. Ejecutar tras `npm version patch|minor|major` o tras editar a mano `package.json`.
+- **`npm run version:sync`** — Lee `package.json` y escribe en `app.json`: `expo.version`, `ios.buildNumber`, `android.versionCode`. Ejecutar tras cambiar `version` y/o `nativeBuild`.
 
 Flujo típico al cerrar una feature con bump:
 
 ```bash
 npm version patch --no-git-tag-version   # o minor / major
+# Editar package.json: subir "nativeBuild" en +1 si este build va a tienda/TestFlight
 npm run version:sync
 git add package.json app.json package-lock.json
 ```
 
 (`package-lock.json` puede cambiar si `npm version` lo toca; commitear según el flujo del equipo.)
 
-## EAS: local vs build number
+## EAS
 
-- **`appVersionSource: "local"`** — El semver del build sale del repo; no depende solo del dashboard de EAS.
-- **`autoIncrement` (perfil production)** — Solo incrementa el contador nativo por build; no sustituye el semver.
+- **`appVersionSource: "local"`** — Semver y números nativos vienen del proyecto en disco.
+- **Sin `autoIncrement`** — Evita desalinear lo commitado con lo que genera EAS en la nube; el incremento de `nativeBuild` es explícito en cada release.
 
 ## Opcional (futuro)
 
@@ -52,4 +53,4 @@ git add package.json app.json package-lock.json
 
 ## En specs con «Cierre de feature»
 
-Si el PR incluye bump de app: seguir este documento y el checklist R1–R3.
+Si el PR incluye bump de app: seguir este documento y el checklist R1–R4 (incluye `nativeBuild`).

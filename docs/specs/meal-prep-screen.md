@@ -66,7 +66,7 @@
 
 - [ ] `.env` con `NOTION_MEAL_PREP_HUB_PAGE_ID` si se usa Comidas (opcional).
 - [ ] Estructura Notion: bajo cada día, `heading_3` + tabla columnas tipo/plato; sección **Comidas Activas** en el hub.
-- [ ] Si este PR sube versión de app: bump semver en `package.json` y `npm run version:sync` → [`release-versioning.md`](./release-versioning.md).
+- [ ] Si este PR sube versión de app: bump `version` y `nativeBuild` en `package.json`, luego `npm run version:sync` → [`release-versioning.md`](./release-versioning.md).
 
 ### Mensaje de commit sugerido
 

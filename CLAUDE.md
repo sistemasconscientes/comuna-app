@@ -37,6 +37,7 @@ Cuatro fases: `menstrual`, `folicular`, `ovulatoria` / `ovulacion`, `lutea`
 - `expo run:ios` — correr en simulador iOS
 - `npm test` — correr tests con Jest
 - `npm run db:studio` — Drizzle Studio para inspeccionar la DB
+- `npm run version:sync` — sincroniza `package.json` (`version`, `nativeBuild`) → `app.json` (semver, `ios.buildNumber`, `android.versionCode`); ver `docs/specs/release-versioning.md`
 
 ## Convenciones
 - Hooks en `src/hooks/`, nombrados `use<Domain>.ts`

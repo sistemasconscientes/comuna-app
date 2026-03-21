@@ -11,13 +11,10 @@
     "preview": {
       "distribution": "internal",
       "ios": {
-        "buildConfiguration": "Release",
-        "autoIncrement": true
+        "buildConfiguration": "Release"
       }
     },
-    "production": {
-      "autoIncrement": true
-    }
+    "production": {}
   },
   "submit": {
     "production": {}

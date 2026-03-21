@@ -2,7 +2,7 @@
   "expo": {
     "name": "La Comuna App",
     "slug": "comuna-app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,6 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.janee.comunaapp",
+      "buildNumber": "2",
       "entitlements": {
         "com.apple.developer.healthkit": true,
         "com.apple.developer.healthkit.access": []
@@ -46,7 +47,8 @@
       "expo-localization"
     ],
     "android": {
-      "package": "com.janee.comunaapp"
+      "package": "com.janee.comunaapp",
+      "versionCode": 2
     },
     "extra": {
       "eas": {
