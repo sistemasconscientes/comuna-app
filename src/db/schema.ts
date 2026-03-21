@@ -32,6 +32,11 @@ export const stock = sqliteTable('stock', {
   quantity: real('quantity').notNull().default(0),
   unit: text('unit').notNull(),
   lastUpdated: text('last_updated').notNull().default(''),
+  bottleOpenedAt: text('bottle_opened_at'),
+  totalPills: real('total_pills'),
+  pillsPerDay: real('pills_per_day'),
+  /** Evita llamadas repetidas a Notion `markForRestock` cuando ya se marcó recompra. */
+  restockFlagged: int('restock_flagged', { mode: 'boolean' }).notNull().default(false),
 });
 
 export const phases = sqliteTable('phases', {
@@ -40,4 +45,11 @@ export const phases = sqliteTable('phases', {
   startDate: text('start_date').notNull(),
   endDate: text('end_date').notNull(),
   notionPageId: text('notion_page_id'),
+});
+
+export const cycleStates = sqliteTable('cycle_states', {
+  id: int('id').primaryKey({ autoIncrement: true }),
+  user: text('user').notNull().unique(), // 'diana' | 'estefania'
+  lastPeriodStart: text('last_period_start'), // ISO date string (YYYY-MM-DD) o ISO completo
+  updatedAt: text('updated_at').notNull().default(''),
 });

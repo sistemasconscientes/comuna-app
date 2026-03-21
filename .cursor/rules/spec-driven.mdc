@@ -1,0 +1,31 @@
+---
+description: Desarrollo guiado por especificaciones (obligatorio para agentes)
+alwaysApply: true
+---
+
+# Spec-driven development (default)
+
+Los agentes de Cursor **deben** trabajar en modo **spec-driven** en este repo.
+
+## Flujo obligatorio
+
+1. **Antes de implementar** una feature, fix no trivial, o cambio de comportamiento observable:
+   - Buscar si ya existe un spec en `docs/specs/` que cubra el caso.
+   - Si no existe: **crear o ampliar** un archivo en `docs/specs/<tema>.md` con alcance, criterios de aceptación (tabla o lista numerada) y, si aplica, escenarios Gherkin — siguiendo el estilo de los specs existentes (ej. `docs/specs/stock-edit-modal-ios-keyboard.md`).
+
+2. **Durante la implementación**, el código debe cumplir lo escrito en el spec. Si el spec y la realidad divergen, **actualizar el spec** o el código para que coincidan (no dejar ambigüedad).
+
+3. **PostHog / analítica / errores:** cualquier nuevo evento, cambio de provider o variable de entorno relacionada debe reflejarse en [`docs/specs/posthog-analytics.md`](docs/specs/posthog-analytics.md).
+
+## Excepciones (rápidas, sin spec nuevo)
+
+- Typos, formato, renombres mecánicos sin cambio de comportamiento.
+- Ajustes de una línea en tests existentes para verde CI.
+- Si el usuario pide explícitamente omitir el spec para un cambio puntual, acatar la instrucción pero advertir brevemente.
+
+## Convención de rutas
+
+- Specs: **`docs/specs/*.md`**
+- Reglas del proyecto: **`.cursor/rules/`**
+
+No sustituir un spec por comentarios largos en código; el spec es la fuente de verdad del “qué” y “cómo validar”.

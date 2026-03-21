@@ -1,5 +1,8 @@
 import type { CyclePhase } from '../types';
 
+/** Longitud del ciclo en días (modelo por defecto; ver `getPhaseFromCycleDay` sin config). */
+export const DEFAULT_CYCLE_LENGTH_DAYS = 28;
+
 interface CycleConfig {
   cycleLength?: number; // días totales del ciclo (default 28)
   lutealLength?: number; // días fase lútea (default 14)
@@ -17,7 +20,7 @@ export function getPhaseFromCycleDay(
   cycleDay: number,
   config: CycleConfig = {}
 ): CyclePhase {
-  const { cycleLength = 28, lutealLength = 14 } = config;
+  const { cycleLength = DEFAULT_CYCLE_LENGTH_DAYS, lutealLength = 14 } = config;
   const ovulationDay = cycleLength - lutealLength;
 
   if (cycleDay <= 5) return 'menstrual';
@@ -32,7 +35,7 @@ export function getPhaseFromCycleDay(
 export function getCycleDayFromDate(lastPeriodStart: Date, targetDate: Date = new Date()): number {
   const msPerDay = 1000 * 60 * 60 * 24;
   const diff = Math.floor((targetDate.getTime() - lastPeriodStart.getTime()) / msPerDay);
-  return (diff % 28) + 1;
+  return (diff % DEFAULT_CYCLE_LENGTH_DAYS) + 1;
 }
 
 /**

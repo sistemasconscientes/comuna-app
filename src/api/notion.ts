@@ -1,6 +1,7 @@
 import { NOTION_API_KEY, NOTION_SUPPLEMENTS_DB_ID, NOTION_PHASES_PAGE_ID } from '@env';
 import type { Supplement } from '../types';
 import { normalizePhase } from '../utils/phaseUtils';
+import { supplementMatchesCurrentTemporada } from '../utils/temporadaFilter';
 
 const BASE_URL = 'https://api.notion.com/v1';
 const NOTION_VERSION = '2022-06-28';
@@ -163,6 +164,15 @@ function propCheckbox(props: Record<string, NotionPropertyValue>, names: string[
   return fallback;
 }
 
+/** Etiquetas de Temporada: misma prioridad que `seasonRaw` (texto si existe; si no, multi-select). */
+function temporadaLabelsFromProps(props: Record<string, NotionPropertyValue>): string[] {
+  const text = propText(props, ['Temporada', 'Season']).trim();
+  if (text) return text.split(',').map((s) => s.trim()).filter(Boolean);
+  return propMultiSelect(props, ['Temporada', 'Season'])
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 async function queryDatabaseAll(databaseId: string, body: Record<string, unknown>) {
   const results: NotionDatabaseQueryResponse['results'] = [];
   let cursor: string | null | undefined = undefined;
@@ -205,11 +215,29 @@ function textCell(content: string): NotionCell {
   return content ? [{ type: 'text', text: { content } }] : [];
 }
 
+/** Texto con emoji escrito en la columna de fase de la tabla inline en Notion. */
+const PHASE_TO_LABEL: Record<string, string> = {
+  menstrual: 'Menstruación 🩸',
+  folicular: 'Folicular 🌸',
+  ovulatoria: 'Ovulación 🥵',
+  ovulacion: 'Ovulación 🥵',
+  lutea: 'Lútea 🦥',
+};
+
+function phaseKeyToNotionLabel(phase: string): string {
+  const key = phase.trim().toLowerCase();
+  return PHASE_TO_LABEL[key] ?? phase;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Public API
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getSupplements(user: 'diana' | 'estefania'): Promise<Supplement[]> {
+export async function getSupplements(
+  user: 'diana' | 'estefania',
+  currentPhase: string,
+  applyTemporadaFilter = true,
+): Promise<Supplement[]> {
   const dbId = requireEnv('NOTION_SUPPLEMENTS_DB_ID', SUPPLEMENTS_DB_ID);
 
   const PERSONA_VALUES: Record<'diana' | 'estefania', string> = {
@@ -231,13 +259,20 @@ export async function getSupplements(user: 'diana' | 'estefania'): Promise<Suppl
   };
 
   const pages = await queryDatabaseAll(dbId, { filter });
+  const month = new Date().getMonth() + 1;
+  const sourcePages = applyTemporadaFilter
+    ? pages.filter((p) =>
+        supplementMatchesCurrentTemporada(temporadaLabelsFromProps(p.properties), month, currentPhase),
+      )
+    : pages;
 
-  return pages.map((p) => {
+  return sourcePages.map((p) => {
     const props = p.properties;
 
     const name = propText(props, ['Name', 'Nombre']).trim();
     const dose = propText(props, ['Dose', 'Dosis']).trim();
     const category = propMultiSelect(props, ['Category', 'Categoría', 'Categoria']);
+    const temporadaLabels = temporadaLabelsFromProps(props);
 
     const seasonRaw =
       propText(props, ['Temporada', 'Season']).trim() ||
@@ -251,6 +286,7 @@ export async function getSupplements(user: 'diana' | 'estefania'): Promise<Suppl
       category,
       dose,
       phase_specific: normalized,
+      temporadaLabels,
     };
   });
 }
@@ -319,7 +355,6 @@ export async function getCurrentPhase(
 
   const cells = row.table_row.cells;
   const phaseText = cellToText(cells[1]).trim();
-  console.log('Fase raw de Notion:', cells[1]);
   const nextText = cellToText(cells[2]).trim();
 
   return {
@@ -338,9 +373,10 @@ export async function updatePhase(
   const prevPersona = cellToText(row.table_row.cells[0]).trim();
   const personaToWrite = prevPersona || user;
 
+  const phaseLabel = phaseKeyToNotionLabel(phase);
   const cells: NotionCell[] = [
     textCell(personaToWrite),
-    textCell(phase),
+    textCell(phaseLabel),
     textCell(toISODate(nextCycle)),
   ];
 

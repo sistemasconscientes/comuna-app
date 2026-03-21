@@ -1,0 +1,10 @@
+{
+  "plugins": {
+    "posthog": {
+      "enabled": true
+    },
+    "notion-workspace": {
+      "enabled": true
+    }
+  }
+}

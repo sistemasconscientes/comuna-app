@@ -1,14 +1,28 @@
 import { useEffect, useState } from 'react';
+import { usePostHog } from 'posthog-react-native';
 import { inArray } from 'drizzle-orm';
 import { getSupplements } from '../api/notion';
 import type { Supplement } from '../types';
 import { db, supplements as supplementsTable } from '../db';
 
-export function useSupplements(user: 'diana' | 'estefania') {
+export type UseSupplementsOptions = {
+  /** Si es false, se traen todos los suplementos (p. ej. Stock); el filtro por temporada es en la UI. */
+  applyTemporadaFilter?: boolean;
+};
+
+export function useSupplements(
+  user: 'diana' | 'estefania',
+  currentPhase: string,
+  options?: UseSupplementsOptions,
+) {
+  const posthog = usePostHog();
+  const applyTemporadaFilter = options?.applyTemporadaFilter !== false;
   const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [idByNotionId, setIdByNotionId] = useState<Record<string, number>>({});
+
+  const phaseDep = applyTemporadaFilter ? currentPhase : '';
 
   useEffect(() => {
     let cancelled = false;
@@ -16,26 +30,55 @@ export function useSupplements(user: 'diana' | 'estefania') {
       try {
         setLoading(true);
         setError(null);
-        const data = await getSupplements(user);
+        const data = await getSupplements(user, currentPhase, applyTemporadaFilter);
 
-        // Intenta mapear cada suplemento de Notion a su fila local en SQLite
+        // Sincroniza suplementos de Notion a SQLite (inserta los que faltan)
         let mapping: Record<string, number> = {};
         try {
           const notionIds = data.map((s) => s.notion_id);
           if (notionIds.length) {
-            const rows = await db
+            const existing = await db
+              .select()
+              .from(supplementsTable)
+              .where(inArray(supplementsTable.notionId, notionIds));
+
+            const existingNotionIds = new Set(existing.map((r) => r.notionId));
+            const toInsert = data.filter((s) => !existingNotionIds.has(s.notion_id));
+
+            if (toInsert.length) {
+              const now = new Date().toISOString();
+              await db.insert(supplementsTable).values(
+                toInsert.map((s) => ({
+                  name: s.name,
+                  dose: s.dose,
+                  unit: '',
+                  phases: JSON.stringify(s.phase_specific === 'all' ? [] : [s.phase_specific]),
+                  notionId: s.notion_id,
+                  createdAt: now,
+                  updatedAt: now,
+                }))
+              );
+            }
+
+            const allRows = await db
               .select()
               .from(supplementsTable)
               .where(inArray(supplementsTable.notionId, notionIds));
             mapping = Object.fromEntries(
-              rows
+              allRows
                 .filter((r) => r.notionId)
                 .map((r) => [r.notionId as string, r.id])
             );
           }
         } catch (err) {
-          // Si falla el mapeo local, no bloquea la UI; solo deja el tracking desactivado.
-          console.warn('Failed to map Notion supplements to local IDs', err);
+          // Si falla el sync local, no bloquea la UI; solo deja el tracking desactivado.
+          console.warn('Failed to sync Notion supplements to local DB', err);
+          const msg = err instanceof Error ? err.message : String(err);
+          posthog?.capture('notion_supplements_local_sync_failed', {
+            domain: 'sqlite',
+            message: msg,
+            user,
+          });
         }
 
         if (!cancelled) {
@@ -43,7 +86,15 @@ export function useSupplements(user: 'diana' | 'estefania') {
           setIdByNotionId(mapping);
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e : new Error(String(e)));
+        if (!cancelled) {
+          const err = e instanceof Error ? e : new Error(String(e));
+          setError(err);
+          posthog?.capture('notion_supplements_sync_failed', {
+            domain: 'notion',
+            message: err.message,
+            user,
+          });
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -51,7 +102,7 @@ export function useSupplements(user: 'diana' | 'estefania') {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, phaseDep, applyTemporadaFilter, posthog]);
 
   return {
     supplements,

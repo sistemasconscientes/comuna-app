@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
+import { usePostHog } from 'posthog-react-native';
 import { eq } from 'drizzle-orm';
 import { db, stock } from '../db';
 import type { StockEntry } from '../types';
 
 export function useStock() {
+  const posthog = usePostHog();
   const [data, setData] = useState<StockEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -14,11 +16,16 @@ export function useStock() {
       const rows = await db.select().from(stock);
       setData(rows as StockEntry[]);
     } catch (e) {
-      setError(e instanceof Error ? e : new Error(String(e)));
+      const err = e instanceof Error ? e : new Error(String(e));
+      setError(err);
+      posthog?.capture('stock_load_failed', {
+        domain: 'sqlite',
+        message: err.message,
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [posthog]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -38,6 +45,7 @@ export function useStock() {
           quantity,
           unit: 'unidades',
           lastUpdated: now,
+          restockFlagged: false,
         });
       }
       await load();
@@ -59,5 +67,65 @@ export function useStock() {
     [data]
   );
 
-  return { data, loading, error, updateQuantity, decrementStock, getLowStock, refetch: load };
+  const updateBottle = useCallback(
+    async (
+      supplementId: number,
+      bottleOpenedAt: string,
+      totalPills: number,
+      pillsPerDay: number,
+      opts?: { resetRestockFlag?: boolean }
+    ) => {
+      const existing = data.find((s) => s.supplementId === supplementId);
+      const now = new Date().toISOString();
+
+      if (existing) {
+        await db
+          .update(stock)
+          .set({
+            bottleOpenedAt,
+            totalPills,
+            pillsPerDay,
+            lastUpdated: now,
+            ...(opts?.resetRestockFlag ? { restockFlagged: false } : {}),
+          })
+          .where(eq(stock.supplementId, supplementId));
+      } else {
+        await db.insert(stock).values({
+          supplementId,
+          quantity: 0,
+          unit: 'pastillas',
+          lastUpdated: now,
+          bottleOpenedAt,
+          totalPills,
+          pillsPerDay,
+          restockFlagged: false,
+        });
+      }
+      await load();
+    },
+    [data, load]
+  );
+
+  const setRestockFlagged = useCallback(
+    async (supplementId: number, flagged: boolean) => {
+      await db
+        .update(stock)
+        .set({ restockFlagged: flagged, lastUpdated: new Date().toISOString() })
+        .where(eq(stock.supplementId, supplementId));
+      await load();
+    },
+    [load]
+  );
+
+  return {
+    data,
+    loading,
+    error,
+    updateQuantity,
+    decrementStock,
+    getLowStock,
+    updateBottle,
+    setRestockFlagged,
+    refetch: load,
+  };
 }

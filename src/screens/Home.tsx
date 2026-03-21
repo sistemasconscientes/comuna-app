@@ -22,7 +22,10 @@ const PHASE_COLORS: Record<string, string> = {
 export default function Home() {
   const { user } = useUser();
   const { cyclePhase, cycleDay, loading: healthLoading, error: healthError } = useHealthData(user);
-  const { supplements, idByNotionId, error: supplementsError } = useSupplements(user);
+  const { supplements, idByNotionId, error: supplementsError } = useSupplements(
+    user,
+    cyclePhase ?? '',
+  );
   const { isTaken, markTaken } = useDailyLog();
 
   const phaseColor = cyclePhase ? PHASE_COLORS[cyclePhase] : '#ccc';

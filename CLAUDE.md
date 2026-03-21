@@ -1,6 +1,6 @@
 # Comuna App
 
-App móvil (iOS/Android) de seguimiento de suplementos basada en fases del ciclo menstrual.
+App móvil iOS de seguimiento de suplementos basada en fases del ciclo menstrual.
 
 ## Stack
 - React Native + Expo (SDK 55)
@@ -14,10 +14,14 @@ App móvil (iOS/Android) de seguimiento de suplementos basada en fases del ciclo
 - Tipo: `User = 'diana' | 'estefania'`
 - Los datos de Notion están separados por usuario
 
+## Specs (spec-driven)
+- Convención: `docs/specs/*.md` — ver `docs/specs/README.md` y `.cursor/rules/spec-driven.mdc`.
+
 ## Arquitectura clave
-- `src/api/notion.ts` — Fetch desde Notion API. La app sincroniza al iniciar. Funciones principales: `getSupplements(user)`, `getCurrentPhase(user)`, `updatePhase(user, phase, nextCycle)`, `markForRestock(notion_id)`
-- `src/db/schema.ts` — Schema SQLite local (supplements, dailyLogs, stock, phases)
-- `src/hooks/` — Lógica de negocio. Un hook por dominio.
+- `src/api/notion.ts` — Fetch desde Notion API. La app sincroniza al iniciar. Funciones principales: `getSupplements(user, currentPhase, applyTemporadaFilter?)`, `getCurrentPhase(user)`, `updatePhase(user, phase, nextCycle)` (tabla inline de fases con texto + emoji), `markForRestock(notion_id)`
+- `src/api/healthkit.ts` — iOS: lectura de última menstruación para derivar fase (ver spec HealthKit)
+- `src/db/schema.ts` — Schema SQLite local: `supplements`, `dailyLogs`, `stock` (incl. `restock_flagged` para deduplicar recompra en Notion), `phases`, `cycle_states`
+- `src/hooks/` — Lógica de negocio. Un hook por dominio. `useHealthData`: con datos de HealthKit, compara fase/fecha con Notion y llama a `updatePhase` solo si difieren. `useStock`: persiste `restock_flagged` al marcar recompra.
 - `src/screens/` — Pantallas con mínima lógica propia.
 - `src/types/index.ts` — Todos los types e interfaces del proyecto
 
@@ -44,6 +48,10 @@ Ver `.env`. Requiere:
 - `NOTION_API_KEY`
 - `NOTION_SUPPLEMENTS_DB_ID`
 - `NOTION_PHASES_PAGE_ID`
+
+Opcional (PostHog: errores automáticos + eventos críticos en hooks):
+- `POSTHOG_API_KEY` — si no está definida, PostHog no envía datos (`disabled`)
+- `POSTHOG_HOST` — ej. `https://us.i.posthog.com`
 
 ## Qué NO hacer
 - No hardcodear credenciales de Notion fuera de `.env`

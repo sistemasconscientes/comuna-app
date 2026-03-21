@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput,
 } from 'react-native';
+import { useHealthData } from '../hooks/useHealthData';
 import { useSupplements } from '../hooks/useSupplements';
 import { useDailyLog } from '../hooks/useDailyLog';
 import { useUser } from '../context/UserContext';
@@ -34,7 +35,8 @@ export default function Checklist() {
     new Date().toISOString().split('T')[0]
   );
   const { user } = useUser();
-  const { supplements, idByNotionId } = useSupplements(user);
+  const { cyclePhase } = useHealthData(user);
+  const { supplements, idByNotionId } = useSupplements(user, cyclePhase ?? '');
   const { isTaken, markTaken } = useDailyLog(selectedDate);
 
   const takenCount = supplements.reduce((count, s) => {

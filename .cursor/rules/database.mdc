@@ -14,7 +14,7 @@ alwaysApply: false
 ## Tablas (src/db/schema.ts)
 - `supplements` — suplementos sincronizados desde Notion (`notion_id` como referencia)
 - `daily_logs` — registro diario de tomas (FK a supplements, cascade delete)
-- `stock` — inventario por suplemento (FK a supplements, unique por suplemento)
+- `stock` — inventario por suplemento (FK a supplements, unique por suplemento); incluye `restock_flagged` para deduplicar `markForRestock` en Notion
 - `phases` — fases del ciclo con fechas y referencia a Notion page
 
 ## Flujo de cambios al schema
