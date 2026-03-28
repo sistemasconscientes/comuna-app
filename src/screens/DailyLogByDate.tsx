@@ -28,7 +28,7 @@ export default function DailyLogByDate({ onBack }: Props) {
     user,
     cyclePhase ?? '',
   );
-  const { isTaken, markTaken } = useDailyLog(dateISO);
+  const { isTaken, markTaken } = useDailyLog(user, dateISO);
 
   React.useEffect(() => {
     posthog?.capture('daily_log_history_opened', { user });

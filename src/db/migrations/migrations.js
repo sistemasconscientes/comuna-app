@@ -5,6 +5,7 @@ import m0000 from './0000_stormy_cardiac.sql';
 import m0001 from './0001_dashing_lady_ursula.sql';
 import m0002 from './0002_sad_mysterio.sql';
 import m0003 from './0003_friendly_bastion.sql';
+import m0004 from './0004_bitter_cyclops.sql';
 
   export default {
     journal,
@@ -12,7 +13,8 @@ import m0003 from './0003_friendly_bastion.sql';
       m0000,
 m0001,
 m0002,
-m0003
+m0003,
+m0004
     }
   }
   

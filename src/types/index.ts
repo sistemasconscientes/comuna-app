@@ -1,6 +1,10 @@
+import type { User } from '../context/UserContext';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Notion-facing types (as per product spec)
 // ─────────────────────────────────────────────────────────────────────────────
+
+export type { User };
 
 export type Phase = 'menstrual' | 'folicular' | 'ovulatoria' | 'lutea';
 
@@ -39,6 +43,7 @@ export interface LocalSupplement {
 
 export interface DailyLog {
   id: number;
+  user: User;
   supplementId: number;
   date: string; // YYYY-MM-DD
   taken: boolean;

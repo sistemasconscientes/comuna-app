@@ -36,6 +36,7 @@
           "useSQLCipher": false
         }
       ],
+      "expo-dev-client",
       [
         "@kingstinct/react-native-healthkit",
         {

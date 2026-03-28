@@ -72,7 +72,7 @@ export default function Home({ onOpenSettings }: HomeProps) {
     user,
     cyclePhase ?? '',
   );
-  const { isTaken, markTaken } = useDailyLog();
+  const { isTaken, markTaken } = useDailyLog(user);
 
   const phaseLabel = cyclePhase ? PHASE_LABELS[cyclePhase] : '—';
 

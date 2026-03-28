@@ -2,13 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { usePostHog } from 'posthog-react-native';
 import { eq, and } from 'drizzle-orm';
 import { db, dailyLogs } from '../db';
+import type { User } from '../context/UserContext';
 import type { DailyLog } from '../types';
 
 function today(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-export function useDailyLog(date: string = today()) {
+export function useDailyLog(user: User, date: string = today()) {
   const posthog = usePostHog();
   const [data, setData] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +21,7 @@ export function useDailyLog(date: string = today()) {
       const rows = await db
         .select()
         .from(dailyLogs)
-        .where(eq(dailyLogs.date, date));
+        .where(and(eq(dailyLogs.date, date), eq(dailyLogs.user, user)));
       setData(rows as DailyLog[]);
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
@@ -29,11 +30,12 @@ export function useDailyLog(date: string = today()) {
         domain: 'sqlite',
         message: err.message,
         date,
+        user,
       });
     } finally {
       setLoading(false);
     }
-  }, [date, posthog]);
+  }, [date, posthog, user]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -47,10 +49,15 @@ export function useDailyLog(date: string = today()) {
           .update(dailyLogs)
           .set({ taken, notes: notes ?? existing.notes })
           .where(
-            and(eq(dailyLogs.supplementId, supplementId), eq(dailyLogs.date, date))
+            and(
+              eq(dailyLogs.supplementId, supplementId),
+              eq(dailyLogs.date, date),
+              eq(dailyLogs.user, user)
+            )
           );
       } else {
         await db.insert(dailyLogs).values({
+          user,
           supplementId,
           date,
           taken,
@@ -60,7 +67,7 @@ export function useDailyLog(date: string = today()) {
       }
       await load();
     },
-    [data, date, load]
+    [data, date, load, user]
   );
 
   const isTaken = useCallback(

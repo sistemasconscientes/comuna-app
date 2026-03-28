@@ -14,6 +14,7 @@ export const supplements = sqliteTable('supplements', {
 
 export const dailyLogs = sqliteTable('daily_logs', {
   id: int('id').primaryKey({ autoIncrement: true }),
+  user: text('user').notNull().default('diana'), // 'diana' | 'estefania'
   supplementId: int('supplement_id')
     .notNull()
     .references(() => supplements.id, { onDelete: 'cascade' }),

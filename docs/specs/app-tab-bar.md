@@ -14,7 +14,7 @@ Pestañas inferiores de la app (sin React Navigation): estado local `activeTab` 
 
 | Pestaña | Pantalla | Rol |
 |---------|----------|-----|
-| Inicio | `Home` | Fase del ciclo, progreso del día, lista de suplementos para **hoy** (`useDailyLog()` con fecha por defecto). |
+| Inicio | `Home` | Fase del ciclo, progreso del día, lista de suplementos para **hoy** (`useDailyLog(user)` con fecha por defecto). |
 | Stock | `Stock` | Inventario / frascos. |
 | Comidas | `MealPrep` | Plan de comidas. |
 | Perfil | `Profile` | Usuario activo, fase, acceso a **Mis tomas por día** (`DailyLogByDate`), HealthKit QA, PostHog dev. |
