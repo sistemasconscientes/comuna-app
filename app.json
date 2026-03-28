@@ -29,14 +29,9 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-sqlite",
-        {
-          "enableFTS": true,
-          "useSQLCipher": false
-        }
-      ],
+      [ "expo-sqlite",{"enableFTS": true,"useSQLCipher": false}],
       "expo-dev-client",
+      "expo-localization",
       [
         "@kingstinct/react-native-healthkit",
         {
@@ -45,7 +40,6 @@
           "background": false
         }
       ],
-      "expo-localization",
       [
         "@sentry/react-native/expo",
         {
