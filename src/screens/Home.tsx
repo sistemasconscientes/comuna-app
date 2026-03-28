@@ -43,7 +43,7 @@ function formatTodayLongEs(): string {
 }
 
 type HomeProps = {
-  /** Navega a Perfil / ajustes (misma acción que pestaña Perfil). */
+  /** Abre la pantalla Perfil / ajustes (no hay pestaña de Perfil en la barra). */
   onOpenSettings: () => void;
 };
 

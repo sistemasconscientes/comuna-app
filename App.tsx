@@ -50,9 +50,11 @@ function MigrationFailureReporter({ error }: { error: Error }) {
   return null;
 }
 
-type Tab = 'home' | 'stock' | 'comidas' | 'perfil';
+/** Pestañas visibles en la barra inferior (Perfil se abre solo desde ⚙️ en Inicio). */
+type TabBarTab = 'home' | 'stock' | 'comidas';
+type Tab = TabBarTab | 'perfil';
 
-const TABS: { key: Tab; label: string }[] = [
+const TABS: { key: TabBarTab; label: string }[] = [
   { key: 'home', label: 'Inicio' },
   { key: 'stock', label: 'Stock' },
   { key: 'comidas', label: 'Comidas' },
@@ -346,7 +348,9 @@ export default function App() {
               {activeTab === 'home' && <Home onOpenSettings={() => setActiveTab('perfil')} />}
               {activeTab === 'stock' && <Stock user={user} />}
               {activeTab === 'comidas' && <MealPrep />}
-              {activeTab === 'perfil' && <Profile />}
+              {activeTab === 'perfil' && (
+                <Profile onBackToTabs={() => setActiveTab('home')} />
+              )}
             </View>
 
             <View style={styles.tabBar}>

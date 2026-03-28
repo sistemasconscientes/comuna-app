@@ -42,7 +42,12 @@ const DEFAULT_USER_EMOJI = '🌿';
 const USER_EMOJIS = ['🌿', '🌸', '🦋', '🌙', '✨', '🔮', '🌺', '🍄', '🌊', '🦅'] as const;
 const emojiKeyForUser = (u: User) => `user_emoji_${u}`;
 
-export default function Profile() {
+type ProfileProps = {
+  /** Vuelve a la zona principal (p. ej. Inicio); la barra inferior también cambia de pestaña. */
+  onBackToTabs: () => void;
+};
+
+export default function Profile({ onBackToTabs }: ProfileProps) {
   const posthog = usePostHog();
   const [dailyLogOpen, setDailyLogOpen] = React.useState(false);
   const { user, setUser, clearStoredUserAndShowPicker } = useUser();
@@ -107,6 +112,17 @@ export default function Profile() {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator
     >
+      <TouchableOpacity
+        onPress={onBackToTabs}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Volver a inicio"
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        style={styles.backRow}
+      >
+        <Text style={styles.backChevron}>‹</Text>
+        <Text style={styles.backLabel}>Inicio</Text>
+      </TouchableOpacity>
       <Text style={styles.title}>Perfil</Text>
 
       <View style={styles.selectorCard}>
@@ -241,6 +257,9 @@ export default function Profile() {
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: '#FAFAFA' },
   scrollContent: { padding: 20, paddingBottom: 32, gap: 16 },
+  backRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 2, marginBottom: 4 },
+  backChevron: { fontSize: 28, fontWeight: '300', color: '#222', lineHeight: 32, marginTop: -2 },
+  backLabel: { fontSize: 17, fontWeight: '600', color: '#222' },
   title: { fontSize: 24, fontWeight: '700', color: '#222' },
   selectorCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20 },
   selectorLabel: { fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
