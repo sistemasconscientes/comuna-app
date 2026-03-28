@@ -74,14 +74,27 @@ export default function App() {
 
   const pickerReasonRef = React.useRef<PickerReason>('no_stored_value');
 
+  /** Evita que la hidratación desde AsyncStorage pise un emoji ya elegido en el gate. */
+  const emojiTouchedRef = React.useRef<Record<User, boolean>>({
+    diana: false,
+    estefania: false,
+  });
+
   const emojiKeyForUser = React.useCallback((u: User) => `user_emoji_${u}`, []);
   const [userEmojiByUser, setUserEmojiByUser] = React.useState<Record<User, string>>({
     diana: DEFAULT_USER_EMOJI,
     estefania: DEFAULT_USER_EMOJI,
   });
 
+  const markEmojiTouched = React.useCallback((u: User, emoji: string) => {
+    emojiTouchedRef.current[u] = true;
+    setUserEmojiByUser((prev) => ({ ...prev, [u]: emoji }));
+  }, []);
+
   React.useEffect(() => {
     if (!success || !showUserPicker) return;
+
+    emojiTouchedRef.current = { diana: false, estefania: false };
 
     let cancelled = false;
     void (async () => {
@@ -91,12 +104,14 @@ export default function App() {
           AsyncStorage.getItem(emojiKeyForUser('estefania')),
         ]);
         if (cancelled) return;
-        setUserEmojiByUser({
-          diana: dianaRaw || DEFAULT_USER_EMOJI,
-          estefania: estefaniaRaw || DEFAULT_USER_EMOJI,
-        });
+        setUserEmojiByUser((prev) => ({
+          diana: emojiTouchedRef.current.diana ? prev.diana : dianaRaw || DEFAULT_USER_EMOJI,
+          estefania: emojiTouchedRef.current.estefania
+            ? prev.estefania
+            : estefaniaRaw || DEFAULT_USER_EMOJI,
+        }));
       } catch {
-        // Fallback silencioso a DEFAULT_USER_EMOJI.
+        // Fallback silencioso: no pisar filas ya tocadas por la usuaria.
       }
     })();
 
@@ -153,6 +168,9 @@ export default function App() {
           operation: 'remove',
           message: persistenceErrorMessage(e),
         });
+        pickerReasonRef.current = 'manual_clear';
+        setShowUserPicker(true);
+        posthog?.capture('user_picker_shown', { reason: 'manual_clear' });
       }
     })();
   }, [posthog]);
@@ -160,11 +178,16 @@ export default function App() {
   const persistSetUser = React.useCallback(
     (u: User) => {
       const prev = userRef.current;
+      if (prev === u) return;
+
+      // Actualización optimista: evita que escrituras async desordenadas dejen un usuario viejo en pantalla.
+      setUserState(u);
+
       void (async () => {
         try {
           await AsyncStorage.setItem(SELECTED_USER_KEY, u);
-          setUserState(u);
-          if (!showPickerRef.current && prev !== u) {
+          if (userRef.current !== u) return;
+          if (!showPickerRef.current) {
             posthog?.capture('user_switched_in_profile', { previous_user: prev, user: u });
           }
         } catch (e) {
@@ -172,6 +195,9 @@ export default function App() {
             operation: 'write',
             message: persistenceErrorMessage(e),
           });
+          if (userRef.current === u) {
+            setUserState(prev);
+          }
         }
       })();
     },
@@ -189,12 +215,16 @@ export default function App() {
           setUserState(u);
           setShowUserPicker(false);
           setActiveTab('home');
-          posthog?.capture('user_picker_completed', { user: u, reason });
+          posthog?.capture('user_picker_completed', { user: u, reason, persisted: true });
         } catch (e) {
           posthog?.capture('user_persistence_failed', {
             operation: 'write',
             message: persistenceErrorMessage(e),
           });
+          setUserState(u);
+          setShowUserPicker(false);
+          setActiveTab('home');
+          posthog?.capture('user_picker_completed', { user: u, reason, persisted: false });
         }
       })();
     },
@@ -262,7 +292,7 @@ export default function App() {
                     return (
                       <TouchableOpacity
                         key={`diana-${emoji}`}
-                        onPress={() => setUserEmojiByUser((prev) => ({ ...prev, diana: emoji }))}
+                        onPress={() => markEmojiTouched('diana', emoji)}
                         style={[styles.emojiChip, active && styles.emojiChipActive]}
                         activeOpacity={0.8}
                       >
@@ -287,7 +317,7 @@ export default function App() {
                     return (
                       <TouchableOpacity
                         key={`estefania-${emoji}`}
-                        onPress={() => setUserEmojiByUser((prev) => ({ ...prev, estefania: emoji }))}
+                        onPress={() => markEmojiTouched('estefania', emoji)}
                         style={[styles.emojiChip, active && styles.emojiChipActive]}
                         activeOpacity={0.8}
                       >

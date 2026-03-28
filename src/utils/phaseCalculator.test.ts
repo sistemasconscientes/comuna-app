@@ -39,24 +39,28 @@ describe('📅 getPhaseFromCycleDay', () => {
 });
 
 describe('🗓️ getCycleDayFromDate', () => {
-  const base = new Date('2025-01-01');
+  /** Días civiles locales (no solo 24 h UTC), coherente con `phaseCalculator`. */
+  const base = new Date(2025, 0, 1);
 
-  const addDays = (d: Date, n: number) => new Date(d.getTime() + n * 24 * 60 * 60 * 1000);
+  const addLocalDays = (d: Date, n: number) => {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+    return x;
+  };
 
   it('mismo día → día 1', () => {
     expect(getCycleDayFromDate(base, base)).toBe(1);
   });
 
-  it('+27 días → día 28', () => {
-    expect(getCycleDayFromDate(base, addDays(base, 27))).toBe(28);
+  it('+27 días civiles locales → día 28', () => {
+    expect(getCycleDayFromDate(base, addLocalDays(base, 27))).toBe(28);
   });
 
-  it('+28 días → día 1 (wraps)', () => {
-    expect(getCycleDayFromDate(base, addDays(base, 28))).toBe(1);
+  it('+28 días civiles locales → día 1 (wraps)', () => {
+    expect(getCycleDayFromDate(base, addLocalDays(base, 28))).toBe(1);
   });
 
-  it('+35 días → día 8', () => {
-    expect(getCycleDayFromDate(base, addDays(base, 35))).toBe(8);
+  it('+35 días civiles locales → día 8', () => {
+    expect(getCycleDayFromDate(base, addLocalDays(base, 35))).toBe(8);
   });
 });
 

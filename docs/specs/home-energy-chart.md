@@ -13,7 +13,7 @@ En la pantalla Inicio, entre la tarjeta de fase actual y la lista de suplementos
 | 3 | Una línea vertical punteada (intervalos 4/4) en gris marca el día actual; la posición x corresponde al día del ciclo 1–28 mapeado a 0–27 (`día − 1`, acotado). |
 | 4 | Cabecera: “ENERGY LEVEL” (uppercase, gris pequeño) y “Day X of 28” alineado a la derecha; debajo, el nivel textual según fase: menstrual → Bajo, folicular → Moderado, ovulatoria → Alto, lútea → Moderado. |
 | 5 | Etiquetas bajo el gráfico: MENST. (x=1), FOLICULAR (x=7), OVUL. (x=14), LÚTEA (x=21), pequeñas, gris, uppercase. |
-| 6 | `currentPhase` y día del ciclo provienen de `useHealthData` y del mismo cálculo de día que `getCycleDayFromDate` en `phaseCalculator.ts` (expuesto como `cycleDay`); sin duplicar lógica en la screen más allá de mapear `ovulacion` → `ovulatoria` para el texto de la gráfica. |
+| 6 | `currentPhase` y día del ciclo provienen de `useHealthData` y del mismo cálculo de día que `getCycleDayFromDate` en `phaseCalculator.ts` (días civiles **locales** del dispositivo; expuesto como `cycleDay`); sin duplicar lógica en la screen más allá de mapear `ovulacion` → `ovulatoria` para el texto de la gráfica. |
 
 ## Dependencias
 

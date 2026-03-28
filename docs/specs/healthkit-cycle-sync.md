@@ -10,7 +10,7 @@
 
 ## Alcance
 
-- **iOS (dev build):** Tras `requestAuthorization`, leer en Apple Salud la fecha de inicio de la muestra de categoría más reciente (`HKCategoryTypeIdentifierMenstrualFlow`; en iOS 18+ también `HKCategoryTypeIdentifierVaginalBleeding` si el SO lo expone). Persistir `lastPeriodStart` por usuario en SQLite y calcular `cyclePhase` / `cycleDay` con `getCurrentCycleInfo` (ciclo modelo 28 días; ver `phaseCalculator.ts`).
+- **iOS (dev build):** Tras `requestAuthorization`, leer en Apple Salud la fecha de inicio de la muestra de categoría más reciente (`HKCategoryTypeIdentifierMenstrualFlow`; en iOS 18+ también `HKCategoryTypeIdentifierVaginalBleeding` si el SO lo expone). Persistir `lastPeriodStart` por usuario en SQLite y calcular `cyclePhase` / `cycleDay` con `getCurrentCycleInfo` (ciclo modelo 28 días; ver `phaseCalculator.ts`). El **día del ciclo** y el desfase respecto al último período usan **días calendario en la zona horaria local del dispositivo** (medianoche local), no bloques fijos de 24 h en UTC. La fecha **próximo ciclo** escrita en Notion (`updatePhase`) es `YYYY-MM-DD` según ese mismo calendario local; al leerla, `getCurrentPhase` interpreta ISO/DMY como fecha civil local.
 - **Web (Expo):** No HealthKit; fase desde Notion si no hay fila en `cycle_states` (`cycleDay: null`).
 - **Fase desde HealthKit:** La app **no** lee un tipo “fase actual” de HealthKit en esta versión: Apple no ofrece un único campo equivalente a nuestras cuatro fases de producto; la fase mostrada se **deriva** del último inicio de menstruación/sangrado leíble + reglas en `phaseCalculator`. Una evolución futura podría integrar APIs adicionales de Ciclo menstrual si aportan valor y están disponibles en el SDK.
 - **Fallback:** Si no hay dato de Salud o el módulo nativo no está (p. ej. Expo Go), usar último valor en SQLite si existe; si no, fase desde Notion (`cycleDay: null`).
@@ -44,7 +44,7 @@ Fuera de alcance: escritura en Salud, background delivery, UI nativa de permisos
 1. Si hay `lastPeriodStart` en SQLite para el usuario: mostrar fase/día desde ese valor (`cycleDataSource` → `sqlite` hasta que HK confirme).
 2. En **iOS:** pedir/leer HealthKit (`getLastMenstruation` → dentro, `initHealthKit` + `requestAuthorization` la primera vez).
 3. Si HealthKit devuelve fecha: guardar en SQLite, recalcular fase/día, `cycleDataSource` → `healthkit`.
-   - Tras eso, **una sola vez por carga** (no en cada render): leer `getCurrentPhase(user)` en Notion y comparar con la fase derivada de HealthKit y con la fecha de **próximo ciclo** esperada (`lastPeriodStart` + `DEFAULT_CYCLE_LENGTH_DAYS`, mismo modelo que el cálculo de fase). Si la fase normalizada o la fecha (día UTC `YYYY-MM-DD`) difieren, llamar a `updatePhase` para alinear la tabla inline en Notion. Fallos de Notion en este paso no bloquean la UI; se registran en consola y PostHog (`health_data_notion_sync_failed`).
+   - **Solo si HealthKit devolvió una fecha** (no en caso de `null`): **una sola vez por carga** (no en cada render), leer `getCurrentPhase(user)` en Notion para el **usuario seleccionado en la app** y comparar la fase de Notion con la fase derivada de HealthKit, **ambas normalizadas con `normalizePhase`**. Si la celda de Notion no normaliza a una fase de ciclo concreta (`null`) o normaliza a `'all'`, **no** se llama a `updatePhase` (Notion no se altera por este flujo automático). Si ambas son fases comparables y **difieren**, llamar a `updatePhase` (la fecha de próximo ciclo es inicio de último período + **28 días civiles locales** vía `addLocalCalendarDays`; **no** se usa la comparación de fechas como disparador de escritura). Fallos de Notion en este paso no bloquean la UI; se registran en consola y PostHog (`health_data_notion_sync_failed`).
 4. Si no hay fecha de HK y no había dato local: fase desde Notion (`notion`).
 
 En la **primera instalación** sin SQLite, en iOS se intenta Salud **antes** que Notion para evitar un parpadeo de fase solo-Notion y luego HK.
@@ -60,7 +60,7 @@ En la **primera instalación** sin SQLite, en iOS se intenta Salud **antes** que
 | HK3 | En Expo Go o sin módulo Nitro/HealthKit, la app arranca; origen no es `healthkit`. | iOS |
 | HK4 | Perfil en iOS muestra **origen del ciclo** y estado **HealthKit** (módulo / tienda de salud) para QA. | iOS |
 | HK5 | Botón **Reintentar sincronización con Salud** resetea la petición de autorización y vuelve a cargar datos (útil tras cambiar Ajustes). | iOS dev |
-| HK6 | Con origen `healthkit`, si Notion tiene otra fase (normalizada) u otra fecha de próximo ciclo (mismo criterio UTC día), la app actualiza la fila del usuario en Notion vía `updatePhase`; si ya coinciden, **no** escribe. No se dispara en cada render, solo en el flujo de carga del hook. | iOS dev |
+| HK6 | Con origen `healthkit` y fecha válida de Salud, la app lee la fila de **ese mismo usuario** en Notion; si la fase en Notion (normalizada) y la fase derivada de HK (normalizada) son fases de ciclo comparables y **difieren**, actualiza vía `updatePhase`; si coinciden, si Notion es `null`/`all` tras normalizar, o si no hay muestra de HK, **no** escribe. La fecha de próximo ciclo no dispara la escritura por sí sola. No se dispara en cada render, solo en el flujo de carga del hook. | iOS dev |
 
 ---
 

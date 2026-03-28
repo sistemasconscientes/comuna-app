@@ -6,6 +6,10 @@
 - **Build nativos (por release / feature publicable):** un solo entero **`nativeBuild`** en [`package.json`](../../package.json) (canónico). El script [`scripts/sync-version.js`](../../scripts/sync-version.js) lo copia a `ios.buildNumber` (string) y `android.versionCode` (entero) en [`app.json`](../../app.json). Debe **subir al menos en 1** en cada release que suba a TestFlight / tiendas (Apple y Google exigen secuencia creciente).
 - **EAS Build:** [`eas.json`](../../eas.json) usa `appVersionSource: "local"`. **No** se usa `autoIncrement` en los perfiles: los números nativos salen del repo, no de incrementos automáticos en la nube.
 
+## Anti‑patrón (evitar)
+
+- **No** bump de release editando solo [`app.json`](../../app.json) (`expo.version`, `ios.buildNumber`, `android.versionCode`). La fuente canónica es [`package.json`](../../package.json) (`version`, `nativeBuild`); después `npm run version:sync`. Si el diff del PR solo muestra `app.json` y no `package.json`, CI fallará en `version:check` (o `npm test`) hasta alinear ambos en el mismo cambio.
+
 ## Cuándo subir versión
 
 Alineado con `.cursor/rules/spec-driven.mdc` para cambios observables que se publican:

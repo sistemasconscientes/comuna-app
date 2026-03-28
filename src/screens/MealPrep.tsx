@@ -31,18 +31,17 @@ export default function MealPrep() {
       setError(null);
       try {
         const prep = await getMealPrep();
-        if (cancelled || !prep) {
-          setWeekTitle(prep?.title ?? null);
+        if (cancelled) return;
+
+        if (!prep) {
+          setWeekTitle(null);
           setToday(null);
-          setLoading(false);
-          if (!cancelled) {
-            posthog?.capture('meal_prep_loaded', {
-              user,
-              has_week_plan: false,
-              has_today_meals: false,
-              meals_count: 0,
-            });
-          }
+          posthog?.capture('meal_prep_loaded', {
+            user,
+            has_week_plan: false,
+            has_today_meals: false,
+            meals_count: 0,
+          });
           return;
         }
         setWeekTitle(prep.title);

@@ -121,21 +121,36 @@ function parseSupplementPersona(raw: string): SupplementPersona {
 
 function parseDateLoose(input: string): Date {
   const s = input.trim();
-  // Prefer YYYY-MM-DD
+  // YYYY-MM-DD = día civil local (coherente con `toDeviceCalendarISODate` al escribir)
   const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (isoMatch) return new Date(`${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}T00:00:00.000Z`);
-  // Fallback DD/MM/YYYY
+  if (isoMatch) {
+    const y = Number(isoMatch[1]);
+    const mo = Number(isoMatch[2]) - 1;
+    const da = Number(isoMatch[3]);
+    const d = new Date(y, mo, da);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
   const dmyMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
-  if (dmyMatch) return new Date(`${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}T00:00:00.000Z`);
+  if (dmyMatch) {
+    const da = Number(dmyMatch[1]);
+    const mo = Number(dmyMatch[2]) - 1;
+    const y = Number(dmyMatch[3]);
+    const d = new Date(y, mo, da);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) throw new Error(`Invalid date: "${input}"`);
   return d;
 }
 
-function toISODate(date: Date): string {
+/** Fecha de la tabla de fases: `YYYY-MM-DD` según calendario local del dispositivo. */
+function toDeviceCalendarISODate(date: Date): string {
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) throw new Error('Invalid Date');
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function pickProp(
@@ -434,7 +449,7 @@ export async function updatePhase(
   const cells: NotionCell[] = [
     textCell(personaToWrite),
     textCell(phaseLabel),
-    textCell(toISODate(nextCycle)),
+    textCell(toDeviceCalendarISODate(nextCycle)),
   ];
 
   await notionFetch(`/blocks/${encodeURIComponent(row.id)}`, {

@@ -21,6 +21,7 @@
 - Emoji permitido (picker predefinido): `🌿 🌸 🦋 🌙 ✨ 🔮 🌺 🍄 🌊 🦅`
 - Valor por defecto cuando no se elige (o si no hay clave guardada): `🌿`
 - Persistencia: al completar la selección inicial de usuario (pantalla gate de `App.tsx`) se guarda el emoji correspondiente al usuario elegido.
+- Hidratación desde AsyncStorage al abrir el gate no debe **reemplazar** un emoji que la usuaria ya haya tocado en el picker antes de que termine la lectura (evitar condición de carrera).
 - Presentación: en `Home` (header del checklist) se muestra `${emoji} ${nombre}` donde el nombre es `Diana` o `Estefanía`.
 
 Fuera de alcance: React Navigation, lógica de hooks (`useHealthData`, etc.), datos Notion.
@@ -32,16 +33,19 @@ Fuera de alcance: React Navigation, lógica de hooks (`useHealthData`, etc.), da
 | ID | Criterio |
 |----|----------|
 | USP-1 | Sin valor guardado (o valor inválido), tras arranque la app muestra solo el selector Diana/Estefanía (sin pestañas). |
-| USP-2 | Tras elegir usuario en esa pantalla, se guarda `selected_user`, se muestran las pestañas y la pestaña activa puede volver a Inicio. |
+| USP-2 | Tras elegir usuario en esa pantalla, se intenta guardar `selected_user` (y emoji) en AsyncStorage, se cierra el gate, se muestran las pestañas y la pestaña activa puede volver a Inicio. Si la escritura falla, la app entra igual en pestañas con el usuario elegido en sesión (sin bloquear en el selector); el error se registra en analítica. |
 | USP-3 | Con valor válido guardado, al siguiente cold start la app abre directamente en las pestañas con ese usuario (sin pantalla de selector). |
 | USP-4 | En Perfil, cambiar entre Diana y Estefanía actualiza `selected_user` y tras reinicio persiste el último elegido. |
-| USP-5 | «Cambiar usuario» elimina `selected_user` y muestra de nuevo la pantalla de selector; hasta elegir de nuevo no se reescribe la clave. |
+| USP-5 | «Cambiar usuario» elimina `selected_user` y muestra de nuevo la pantalla de selector; hasta elegir de nuevo no se reescribe la clave. Si `removeItem` falla, igual se muestra el selector (y se registra el error) para que la usuaria no quede sin respuesta. |
 | USP-6 | Si la app se cierra estando en el selector tras USP-5, el próximo arranque vuelve a mostrar el selector (no hay clave). |
 | USP-7 | `PostHogIdentifyUser` no corre mientras la pantalla de selector está visible (sin identificar con perfil por defecto antes de elegir). |
 | USP-8 | En la pantalla de selector (gate), debajo de cada botón se muestra un picker de emojis predefinidos; la selección por defecto es `🌿`. |
 | USP-9 | Al completar la selección inicial de usuario `u`, se persiste `user_emoji_u` con el emoji seleccionado para ese `u` (si no se eligió, se persiste `🌿`). |
 | USP-10 | En `Home`, el header del checklist muestra el emoji leído desde `AsyncStorage.getItem(user_emoji_${user})` y si falta/está vacío muestra `🌿` en vez de romper la UI. |
 | USP-11 | En `Perfil`, desde el selector de usuario se puede cambiar el emoji de cada perfil; al cambiar se persiste en su clave `user_emoji_u` sin necesidad de volver al gate inicial. |
+| USP-12 | Si la usuaria elige un emoji en el gate antes de que termine `AsyncStorage.getItem` para los emojis guardados, esa elección se conserva (no la pisa la hidratación tardía). |
+| USP-13 | Cambios rápidos de usuario en Perfil: el usuario activo en UI se actualiza de forma **síncrona**; las escrituras a `AsyncStorage` no pueden dejar un perfil antiguo en pantalla por completarse fuera de orden. Si falla la persistencia del último cambio intentado, se revierte al valor anterior solo si la UI sigue mostrando ese intento. |
+| USP-14 | Tras «Cambiar usuario», si falla `AsyncStorage.removeItem`, la app muestra igual el gate (selector); no solo PostHog — coherente con el arranque cuando falla la lectura de `selected_user`. |
 
 ---
 

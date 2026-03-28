@@ -85,7 +85,7 @@ Todos los `capture` son no-op si PostHog está deshabilitado (`posthog?.capture`
 | `notion_meal_prep_load_failed` | Excepción al obtener/expandir/parsear meal prep | `domain: 'notion'`, `message`, `user` |
 | `selected_user_restored` | Hidratación en arranque: hay `selected_user` válido en AsyncStorage | `user` |
 | `user_picker_shown` | Se muestra la pantalla de selector de perfil (sin pestañas) | `reason`: `no_stored_value` \| `manual_clear` |
-| `user_picker_completed` | Elección de perfil en la pantalla de selector de `App` | `user`, `reason` (mismo valor que `user_picker_shown`) |
+| `user_picker_completed` | Elección de perfil en la pantalla de selector de `App` | `user`, `reason` (mismo valor que `user_picker_shown`), `persisted`: `true` si AsyncStorage guardó OK; `false` si hubo error de persistencia pero la app abrió pestañas igual |
 | `user_switched_in_profile` | Cambio Diana/Estefanía en Perfil (solo si el perfil cambia) | `previous_user`, `user` |
 | `stored_user_cleared` | Pulsar «Cambiar usuario» en Perfil (tras borrar clave) | `previous_user` |
 | `user_persistence_failed` | Error al leer/escribir/borrar `selected_user` en AsyncStorage | `operation`: `read` \| `write` \| `remove`, `message` |

@@ -10,7 +10,11 @@ import {
 } from '../api/healthkit';
 import { db, cycleStates } from '../db';
 import { cyclePhaseToPhase, normalizePhase, phaseToCyclePhase } from '../utils/phaseUtils';
-import { DEFAULT_CYCLE_LENGTH_DAYS, getCurrentCycleInfo } from '../utils/phaseCalculator';
+import {
+  addLocalCalendarDays,
+  DEFAULT_CYCLE_LENGTH_DAYS,
+  getCurrentCycleInfo,
+} from '../utils/phaseCalculator';
 import type { CycleDataSource, HealthData, HealthKitDiagnostics } from '../types';
 
 export type UseHealthDataResult = HealthData & {
@@ -20,11 +24,6 @@ export type UseHealthDataResult = HealthData & {
   healthKitDiagnostics: HealthKitDiagnostics | null;
   refetch: () => void;
 };
-
-function dateToIsoDayUtc(d: Date): string {
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0, 10);
-}
 
 async function loadNotionPhaseOnly(
   user: 'diana' | 'estefania',
@@ -89,6 +88,7 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
       setLoading(true);
       setError(null);
 
+      const notionUser = user;
       let source: CycleDataSource = 'notion';
 
       try {
@@ -128,36 +128,39 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
                 );
               }
 
-              try {
-                const nextCycleDate = new Date(
-                  lastFromHealthKit.getTime() +
-                    DEFAULT_CYCLE_LENGTH_DAYS * 24 * 60 * 60 * 1000,
-                );
-                const notionRow = await getCurrentPhase(user);
-                const notionPhaseNorm = normalizePhase(notionRow.phase);
-                const hkAsPhase = cyclePhaseToPhase(phase);
-                const notionDay = dateToIsoDayUtc(notionRow.nextCycle);
-                const hkNextDay = dateToIsoDayUtc(nextCycleDate);
-                const phaseDiff =
-                  notionPhaseNorm === null ||
-                  notionPhaseNorm === 'all' ||
-                  notionPhaseNorm !== hkAsPhase;
-                const dateDiff = notionDay !== hkNextDay;
-                if (phaseDiff || dateDiff) {
-                  await updatePhase(user, phase, nextCycleDate);
+              const hkSample = lastFromHealthKit;
+              if (hkSample != null) {
+                try {
+                  const nextCycleDate = addLocalCalendarDays(
+                    hkSample,
+                    DEFAULT_CYCLE_LENGTH_DAYS,
+                  );
+                  const notionRow = await getCurrentPhase(notionUser);
+                  if (!cancelled) {
+                    const notionNorm = normalizePhase(notionRow.phase);
+                    const hkNorm = normalizePhase(cyclePhaseToPhase(phase));
+                    const comparable =
+                      notionNorm != null &&
+                      notionNorm !== 'all' &&
+                      hkNorm != null &&
+                      hkNorm !== 'all';
+                    if (comparable && notionNorm !== hkNorm) {
+                      await updatePhase(notionUser, phase, nextCycleDate);
+                    }
+                  }
+                } catch (notionSyncErr) {
+                  console.warn('[useHealthData] Notion sync tras HealthKit:', notionSyncErr);
+                  const msg =
+                    notionSyncErr instanceof Error ? notionSyncErr.message : String(notionSyncErr);
+                  posthog?.capture('health_data_notion_sync_failed', {
+                    domain: 'health_data',
+                    message: msg,
+                    user: notionUser,
+                  });
                 }
-              } catch (notionSyncErr) {
-                console.warn('[useHealthData] Notion sync tras HealthKit:', notionSyncErr);
-                const msg =
-                  notionSyncErr instanceof Error ? notionSyncErr.message : String(notionSyncErr);
-                posthog?.capture('health_data_notion_sync_failed', {
-                  domain: 'health_data',
-                  message: msg,
-                  user,
-                });
               }
             } else if (!cancelled && !lastFromDb) {
-              const notion = await loadNotionPhaseOnly(user);
+              const notion = await loadNotionPhaseOnly(notionUser);
               setState(notion);
             }
           } catch (err) {
@@ -169,7 +172,7 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
               user,
             });
             if (!cancelled && !lastFromDb) {
-              const notion = await loadNotionPhaseOnly(user);
+              const notion = await loadNotionPhaseOnly(notionUser);
               setState(notion);
             }
           }
@@ -178,7 +181,7 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
             setHealthKitDiagnostics(null);
           }
           if (!cancelled && !lastFromDb) {
-            const notion = await loadNotionPhaseOnly(user);
+            const notion = await loadNotionPhaseOnly(notionUser);
             setState(notion);
           }
         }
