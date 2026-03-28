@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '@sentry/react-native';
 import { usePostHog } from 'posthog-react-native';
 import { useUser, type User } from '../context/UserContext';
 import { useHealthData } from '../hooks/useHealthData';
@@ -213,6 +214,24 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
           </>
         )}
       </View>
+
+      {__DEV__ && (
+        <View style={styles.qaCard}>
+          <Text style={styles.qaTitle}>Sentry (solo desarrollo)</Text>
+          <Text style={styles.qaHint}>
+            Comprueba en Issues del proyecto que llega el evento de prueba.
+          </Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => {
+              Sentry.captureException(new Error('First error'));
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.retryBtnText}>Enviar error de prueba</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {SHOW_HEALTHKIT_QA && Platform.OS === 'ios' && (
         <View style={styles.qaCard}>
