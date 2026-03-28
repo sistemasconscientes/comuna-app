@@ -45,7 +45,7 @@ export default function MealPrep() {
         (blockId, pageSize) => listNotionBlockChildrenPage(blockId, pageSize)
       );
 
-      const todayMeals = getTodayMeals(expanded);
+      const todayMeals = getTodayMeals(expanded, user);
       posthog?.capture('meal_prep_loaded', {
         user,
         has_week_plan: true,

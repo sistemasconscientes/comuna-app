@@ -2,7 +2,7 @@
 
 ## Alcance
 
-- Pantalla [`src/screens/MealPrep.tsx`](../../src/screens/MealPrep.tsx): `getMealPrep()` (hijos directos de la página del plan, `listBlockChildrenAll` en `notion.ts`) → `expandMealPrepNotionBlocks(prep.blocks, fetchHijosTabla)` → `getTodayMeals(expanded)`. El callback de expansión delega en `listNotionBlockChildrenPage` (`notion.ts`), que usa `notionFetch` y **rechaza respuestas HTTP no OK** (no se enmascaran 401/403 como lista vacía).
+- Pantalla [`src/screens/MealPrep.tsx`](../../src/screens/MealPrep.tsx): `getMealPrep()` (hijos directos de la página del plan, `listBlockChildrenAll` en `notion.ts`) → `expandMealPrepNotionBlocks(prep.blocks, fetchHijosTabla)` → `getTodayMeals(expanded, user)` (usuaria del contexto). El callback de expansión delega en `listNotionBlockChildrenPage` (`notion.ts`), que usa `notionFetch` y **rechaza respuestas HTTP no OK** (no se enmascaran 401/403 como lista vacía).
 - Navegación: pestaña **Comidas** en la barra inferior de [`App.tsx`](../../App.tsx), mismo patrón que Inicio / Stock (Perfil fuera de la barra; ver [`app-tab-bar.md`](./app-tab-bar.md)).
 
 ## Parsing (`mealPrepParser.ts`)
@@ -10,11 +10,12 @@
 | # | Comportamiento |
 |---|----------------|
 | 1 | Día actual: `new Date().getDay()` con nombres en español (0 = Domingo … 6 = Sábado). |
-| 2 | Se busca el primer `heading_3` cuyo texto normalizado (minúsculas, sin tildes) **contiene** el nombre del día (p. ej. "Lunes" en "Lunes 23 mar — Lútea 🦥"). |
-| 3 | Tras ese heading, los bloques van hasta el siguiente `heading_3` o `heading_2` (exclusivo). |
-| 4 | En ese tramo, la primera tabla (`type === "table"`): las filas son bloques `table_row` consecutivos **tras** el bloque tabla en la lista ya expandida. |
-| 5 | Primera fila se **omite solo si** la primera columna (texto normalizado) es **Comida** o **Tipo**; columnas: tipo (p. ej. `cells[0][0].plain_text` o texto unido de la celda), plato igual en columna 1. |
-| 6 | Si no hay heading del día, tabla, o filas de datos, `getTodayMeals` devuelve `null` → UI: "No hay plan para hoy". |
+| 2 | Debe existir un `heading_1`, `heading_2` o `heading_3` cuyo texto normalizado **incluya** `plan semanal` (p. ej. "📅 Plan semanal"). Sin ese bloque, `getTodayMeals` devuelve `null`. Solo se consideran `heading_3` **posteriores** a la ancla para el día — se ignora Chef Prep u otras secciones anteriores (p. ej. "Prep del viernes pasado"). |
+| 3 | Se toma el primer `heading_3` (tras la ancla) cuyo texto normalizado **contiene** el nombre del día (p. ej. "Lunes" en "Lunes 23 mar — Lútea 🦥"). |
+| 4 | Tras ese heading, los bloques van hasta el siguiente `heading_3` o `heading_2` (exclusivo). |
+| 5 | En ese tramo, la primera tabla (`type === "table"`): filas `table_row` consecutivas **tras** el bloque tabla en la lista ya expandida. |
+| 6 | Primera fila se **omite solo si** la primera columna (texto normalizado) es **Comida** o **Tipo**. Plato: fila con **exactamente 2 celdas** → columna 1; **3 o más celdas** → columna 1 si `diana`, columna 2 si `estefanía`. |
+| 7 | Segundo argumento `getTodayMeals(blocks, user?)` con `user` por defecto `diana`. Si no hay heading del día, tabla, o filas de datos, devuelve `null` → UI: "No hay plan para hoy". |
 
 ## Criterios de UI
 
@@ -42,13 +43,13 @@
 | Hub Notion | Página con `heading_2` **Comidas Activas** → primer `child_page` = plan semanal activo (`NOTION_MEAL_PREP_HUB_PAGE_ID`, opcional). |
 | `getMealPrep()` | Resuelve hub + plan; devuelve `{ title, pageId, blocks }` o `null`. |
 | Expansión de tablas | `expandMealPrepNotionBlocks` inserta tras cada `table` sus hijos `table_row` (un fetch por tabla en pantalla). |
-| `getTodayMeals()` | Día local en español, sección bajo `heading_3`, primera tabla, filas tipo/plato; cabecera si col0 es Comida/Tipo. |
+| `getTodayMeals()` | Ancla obligatoria "Plan semanal" (`heading_1`/`2`/`3`), día en `heading_3` después; primera tabla; 2 vs 3+ columnas; cabecera si col0 es Comida/Tipo; `user` para plato si ≥3 columnas. |
 | UI | Pestaña **Comidas** en `App.tsx`; estados carga / vacío / error. |
 
 ### Archivos tocados (referencia para commit)
 
 - `src/api/notion.ts` — `getMealPrep`, `listNotionBlockChildrenPage`, env hub opcional.
-- `src/screens/MealPrep.tsx` — efecto: prep → expand → `getTodayMeals`.
+- `src/screens/MealPrep.tsx` — fetcher: prep → expand → `getTodayMeals(expanded, user)`.
 - `src/utils/mealPrepParser.ts` — `expandMealPrepNotionBlocks`, `getTodayMeals`, tipos `NotionBlock`.
 - `src/utils/mealPrepParser.test.ts` — tests del parser.
 - `App.tsx` — tab `comidas`.
@@ -64,7 +65,7 @@
 ### Checklist antes de merge
 
 - [ ] `.env` con `NOTION_MEAL_PREP_HUB_PAGE_ID` si se usa Comidas (opcional).
-- [ ] Estructura Notion: bajo cada día, `heading_3` + tabla columnas tipo/plato; sección **Comidas Activas** en el hub.
+- [ ] Estructura Notion: un heading (1/2/3) con **Plan semanal** antes de los días; bajo cada día, `heading_3` + tabla; sección **Comidas Activas** en el hub.
 - [ ] Si este PR sube versión de app: bump `version` y `nativeBuild` en `package.json`, luego `npm run version:sync` → [`release-versioning.md`](./release-versioning.md).
 
 ### Mensaje de commit sugerido
@@ -74,7 +75,7 @@ feat(comidas): meal prep desde Notion (hub Comidas Activas + pestaña Comidas)
 
 - getMealPrep: plan activo child_page + listBlockChildrenAll en la página
 - MealPrep: expandMealPrepNotionBlocks con fetch por tabla (NOTION_API_KEY @env)
-- getTodayMeals: día ES, tabla del tramo, skip cabecera Comida/Tipo
+- getTodayMeals: ancla Plan semanal obligatoria, día ES tras ancla, tabla 2 vs 3+ cols, skip cabecera Comida/Tipo, `user` para plato
 - Tab Comidas en App; NOTION_MEAL_PREP_HUB_PAGE_ID opcional
 - Specs y tests en mealPrepParser
 ```

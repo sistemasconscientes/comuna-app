@@ -45,7 +45,7 @@ Mostrar datos persistidos en AsyncStorage al abrir la pantalla (sin spinner si h
 
 Stock: el bundle cacheado incluye suplementos Notion + sync SQLite (`idByNotionId`) + `sharedByNotionId` (backend). La tabla `stock` local sigue cargándose con `useStock()` (sin caché en este hook).
 
-MealPrep: el fetcher equivale al pipeline previo (`getMealPrep` → expandir tablas → `getTodayMeals`). Los eventos PostHog existentes se disparan dentro del fetcher (sin nuevos eventos por la capa de caché).
+MealPrep: el fetcher equivale al pipeline previo (`getMealPrep` → expandir tablas → `getTodayMeals(expanded, user)`). Los eventos PostHog existentes se disparan dentro del fetcher (sin nuevos eventos por la capa de caché).
 
 ---
 

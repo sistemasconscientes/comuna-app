@@ -2,6 +2,10 @@
  * Parsing de bloques Notion del plan meal prep (heading_3 por día + tabla Comida/Plato).
  * `getMealPrep()` devuelve solo hijos directos de la página del plan; las filas bajo cada `table`
  * no vienen incluidas — usar `expandMealPrepNotionBlocks` + cliente Notion antes de `getTodayMeals`.
+ *
+ * Debe existir un bloque `heading_1`, `heading_2` o `heading_3` cuyo texto incluya "Plan semanal"
+ * (p. ej. 📅 Plan semanal). Solo entonces se buscan `heading_3` de día **después** de ese bloque;
+ * sin ancla no se parsea (evita Chef Prep tipo "Prep del viernes pasado").
  */
 
 export interface NotionRichText {
@@ -13,11 +17,15 @@ export interface NotionRichText {
 export type NotionBlock = {
   id: string;
   type: string;
+  heading_1?: { rich_text?: NotionRichText[] };
   heading_2?: { rich_text?: NotionRichText[] };
   heading_3?: { rich_text?: NotionRichText[] };
   table?: { table_width?: number; has_column_header?: boolean; has_row_header?: boolean };
   table_row?: { cells: NotionRichText[][] };
 };
+
+/** Usuaria activa para columna de plato en tablas de 3 columnas (Diana / Estefanía). */
+export type MealPrepUser = 'diana' | 'estefania';
 
 const SPANISH_WEEKDAY: Record<number, string> = {
   0: 'Domingo',
@@ -73,6 +81,38 @@ function isMealTableHeaderRow(row: NotionBlock): boolean {
   return col0 === 'comida' || col0 === 'tipo';
 }
 
+/** Texto plano de headings 1–3 (para localizar la ancla "Plan semanal"). */
+function anyHeadingPlainText(block: NotionBlock): string {
+  if (block.type === 'heading_1') {
+    return richTextToPlain(block.heading_1?.rich_text).trim();
+  }
+  if (block.type === 'heading_2') {
+    return richTextToPlain(block.heading_2?.rich_text).trim();
+  }
+  if (block.type === 'heading_3') {
+    return richTextToPlain(block.heading_3?.rich_text).trim();
+  }
+  return '';
+}
+
+/** Índice del primer heading (1/2/3) que ancla el plan semanal. */
+function findWeeklyPlanAnchorIndex(blocks: NotionBlock[]): number {
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    if (b.type !== 'heading_1' && b.type !== 'heading_2' && b.type !== 'heading_3') continue;
+    const text = normalizeKey(anyHeadingPlainText(b));
+    if (text.includes('plan semanal')) return i;
+  }
+  return -1;
+}
+
+/** Columna del plato: exactamente 2 celdas → 1; 3+ → Diana col 1, Estefanía col 2. */
+function dishColumnIndex(cellCount: number, user: MealPrepUser): number | null {
+  if (cellCount === 2) return 1;
+  if (cellCount >= 3) return user === 'estefania' ? 2 : 1;
+  return null;
+}
+
 /**
  * Inserta tras cada `table` sus hijos `table_row` (Notion no los devuelve en el listado de la página).
  */
@@ -94,7 +134,10 @@ export async function expandMealPrepNotionBlocks(
   return out;
 }
 
-export function getTodayMeals(blocks: NotionBlock[]): {
+export function getTodayMeals(
+  blocks: NotionBlock[],
+  user: MealPrepUser = 'diana',
+): {
   dayLabel: string;
   meals: { tipo: string; plato: string }[];
 } | null {
@@ -102,10 +145,15 @@ export function getTodayMeals(blocks: NotionBlock[]): {
   const dayName = SPANISH_WEEKDAY[dow];
   const dayKey = normalizeKey(dayName);
 
+  const planAnchor = findWeeklyPlanAnchorIndex(blocks);
+  if (planAnchor < 0) return null;
+
+  const searchStart = planAnchor + 1;
+
   let headingIndex = -1;
   let dayLabel = '';
 
-  for (let i = 0; i < blocks.length; i++) {
+  for (let i = searchStart; i < blocks.length; i++) {
     const b = blocks[i];
     if (b.type !== 'heading_3') continue;
     const text = headingPlainText(b);
@@ -148,10 +196,11 @@ export function getTodayMeals(blocks: NotionBlock[]): {
 
   for (const row of dataRows) {
     const cells = row.table_row?.cells;
-    if (!cells || cells.length < 2) continue;
+    const platoCol = dishColumnIndex(cells?.length ?? 0, user);
+    if (platoCol === null || !cells) continue;
     meals.push({
       tipo: mealColumnText(cells, 0),
-      plato: mealColumnText(cells, 1),
+      plato: mealColumnText(cells, platoCol),
     });
   }
 
