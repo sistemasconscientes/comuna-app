@@ -17,6 +17,45 @@ export function localCalendarDaysBetween(from: Date, to: Date): number {
   return Math.round((b - a) / MS_PER_DAY);
 }
 
+/**
+ * Hueco máximo en días civiles locales entre dos días con flujo para seguir
+ * considerándolos el mismo episodio (p. ej. olvidó registrar un día intermedio).
+ */
+export const MAX_CALENDAR_GAP_DAYS_SAME_MENSTRUAL_PERIOD = 7;
+
+/**
+ * Inicio del **último episodio** de menstruación a partir de fechas de muestras
+ * (p. ej. HealthKit). No usar solo la muestra más reciente: suele ser el último día
+ * de sangrado; el día 1 del ciclo es el primero de ese episodio.
+ *
+ * Toma días civiles únicos, ordenados de reciente a antiguo, y agrupa mientras el
+ * salto entre el día más nuevo del grupo y el siguiente día más antiguo sea ≤ `maxGapDays`.
+ */
+export function derivePeriodStartFromFlowSampleDates(
+  sampleDates: Date[],
+  maxGapDays: number = MAX_CALENDAR_GAP_DAYS_SAME_MENSTRUAL_PERIOD,
+): Date | null {
+  if (sampleDates.length === 0) return null;
+  const dayMillis = sampleDates
+    .map((d) => startOfLocalCalendarDay(d).getTime())
+    .filter((t) => !Number.isNaN(t));
+  if (dayMillis.length === 0) return null;
+
+  const uniqueNewestFirst = [...new Set(dayMillis)].sort((a, b) => b - a);
+  const cluster: number[] = [uniqueNewestFirst[0]!];
+
+  for (let k = 1; k < uniqueNewestFirst.length; k++) {
+    const olderMs = uniqueNewestFirst[k]!;
+    const newestInClusterMs = cluster[0]!;
+    const gap = localCalendarDaysBetween(new Date(olderMs), new Date(newestInClusterMs));
+    if (gap > maxGapDays) break;
+    cluster.push(olderMs);
+  }
+
+  const oldestMs = cluster[cluster.length - 1]!;
+  return new Date(oldestMs);
+}
+
 /** Suma días al **día civil local** de `date` (arroja mes/año como `setDate`). */
 export function addLocalCalendarDays(date: Date, days: number): Date {
   const y = date.getFullYear();

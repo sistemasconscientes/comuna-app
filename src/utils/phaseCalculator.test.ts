@@ -1,4 +1,9 @@
-import { getPhaseFromCycleDay, getCycleDayFromDate, getCurrentCycleInfo } from './phaseCalculator';
+import {
+  derivePeriodStartFromFlowSampleDates,
+  getPhaseFromCycleDay,
+  getCycleDayFromDate,
+  getCurrentCycleInfo,
+} from './phaseCalculator';
 
 describe('📅 getPhaseFromCycleDay', () => {
   describe('🩸 menstrual — días 1-5', () => {
@@ -72,5 +77,30 @@ describe('🔮 getCurrentCycleInfo', () => {
     expect(info).toHaveProperty('phase');
     expect(info.day).toBe(1);
     expect(info.phase).toBe('menstrual');
+  });
+});
+
+describe('derivePeriodStartFromFlowSampleDates', () => {
+  it('una sola fecha → ese día (inicio del episodio)', () => {
+    const d = new Date(2026, 2, 26, 18, 0, 0);
+    const r = derivePeriodStartFromFlowSampleDates([d]);
+    expect(r?.getFullYear()).toBe(2026);
+    expect(r?.getMonth()).toBe(2);
+    expect(r?.getDate()).toBe(26);
+  });
+
+  it('último día de regla + días anteriores → usa el primer día del episodio', () => {
+    const first = new Date(2026, 2, 22, 8, 0, 0);
+    const last = new Date(2026, 2, 26, 20, 0, 0);
+    const r = derivePeriodStartFromFlowSampleDates([last, first]);
+    expect(r?.getDate()).toBe(22);
+  });
+
+  it('hueco > 7 días entre muestras → solo el episodio más reciente', () => {
+    const oldFlow = new Date(2026, 1, 1, 12, 0, 0);
+    const newFlow = new Date(2026, 2, 26, 12, 0, 0);
+    const r = derivePeriodStartFromFlowSampleDates([newFlow, oldFlow]);
+    expect(r?.getMonth()).toBe(2);
+    expect(r?.getDate()).toBe(26);
   });
 });

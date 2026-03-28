@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { derivePeriodStartFromFlowSampleDates } from '../utils/phaseCalculator';
 
 /** HKAuthorizationRequestStatus (misma numeración que Kingstinct/Apple). */
 const AuthRequestShouldRequest = 1;
@@ -199,6 +200,24 @@ export async function getLastMenstruation(): Promise<Date | null> {
   const hk = await ensureHealthKit();
   if (!hk) return null;
 
+  const queryFlowSampleStarts = async (identifier: string): Promise<Date[]> => {
+    const queryCategorySamples = (hk as any)?.queryCategorySamples;
+    if (typeof queryCategorySamples !== 'function') return [];
+    try {
+      const samples: any[] = await queryCategorySamples(identifier as any, {
+        limit: 120,
+        ascending: false,
+      });
+      if (!Array.isArray(samples)) return [];
+      return samples
+        .map((s) => (s?.startDate ? new Date(s.startDate) : null))
+        .filter((d): d is Date => d != null && !Number.isNaN(d.getTime()));
+    } catch (e) {
+      if (__DEV__) logHealthKit(`queryCategorySamples(${identifier})`, e);
+      return [];
+    }
+  };
+
   const trySample = async (identifier: string): Promise<Date | null> => {
     const getMostRecentCategorySample = (hk as any)?.getMostRecentCategorySample;
     if (typeof getMostRecentCategorySample !== 'function') {
@@ -219,6 +238,14 @@ export async function getLastMenstruation(): Promise<Date | null> {
     }
     return null;
   };
+
+  const menstrualStarts = await queryFlowSampleStarts(HK_MENSTRUAL_FLOW);
+  const vaginalStarts =
+    iosMajor() >= 18 ? await queryFlowSampleStarts(HK_VAGINAL_BLEEDING) : [];
+  const mergedStarts = [...menstrualStarts, ...vaginalStarts];
+
+  const inferred = derivePeriodStartFromFlowSampleDates(mergedStarts);
+  if (inferred) return inferred;
 
   const menstrual = await trySample(HK_MENSTRUAL_FLOW);
   if (menstrual) return menstrual;
