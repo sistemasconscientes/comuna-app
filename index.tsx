@@ -2,6 +2,7 @@ import 'react-native-gesture-handler';
 import React, { ErrorInfo } from 'react';
 import { registerRootComponent } from 'expo';
 import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PostHogProvider, usePostHog } from 'posthog-react-native';
 import { POSTHOG_API_KEY, POSTHOG_HOST } from '@env';
 import App from './App';
@@ -108,9 +109,11 @@ function Root() {
       }}
     >
       <RootErrorBoundary>
-        <PostHogRegisterAppEnvironment />
-        <PostHogIntegrationVerify />
-        <App />
+        <SafeAreaProvider>
+          <PostHogRegisterAppEnvironment />
+          <PostHogIntegrationVerify />
+          <App />
+        </SafeAreaProvider>
       </RootErrorBoundary>
     </PostHogProvider>
   );

@@ -1,10 +1,6 @@
 import { Platform } from 'react-native';
 import { derivePeriodStartFromFlowSampleDates } from '../utils/phaseCalculator';
 
-/** HKAuthorizationRequestStatus (misma numeración que Kingstinct/Apple). */
-const AuthRequestShouldRequest = 1;
-const AuthRequestUnnecessary = 2;
-
 type HealthKitAPI = typeof import('@kingstinct/react-native-healthkit');
 
 /** Carga diferida: evita ejecutar Nitro en web/Expo Go hasta que haga falta en iOS. */
@@ -60,11 +56,9 @@ async function ensureHealthKit(): Promise<HealthKitAPI | null> {
   return loadPromise;
 }
 
-function logHealthKit(message: string, err?: unknown) {
-  if (__DEV__) {
-    if (err !== undefined) console.warn(`[HealthKit] ${message}`, err);
-    else console.warn(`[HealthKit] ${message}`);
-  }
+/** Solo errores reales en __DEV__; estados esperados de permisos no van a consola. */
+function logHealthKitError(message: string, err: unknown): void {
+  if (__DEV__) console.warn(`[HealthKit] ${message}`, err);
 }
 
 /** Tipos de lectura a solicitar (solo los que el SO expone en este dispositivo). */
@@ -93,52 +87,33 @@ async function buildReadTypes(hk: HealthKitAPI): Promise<string[]> {
 async function requestReadAuthorization(hk: HealthKitAPI): Promise<void> {
   const isHealthDataAvailableAsync = (hk as any)?.isHealthDataAvailableAsync;
   if (typeof isHealthDataAvailableAsync !== 'function') {
-    logHealthKit(
-      'Kingstinct HealthKit no expone isHealthDataAvailableAsync en este runtime; cayendo a no-op.',
-    );
     return;
   }
 
   const ok = await isHealthDataAvailableAsync();
   if (!ok) {
-    logHealthKit('HealthKit no está disponible en este dispositivo (p. ej. simulador sin datos).');
     return;
   }
 
   const toRead = await buildReadTypes(hk);
   if (toRead.length === 0) {
-    logHealthKit('Ningún tipo de categoría menstrual está disponible en este iOS; no se puede pedir acceso.');
     return;
   }
 
   const payload = { toShare: [] as any[], toRead: toRead as any };
 
   try {
-    const status = await hk.getRequestStatusForAuthorization(payload);
-    if (__DEV__) {
-      const label =
-        status === AuthRequestShouldRequest
-          ? 'shouldRequest'
-          : status === AuthRequestUnnecessary
-            ? 'unnecessary'
-            : 'unknown';
-      logHealthKit(`getRequestStatusForAuthorization: ${label} (tipos: ${toRead.join(', ')})`);
-    }
-    if (status === AuthRequestUnnecessary) {
-      logHealthKit(
-        'iOS no mostrará de nuevo el sheet. Revisa Ajustes > Salud > Acceso a datos y apps > La Comuna.'
-      );
-    }
+    await hk.getRequestStatusForAuthorization(payload);
   } catch (e) {
-    logHealthKit('getRequestStatusForAuthorization falló', e);
+    logHealthKitError('getRequestStatusForAuthorization falló', e);
   }
 
   try {
     await hk.requestAuthorization(payload);
   } catch (e) {
-    logHealthKit(
+    logHealthKitError(
       'requestAuthorization falló. Si el mensaje menciona argumentos no válidos, puede haber un conflicto de tipos en este iOS; revisa también entitlements HealthKit y dev build (no Expo Go).',
-      e
+      e,
     );
   }
 }
@@ -187,7 +162,7 @@ export function initHealthKit(): Promise<void> {
       await requestReadAuthorization(hk);
     })
     .catch((e) => {
-      logHealthKit('initHealthKit', e);
+      logHealthKitError('initHealthKit', e);
     });
 
   return initPromise;
@@ -213,7 +188,7 @@ export async function getLastMenstruation(): Promise<Date | null> {
         .map((s) => (s?.startDate ? new Date(s.startDate) : null))
         .filter((d): d is Date => d != null && !Number.isNaN(d.getTime()));
     } catch (e) {
-      if (__DEV__) logHealthKit(`queryCategorySamples(${identifier})`, e);
+      logHealthKitError(`queryCategorySamples(${identifier})`, e);
       return [];
     }
   };
@@ -221,11 +196,6 @@ export async function getLastMenstruation(): Promise<Date | null> {
   const trySample = async (identifier: string): Promise<Date | null> => {
     const getMostRecentCategorySample = (hk as any)?.getMostRecentCategorySample;
     if (typeof getMostRecentCategorySample !== 'function') {
-      if (__DEV__) {
-        logHealthKit(
-          'Kingstinct HealthKit no expone getMostRecentCategorySample en este runtime; cayendo a fallback.',
-        );
-      }
       return null;
     }
 
@@ -234,7 +204,7 @@ export async function getLastMenstruation(): Promise<Date | null> {
       const start = sample?.startDate ? new Date(sample.startDate) : null;
       if (start && !Number.isNaN(start.getTime())) return start;
     } catch (e) {
-      if (__DEV__) logHealthKit(`getMostRecentCategorySample(${identifier})`, e);
+      logHealthKitError(`getMostRecentCategorySample(${identifier})`, e);
     }
     return null;
   };

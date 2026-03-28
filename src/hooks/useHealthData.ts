@@ -124,16 +124,6 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
               await upsertLastPeriodStart(lastFromHealthKit);
               const { phase, day } = getCurrentCycleInfo(lastFromHealthKit);
               setState({ cyclePhase: phase, cycleDay: day, lastPeriodStart: lastFromHealthKit });
-              if (__DEV__) {
-                console.warn(
-                  '[useHealthData] Último inicio de menstruación (HealthKit):',
-                  lastFromHealthKit.toISOString(),
-                  '→ fase',
-                  phase,
-                  'día',
-                  day,
-                );
-              }
 
               const hkSample = lastFromHealthKit;
               if (hkSample != null) {
@@ -152,18 +142,12 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
                       hkNorm != null &&
                       hkNorm !== 'all';
                     if (comparable && notionNorm !== hkNorm) {
-                      if (isDevSkipNotionPhaseWrite()) {
-                        console.warn(
-                          '[useHealthData] NOTION_SKIP_PHASE_WRITE: omitiendo updatePhase (dev)',
-                          { user: notionUser, notionNorm, hkNorm },
-                        );
-                      } else {
+                      if (!isDevSkipNotionPhaseWrite()) {
                         await updatePhase(notionUser, phase, nextCycleDate);
                       }
                     }
                   }
                 } catch (notionSyncErr) {
-                  console.warn('[useHealthData] Notion sync tras HealthKit:', notionSyncErr);
                   const msg =
                     notionSyncErr instanceof Error ? notionSyncErr.message : String(notionSyncErr);
                   reportErrorToSentry(notionSyncErr, {
@@ -178,7 +162,6 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
               setState(notion);
             }
           } catch (err) {
-            console.warn('HealthKit error:', err);
             const msg = err instanceof Error ? err.message : String(err);
             reportErrorToSentry(err, {
               domain: 'healthkit',

@@ -63,7 +63,6 @@ export async function syncSupplementsFromNotion(
       );
     }
   } catch (err) {
-    console.warn('Failed to sync Notion supplements to local DB', err);
     const msg = err instanceof Error ? err.message : String(err);
     reportErrorToSentry(err, {
       domain: 'sqlite',

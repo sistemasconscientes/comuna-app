@@ -127,6 +127,7 @@ Solo eventos de **producto / flujo**. Los `capture` son no-op si PostHog está d
 - **`environment`:** coincide con `getAppEnvironment()` (`development` | `preview` | `production`).
 - **`release` / `dist`:** desde Expo config (`slug@version` y build nativo) vía [`getSentryRelease()` / `getSentryDist()`](../../src/utils/observability.ts).
 - **Fallos de dominio:** `reportErrorToSentry(error, { domain, user?, ...extra })` — tags `domain`, `app_environment`; opcional `user` como `id` de scope.
+- **Dominios adicionales:** `stock_restock` (fallo al marcar recompra Notion/backend), `stock_save` / `stock_new_bottle` (guardado desde pantalla Stock), `shared_stock` (GET compartido fallido o JSON inválido; sin DSN no se envía). Consola: solo errores HealthKit en `__DEV__` (`src/api/healthkit.ts`); sin `console` duplicado en migraciones (ya `MigrationFailureReporter`).
 
 | ID   | Criterio |
 |------|----------|

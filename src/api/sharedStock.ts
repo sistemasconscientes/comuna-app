@@ -1,5 +1,6 @@
 import { BACKEND_API_KEY } from '@env';
 import type { StockEntry } from '../types';
+import { reportErrorToSentry } from '../utils/observability';
 
 function sharedStockBackendBaseUrl(): string {
   return (process.env.EXPO_PUBLIC_BACKEND_URL ?? '').trim().replace(/\/$/, '');
@@ -104,12 +105,10 @@ export function sharedStockToStockEntry(shared: SharedStock, supplementId: numbe
 export async function getSharedStock(notionId: string): Promise<SharedStock | null> {
   const key = BACKEND_API_KEY?.trim();
   if (!key) {
-    console.warn('getSharedStock: missing BACKEND_API_KEY');
     return null;
   }
   const base = sharedStockBackendBaseUrl();
   if (!base) {
-    console.warn('getSharedStock: missing EXPO_PUBLIC_BACKEND_URL');
     return null;
   }
   const url = `${base}/stock/${encodeURIComponent(notionId)}`;
@@ -118,15 +117,29 @@ export async function getSharedStock(notionId: string): Promise<SharedStock | nu
     if (res.status === 404) return null;
     if (!res.ok) {
       const body = await res.text();
-      console.warn('getSharedStock failed', res.status, body);
+      reportErrorToSentry(new Error(`getSharedStock HTTP ${res.status}`), {
+        domain: 'shared_stock',
+        notion_id: notionId,
+        status: res.status,
+        body_preview: body.slice(0, 500),
+      });
       return null;
     }
     const json: unknown = await res.json();
     const parsed = parseSharedDoc(json);
-    if (!parsed) console.warn('getSharedStock: invalid JSON shape', notionId);
+    if (!parsed) {
+      reportErrorToSentry(new Error('getSharedStock: invalid JSON shape'), {
+        domain: 'shared_stock',
+        notion_id: notionId,
+      });
+    }
     return parsed;
   } catch (e) {
-    console.warn('getSharedStock network error', notionId, e);
+    reportErrorToSentry(e, {
+      domain: 'shared_stock',
+      notion_id: notionId,
+      message: e instanceof Error ? e.message : String(e),
+    });
     return null;
   }
 }

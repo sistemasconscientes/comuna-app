@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
@@ -273,9 +274,6 @@ function App() {
   );
 
   if (error) {
-    console.error('Migration error full:', error);
-    console.error('Migration error message:', error.message);
-    console.error('Migration error stack:', error.stack);
     return (
       <SafeAreaView style={styles.container}>
         <MigrationFailureReporter error={error} />

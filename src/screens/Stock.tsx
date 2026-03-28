@@ -29,6 +29,7 @@ import { fetchSupplementsWithStock } from '../hooks/useSupplements';
 import { useStock } from '../hooks/useStock';
 import type { Supplement, StockEntry } from '../types';
 import { filterSupplementsByCurrentTemporada } from '../utils/temporadaFilter';
+import { reportErrorToSentry } from '../utils/observability';
 
 type User = 'diana' | 'estefania';
 
@@ -161,7 +162,11 @@ export default function Stock({ user }: Props) {
               await setRestockFlagged(localId, true);
             }
           } catch (e) {
-            console.warn('markForRestock failed', sup.notion_id, e);
+            reportErrorToSentry(e, {
+              domain: 'stock_restock',
+              notion_id: sup.notion_id,
+              user,
+            });
           }
         }
       }
@@ -220,7 +225,7 @@ export default function Stock({ user }: Props) {
       }
       setEditState(null);
     } catch (e) {
-      console.warn('handleSave stock failed', e);
+      reportErrorToSentry(e, { domain: 'stock_save', user });
       Alert.alert('Error', 'No se pudo guardar el stock. Revisá la conexión o la clave del backend.');
     }
   };
@@ -249,7 +254,7 @@ export default function Stock({ user }: Props) {
       }
       setEditState(null);
     } catch (e) {
-      console.warn('handleOpenNewBottle stock failed', e);
+      reportErrorToSentry(e, { domain: 'stock_new_bottle', user });
       Alert.alert('Error', 'No se pudo guardar el stock. Revisá la conexión o la clave del backend.');
     }
   };
