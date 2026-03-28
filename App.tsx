@@ -56,7 +56,6 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'home', label: 'Inicio' },
   { key: 'stock', label: 'Stock' },
   { key: 'comidas', label: 'Comidas' },
-  { key: 'perfil', label: 'Perfil' },
 ];
 
 export default function App() {
