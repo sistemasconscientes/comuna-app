@@ -1,3 +1,10 @@
+/** Expo inyecta `EXPO_PUBLIC_*` en el bundle (`.env` local y `eas.json` / EAS env en build). */
+declare namespace NodeJS {
+  interface ProcessEnv {
+    EXPO_PUBLIC_BACKEND_URL?: string;
+  }
+}
+
 declare module '@env' {
   export const NOTION_API_KEY: string;
   export const NOTION_SUPPLEMENTS_DB_ID: string;

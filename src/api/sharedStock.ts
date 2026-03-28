@@ -1,7 +1,9 @@
 import { BACKEND_API_KEY } from '@env';
 import type { StockEntry } from '../types';
 
-const BACKEND_URL = 'https://comuna-backend-vbck.onrender.com';
+function sharedStockBackendBaseUrl(): string {
+  return (process.env.EXPO_PUBLIC_BACKEND_URL ?? '').trim().replace(/\/$/, '');
+}
 
 export interface SharedStock {
   notionId: string;
@@ -105,7 +107,12 @@ export async function getSharedStock(notionId: string): Promise<SharedStock | nu
     console.warn('getSharedStock: missing BACKEND_API_KEY');
     return null;
   }
-  const url = `${BACKEND_URL}/stock/${encodeURIComponent(notionId)}`;
+  const base = sharedStockBackendBaseUrl();
+  if (!base) {
+    console.warn('getSharedStock: missing EXPO_PUBLIC_BACKEND_URL');
+    return null;
+  }
+  const url = `${base}/stock/${encodeURIComponent(notionId)}`;
   try {
     const res = await fetch(url, { headers: headers() });
     if (res.status === 404) return null;
@@ -138,6 +145,10 @@ export async function updateSharedStock(
   if (!key) {
     throw new Error('Missing BACKEND_API_KEY');
   }
+  const base = sharedStockBackendBaseUrl();
+  if (!base) {
+    throw new Error('Missing EXPO_PUBLIC_BACKEND_URL');
+  }
   const body: Record<string, unknown> = {};
   if (data.bottleOpenedAt !== undefined) {
     body.bottleOpenedAt = serializeBottleOpenedAt(data.bottleOpenedAt);
@@ -146,7 +157,7 @@ export async function updateSharedStock(
   if (data.pillsPerDay !== undefined) body.pillsPerDay = data.pillsPerDay;
   if (data.restockFlagged !== undefined) body.restockFlagged = data.restockFlagged;
 
-  const url = `${BACKEND_URL}/stock/${encodeURIComponent(notionId)}`;
+  const url = `${base}/stock/${encodeURIComponent(notionId)}`;
   const res = await fetch(url, {
     method: 'PUT',
     headers: headers(),

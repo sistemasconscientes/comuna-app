@@ -15,6 +15,14 @@
 
 Fuera de alcance explícito: CORS (el cliente es nativo).
 
+### Cliente móvil: URL del API (`EXPO_PUBLIC_BACKEND_URL`)
+
+- La app no conoce `MONGODB_URI`; solo llama a `GET`/`PUT` bajo `{EXPO_PUBLIC_BACKEND_URL}/stock/:notionId`.
+- **Desarrollo local (Metro + dispositivo en la misma red):** en `.env` de la raíz, `EXPO_PUBLIC_BACKEND_URL=http://<IP_LAN_DEL_MAC>:3000` (sin barra final). En el Mac, `backend/.env` usa `MONGODB_URI` apuntando a una base Mongo de **prueba**.
+- **Build EAS `preview`** (ambiente “productivo” interno): [`eas.json`](../../eas.json) define `EXPO_PUBLIC_BACKEND_URL` al host desplegado (p. ej. Render). En el dashboard de ese servicio, `MONGODB_URI` debe apuntar a la base **preview** (o la que usen las dos usuarias).
+- **Build EAS `development` en la nube:** si no inyectás `EXPO_PUBLIC_BACKEND_URL` (secret o `eas.json`), el stock compartido quedará deshabilitado hasta que la definas.
+- Si falta `EXPO_PUBLIC_BACKEND_URL`, `getSharedStock` devuelve `null` (warning en consola) y `updateSharedStock` lanza error.
+
 ---
 
 ## Autenticación
@@ -53,9 +61,10 @@ API_KEY=<valor de openssl rand -hex 32>
 
 No versionar `.env`.
 
-### App móvil (EAS)
+### App móvil (`.env` y EAS)
 
-La variable **`BACKEND_API_KEY`** debe coincidir con **`API_KEY`** del backend. Para builds en la nube, crear el secreto de proyecto (ajustar perfil si hace falta):
+- **`EXPO_PUBLIC_BACKEND_URL`:** ver sección anterior; en local va en `.env`; en `preview` puede ir en `eas.json` `build.preview.env` o en variables de entorno EAS del perfil.
+- **`BACKEND_API_KEY`:** debe coincidir con **`API_KEY`** del backend al que apunte la URL anterior. Para builds en la nube, crear el secreto de proyecto (ajustar perfil si hace falta):
 
 ```bash
 eas secret:create --scope project --name BACKEND_API_KEY --value "<mismo valor que API_KEY en Render>"
@@ -110,6 +119,7 @@ eas secret:create --scope project --name BACKEND_API_KEY --value "<mismo valor q
 | BS4 | Conexión a MongoDB loguea éxito (`MongoDB connected`) o error en fallo. |
 | BS5 | Servidor escucha en `PORT` o 3000 por defecto; arranque solo tras conectar a la base. |
 | BS6 | Sin `x-api-key` correcto, `GET`/`PUT` bajo `/stock` responden 401 + `{ error: "Unauthorized" }`. |
+| BS7 | Con `EXPO_PUBLIC_BACKEND_URL` vacío en el cliente, no se hacen peticiones de stock compartido con URL inválida (`getSharedStock` null, `updateSharedStock` error explícito). |
 
 ---
 

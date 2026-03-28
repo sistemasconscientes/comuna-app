@@ -12,6 +12,9 @@
       "distribution": "internal",
       "ios": {
         "buildConfiguration": "Release"
+      },
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://comuna-backend-vbck.onrender.com"
       }
     },
     "production": {}

@@ -25,6 +25,10 @@ NOTION_PHASES_PAGE_ID=
 NOTION_MEAL_PREP_HUB_PAGE_ID=
 # Opcional (solo __DEV__): evita updatePhase en Notion al probar otro perfil sin pisar su fila de fases
 # NOTION_SKIP_PHASE_WRITE=true
+
+# Stock compartido (Persona Ambas): URL del backend Express — en iPhone en la misma WiFi que el Mac, usar IP LAN (ver npm run start:device)
+EXPO_PUBLIC_BACKEND_URL=http://192.168.1.0:3000
+BACKEND_API_KEY=
 ```
 
 Correr la app:
@@ -74,7 +78,7 @@ Al iniciar, la app consulta Notion para:
 
 En **iOS** con datos de Salud, la app puede **escribir** de vuelta en esa tabla vía `updatePhase` cuando la fase calculada difiere de Notion (ver `docs/specs/healthkit-cycle-sync.md`). En desarrollo, `NOTION_SKIP_PHASE_WRITE=true` en `.env` desactiva esa escritura solo cuando `__DEV__` es verdadero.
 
-**Stock:** si un suplemento tiene menos de 7 días estimados, se llama una vez a `markForRestock` en Notion por fila (deduplicado con `restock_flagged` en SQLite; ver `docs/specs/stock-restock-notion.md`).
+**Stock:** si un suplemento tiene menos de 7 días estimados, se llama una vez a `markForRestock` en Notion por fila (deduplicado con `restock_flagged` en SQLite; ver `docs/specs/stock-restock-notion.md`). El stock **compartido** (suplementos Ambas) usa el backend en MongoDB: definí `EXPO_PUBLIC_BACKEND_URL` y `BACKEND_API_KEY` en `.env`. Desarrollo local: corré `backend/` con `MONGODB_URI` a una base de **prueba**; en dispositivo físico la URL debe ser la **IP de tu Mac** en la LAN, no `localhost`. Los builds **EAS `preview`** llevan la URL de producción interna en [`eas.json`](eas.json) (Render + Mongo **preview** en el servidor); ver `docs/specs/backend-stock-api.md`.
 
 Los datos se persisten en SQLite local (`comuna.db`) para uso offline.
 
