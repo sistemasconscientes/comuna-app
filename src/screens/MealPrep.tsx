@@ -1,101 +1,98 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { usePostHog } from 'posthog-react-native';
 import { getMealPrep, listNotionBlockChildrenPage } from '../api/notion';
 import { useUser } from '../context/UserContext';
+import { useCache } from '../hooks/useCache';
 import {
   expandMealPrepNotionBlocks,
   getTodayMeals,
   type NotionBlock,
 } from '../utils/mealPrepParser';
 
+type MealPrepCacheData = {
+  weekTitle: string | null;
+  today: ReturnType<typeof getTodayMeals>;
+};
+
 export default function MealPrep() {
   const posthog = usePostHog();
   const { user } = useUser();
-  const [weekTitle, setWeekTitle] = React.useState<string | null>(null);
-  const [today, setToday] = React.useState<ReturnType<typeof getTodayMeals>>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const prep = await getMealPrep();
-        if (cancelled) return;
+  const loadMealPrep = useCallback(async (): Promise<MealPrepCacheData> => {
+    try {
+      const prep = await getMealPrep();
 
-        if (!prep) {
-          setWeekTitle(null);
-          setToday(null);
-          posthog?.capture('meal_prep_loaded', {
-            user,
-            has_week_plan: false,
-            has_today_meals: false,
-            meals_count: 0,
-          });
-          return;
-        }
-        setWeekTitle(prep.title);
-
-        // Las tablas de Notion no incluyen sus filas en el listado
-        // de la página — hay que hacer fetch adicional por cada tabla.
-        const expanded = await expandMealPrepNotionBlocks(
-          prep.blocks as NotionBlock[],
-          (blockId, pageSize) => listNotionBlockChildrenPage(blockId, pageSize)
-        );
-
-        if (cancelled) return;
-        const todayMeals = getTodayMeals(expanded);
-        setToday(todayMeals);
+      if (!prep) {
         posthog?.capture('meal_prep_loaded', {
           user,
-          has_week_plan: true,
-          has_today_meals: Boolean(todayMeals),
-          meals_count: todayMeals?.meals.length ?? 0,
-          top_level_block_count: prep.blocks.length,
-          expanded_block_count: expanded.length,
+          has_week_plan: false,
+          has_today_meals: false,
+          meals_count: 0,
         });
-      } catch (e) {
-        if (!cancelled) {
-          const message = e instanceof Error ? e.message : String(e);
-          setError(message);
-          setWeekTitle(null);
-          setToday(null);
-          posthog?.capture('notion_meal_prep_load_failed', {
-            domain: 'notion',
-            message,
-            user,
-          });
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+        return { weekTitle: null, today: null };
       }
-    })();
-    return () => { cancelled = true; };
+
+      const expanded = await expandMealPrepNotionBlocks(
+        prep.blocks as NotionBlock[],
+        (blockId, pageSize) => listNotionBlockChildrenPage(blockId, pageSize)
+      );
+
+      const todayMeals = getTodayMeals(expanded);
+      posthog?.capture('meal_prep_loaded', {
+        user,
+        has_week_plan: true,
+        has_today_meals: Boolean(todayMeals),
+        meals_count: todayMeals?.meals.length ?? 0,
+        top_level_block_count: prep.blocks.length,
+        expanded_block_count: expanded.length,
+      });
+      return { weekTitle: prep.title, today: todayMeals };
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      posthog?.capture('notion_meal_prep_load_failed', {
+        domain: 'notion',
+        message,
+        user,
+      });
+      throw e instanceof Error ? e : new Error(message);
+    }
   }, [user, posthog]);
 
+  const { data, loading, error, refreshing, refresh } = useCache(
+    'meal_prep',
+    loadMealPrep,
+    30 * 60 * 1000
+  );
+
+  const weekTitle = data?.weekTitle ?? null;
+  const today = data?.today ?? null;
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+    >
       {error && (
         <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorText}>{error.message}</Text>
         </View>
       )}
 
-      {loading ? (
+      {loading && !data ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#222" />
           <Text style={styles.loadingText}>Cargando plan…</Text>
         </View>
-      ) : error ? null : !weekTitle ? (
+      ) : error && !data ? null : !weekTitle ? (
         <Text style={styles.muted}>Sin plan de comidas en Notion</Text>
       ) : today ? (
         <>

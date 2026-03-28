@@ -21,6 +21,42 @@ function headers(): Record<string, string> {
   };
 }
 
+/** Normaliza `SharedStock` tras `JSON.parse` (AsyncStorage) o datos ya en memoria. */
+export function reviveSharedStockMapFromCache(
+  raw: Record<string, SharedStock | null>
+): Record<string, SharedStock | null> {
+  const out: Record<string, SharedStock | null> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (v == null) {
+      out[k] = null;
+      continue;
+    }
+    if (typeof v !== 'object') {
+      out[k] = null;
+      continue;
+    }
+    const o = v as unknown as Record<string, unknown>;
+    const notionId = String(o.notionId ?? k);
+    const updatedAt = parseDate(o.updatedAt) ?? new Date();
+    const bottleOpenedAt = parseDate(o.bottleOpenedAt);
+    const totalPills = Number(o.totalPills);
+    const pillsPerDay = Number(o.pillsPerDay);
+    if (!Number.isFinite(totalPills) || !Number.isFinite(pillsPerDay)) {
+      out[k] = null;
+      continue;
+    }
+    out[k] = {
+      notionId,
+      bottleOpenedAt,
+      totalPills,
+      pillsPerDay,
+      restockFlagged: Boolean(o.restockFlagged),
+      updatedAt,
+    };
+  }
+  return out;
+}
+
 function parseDate(value: unknown): Date | null {
   if (value == null) return null;
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;

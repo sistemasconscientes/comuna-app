@@ -22,6 +22,7 @@
 - Valor por defecto cuando no se elige (o si no hay clave guardada): `🌿`
 - Persistencia: al completar la selección inicial de usuario (pantalla gate de `App.tsx`) se guarda el emoji correspondiente al usuario elegido.
 - Hidratación desde AsyncStorage al abrir el gate no debe **reemplazar** un emoji que la usuaria ya haya tocado en el picker antes de que termine la lectura (evitar condición de carrera).
+- El reset de flags «emoji tocado» y la lectura inicial desde AsyncStorage ocurren **solo en la transición** gate cerrado → abierto; no en cada re-ejecución del efecto (p. ej. si cambia `success` de migraciones mientras el gate sigue abierto), para no perder selecciones en curso.
 - Presentación: en `Home` (header del checklist) se muestra `${emoji} ${nombre}` donde el nombre es `Diana` o `Estefanía`.
 
 Fuera de alcance: React Navigation, lógica de hooks (`useHealthData`, etc.), datos Notion.
@@ -44,6 +45,7 @@ Fuera de alcance: React Navigation, lógica de hooks (`useHealthData`, etc.), da
 | USP-10 | En `Home`, el header del checklist muestra el emoji leído desde `AsyncStorage.getItem(user_emoji_${user})` y si falta/está vacío muestra `🌿` en vez de romper la UI. |
 | USP-11 | En `Perfil`, desde el selector de usuario se puede cambiar el emoji de cada perfil; al cambiar se persiste en su clave `user_emoji_u` sin necesidad de volver al gate inicial. |
 | USP-12 | Si la usuaria elige un emoji en el gate antes de que termine `AsyncStorage.getItem` para los emojis guardados, esa elección se conserva (no la pisa la hidratación tardía). |
+| USP-12b | Con el gate abierto, una nueva ejecución del efecto de hidratación de emojis (p. ej. por cambio de `success` en migraciones) **no** resetea los emojis ya elegidos en pantalla ni vuelve a disparar la lectura como si el gate acabara de abrirse. |
 | USP-13 | Cambios rápidos de usuario en Perfil: el usuario activo en UI se actualiza de forma **síncrona**; las escrituras a `AsyncStorage` no pueden dejar un perfil antiguo en pantalla por completarse fuera de orden. Si falla la persistencia del último cambio intentado, se revierte al valor anterior solo si la UI sigue mostrando ese intento. |
 | USP-14 | Tras «Cambiar usuario», si falla `AsyncStorage.removeItem`, la app muestra igual el gate (selector); no solo PostHog — coherente con el arranque cuando falla la lectura de `selected_user`. |
 

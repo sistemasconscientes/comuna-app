@@ -8,6 +8,7 @@ import {
   FlatList,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,11 +16,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { usePostHog } from 'posthog-react-native';
 import { markForRestock } from '../api/notion';
-import { sharedStockToStockEntry, updateSharedStock, type SharedStock } from '../api/sharedStock';
+import {
+  reviveSharedStockMapFromCache,
+  sharedStockToStockEntry,
+  updateSharedStock,
+  type SharedStock,
+} from '../api/sharedStock';
+import { useCache } from '../hooks/useCache';
 import { useHealthData } from '../hooks/useHealthData';
-import { useSupplements } from '../hooks/useSupplements';
-import { useSharedStockMap, useStock } from '../hooks/useStock';
+import { fetchSupplementsWithStock } from '../hooks/useSupplements';
+import { useStock } from '../hooks/useStock';
 import type { Supplement, StockEntry } from '../types';
 import { filterSupplementsByCurrentTemporada } from '../utils/temporadaFilter';
 
@@ -83,14 +91,31 @@ interface EditState {
 }
 
 export default function Stock({ user }: Props) {
+  const posthog = usePostHog();
   const { cyclePhase } = useHealthData(user);
-  const { supplements, loading: suppLoading, error: suppError, idByNotionId } = useSupplements(
-    user,
-    cyclePhase ?? '',
-    { applyTemporadaFilter: false },
+  const fetchStockBundle = useCallback(
+    () => fetchSupplementsWithStock(user, cyclePhase ?? '', posthog),
+    [user, cyclePhase, posthog]
   );
+  const {
+    data: stockBundle,
+    loading: cacheLoading,
+    error: cacheError,
+    refreshing,
+    refresh: refreshStockBundle,
+  } = useCache(`stock_${user}`, fetchStockBundle, 5 * 60 * 1000);
+
+  const supplements = stockBundle?.supplements ?? [];
+  const idByNotionId = stockBundle?.idByNotionId ?? {};
+  const sharedByNotionId = useMemo(
+    () =>
+      stockBundle?.sharedByNotionId
+        ? reviveSharedStockMapFromCache(stockBundle.sharedByNotionId)
+        : {},
+    [stockBundle]
+  );
+
   const { data: stockData, loading: stockLoading, updateBottle, setRestockFlagged } = useStock();
-  const { sharedByNotionId, loading: sharedLoading, refetchShared } = useSharedStockMap(supplements);
   const [editState, setEditState] = useState<EditState | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [temporadaView, setTemporadaView] = useState<'all' | 'current'>('all');
@@ -117,7 +142,8 @@ export default function Stock({ user }: Props) {
 
   // Mark low-stock in Notion once per fila (persistido en SQLite o backend como restock_flagged)
   useEffect(() => {
-    if (suppLoading || stockLoading || sharedLoading) return;
+    if (cacheLoading && !stockBundle) return;
+    if (stockLoading) return;
     let cancelled = false;
     (async () => {
       for (const sup of supplements) {
@@ -132,7 +158,7 @@ export default function Stock({ user }: Props) {
             if (cancelled) return;
             if (sup.persona === 'Ambas') {
               await updateSharedStock(sup.notion_id, { restockFlagged: true });
-              await refetchShared();
+              await refreshStockBundle();
             } else if (localId != null) {
               await setRestockFlagged(localId, true);
             }
@@ -149,13 +175,13 @@ export default function Stock({ user }: Props) {
     supplements,
     stockData,
     sharedByNotionId,
-    suppLoading,
+    cacheLoading,
+    stockBundle,
     stockLoading,
-    sharedLoading,
     idByNotionId,
     getEntry,
     setRestockFlagged,
-    refetchShared,
+    refreshStockBundle,
   ]);
 
   const openModal = (sup: Supplement) => {
@@ -189,7 +215,7 @@ export default function Stock({ user }: Props) {
           totalPills: total,
           pillsPerDay: perDay,
         });
-        await refetchShared();
+        await refreshStockBundle();
       } else {
         if (editState.localId == null) return;
         await updateBottle(editState.localId, editState.bottleOpenedAt, total, perDay);
@@ -218,7 +244,7 @@ export default function Stock({ user }: Props) {
           pillsPerDay: perDay,
           restockFlagged: false,
         });
-        await refetchShared();
+        await refreshStockBundle();
       } else {
         if (editState.localId == null) return;
         await updateBottle(editState.localId, today, total, perDay, { resetRestockFlag: true });
@@ -230,7 +256,7 @@ export default function Stock({ user }: Props) {
     }
   };
 
-  if (suppLoading || stockLoading || sharedLoading) {
+  if ((cacheLoading && !stockBundle) || stockLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#888" />
@@ -238,10 +264,10 @@ export default function Stock({ user }: Props) {
     );
   }
 
-  if (suppError) {
+  if (cacheError && !stockBundle) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>Error al cargar suplementos: {suppError.message}</Text>
+        <Text style={styles.errorText}>Error al cargar suplementos: {cacheError.message}</Text>
       </View>
     );
   }
@@ -291,7 +317,11 @@ export default function Stock({ user }: Props) {
       <FlatList
         data={visibleSupplements}
         keyExtractor={(s) => s.notion_id}
+        style={styles.listFlex}
         contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={refreshStockBundle} />
+        }
         ListEmptyComponent={
           temporadaView === 'current' ? (
             <Text style={styles.emptyFilterText}>
@@ -414,6 +444,7 @@ export default function Stock({ user }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAFAFA' },
+  listFlex: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { color: '#E53935', textAlign: 'center', padding: 20 },
   title: { fontSize: 24, fontWeight: '700', color: '#222', padding: 20, paddingBottom: 8 },

@@ -79,6 +79,8 @@ export default function App() {
     diana: false,
     estefania: false,
   });
+  /** Solo true mientras el picker está visible; al cerrar vuelve a false para detectar la próxima apertura. */
+  const showUserPickerWasOpenRef = React.useRef(false);
 
   const emojiKeyForUser = React.useCallback((u: User) => `user_emoji_${u}`, []);
   const [userEmojiByUser, setUserEmojiByUser] = React.useState<Record<User, string>>({
@@ -92,7 +94,17 @@ export default function App() {
   }, []);
 
   React.useEffect(() => {
-    if (!success || !showUserPicker) return;
+    if (!showUserPicker) {
+      showUserPickerWasOpenRef.current = false;
+      return;
+    }
+
+    if (!success) return;
+
+    const pickerJustOpened = !showUserPickerWasOpenRef.current;
+    showUserPickerWasOpenRef.current = true;
+
+    if (!pickerJustOpened) return;
 
     emojiTouchedRef.current = { diana: false, estefania: false };
 

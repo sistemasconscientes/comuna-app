@@ -11,6 +11,7 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 | [notion-supplements-temporada.md](./notion-supplements-temporada.md) | `getSupplements`: filtro cliente por Temporada (año, Q1–Q4, fases) |
 | [notion-meal-prep.md](./notion-meal-prep.md) | `getMealPrep`: plan activo, hijos directos de la página (`listBlockChildrenAll`) |
 | [meal-prep-screen.md](./meal-prep-screen.md) | Pantalla Comidas, `mealPrepParser`, tab en `App` |
+| [swr-local-cache.md](./swr-local-cache.md) | Caché AsyncStorage SWR: `useCache`, Stock y Comidas, TTL, pull-to-refresh |
 | [user-selected-persistence.md](./user-selected-persistence.md) | Usuario activo persistido en AsyncStorage, picker inicial, «Cambiar usuario» |
 | [app-tab-bar.md](./app-tab-bar.md) | Pestañas inferiores (`App.tsx`), retiro de Checklist vs Inicio |
 | [daily-log-by-date.md](./daily-log-by-date.md) | Registro de tomas por fecha, acceso desde Perfil |
