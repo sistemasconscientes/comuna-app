@@ -3,7 +3,8 @@ import { Platform } from 'react-native';
 import { eq } from 'drizzle-orm';
 import { getCurrentPhase, updatePhase } from '../api/notion';
 import {
-  getLastMenstruation,
+  EMPTY_HEALTH_KIT_CYCLE_SIGNALS,
+  fetchHealthKitCycleSignals,
   getHealthKitDiagnostics,
   resetHealthKitInitForQA,
 } from '../api/healthkit';
@@ -12,9 +13,9 @@ import { cyclePhaseToPhase, normalizePhase, phaseToCyclePhase } from '../utils/p
 import {
   addLocalCalendarDays,
   DEFAULT_CYCLE_LENGTH_DAYS,
-  getCurrentCycleInfo,
+  getCurrentCycleInfoWithHealthKitRefinements,
 } from '../utils/phaseCalculator';
-import type { CycleDataSource, HealthData, HealthKitDiagnostics } from '../types';
+import type { CycleDataSource, HealthData, HealthKitCycleSignals, HealthKitDiagnostics } from '../types';
 import { NOTION_SKIP_PHASE_WRITE } from '@env';
 import { reportErrorToSentry } from '../utils/observability';
 
@@ -23,6 +24,13 @@ function isDevSkipNotionPhaseWrite(): boolean {
   if (!__DEV__) return false;
   const v = NOTION_SKIP_PHASE_WRITE?.trim().toLowerCase();
   return v === 'true' || v === '1' || v === 'yes';
+}
+
+function hkContextFields(h: HealthKitCycleSignals) {
+  return {
+    healthKitIrregularCycleHint: h.irregularCycleReported,
+    healthKitLifecycleContext: h.lifecycleContext,
+  };
 }
 
 export type UseHealthDataResult = HealthData & {
@@ -50,6 +58,8 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
     cyclePhase: null,
     cycleDay: null,
     lastPeriodStart: null,
+    healthKitIrregularCycleHint: false,
+    healthKitLifecycleContext: 'none',
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -97,18 +107,10 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
 
       const notionUser = user;
       let source: CycleDataSource = 'notion';
+      let hkSignals: HealthKitCycleSignals = { ...EMPTY_HEALTH_KIT_CYCLE_SIGNALS };
 
       try {
         const lastFromDb = await loadLastPeriodStartFromDb();
-        if (lastFromDb) {
-          source = 'sqlite';
-        }
-
-        if (!cancelled && lastFromDb) {
-          const { phase, day } = getCurrentCycleInfo(lastFromDb);
-          setState({ cyclePhase: phase, cycleDay: day, lastPeriodStart: lastFromDb });
-        }
-
         const isIos = Platform.OS === 'ios';
 
         if (isIos) {
@@ -118,49 +120,7 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
           }
 
           try {
-            const lastFromHealthKit = await getLastMenstruation();
-            if (!cancelled && lastFromHealthKit) {
-              source = 'healthkit';
-              await upsertLastPeriodStart(lastFromHealthKit);
-              const { phase, day } = getCurrentCycleInfo(lastFromHealthKit);
-              setState({ cyclePhase: phase, cycleDay: day, lastPeriodStart: lastFromHealthKit });
-
-              const hkSample = lastFromHealthKit;
-              if (hkSample != null) {
-                try {
-                  const nextCycleDate = addLocalCalendarDays(
-                    hkSample,
-                    DEFAULT_CYCLE_LENGTH_DAYS,
-                  );
-                  const notionRow = await getCurrentPhase(notionUser);
-                  if (!cancelled) {
-                    const notionNorm = normalizePhase(notionRow.phase);
-                    const hkNorm = normalizePhase(cyclePhaseToPhase(phase));
-                    const comparable =
-                      notionNorm != null &&
-                      notionNorm !== 'all' &&
-                      hkNorm != null &&
-                      hkNorm !== 'all';
-                    if (comparable && notionNorm !== hkNorm) {
-                      if (!isDevSkipNotionPhaseWrite()) {
-                        await updatePhase(notionUser, phase, nextCycleDate);
-                      }
-                    }
-                  }
-                } catch (notionSyncErr) {
-                  const msg =
-                    notionSyncErr instanceof Error ? notionSyncErr.message : String(notionSyncErr);
-                  reportErrorToSentry(notionSyncErr, {
-                    domain: 'health_data',
-                    message: msg,
-                    user: notionUser,
-                  });
-                }
-              }
-            } else if (!cancelled && !lastFromDb) {
-              const notion = await loadNotionPhaseOnly(notionUser);
-              setState(notion);
-            }
+            hkSignals = await fetchHealthKitCycleSignals();
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             reportErrorToSentry(err, {
@@ -168,18 +128,81 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
               message: msg,
               user,
             });
-            if (!cancelled && !lastFromDb) {
-              const notion = await loadNotionPhaseOnly(notionUser);
-              setState(notion);
+            hkSignals = { ...EMPTY_HEALTH_KIT_CYCLE_SIGNALS };
+          }
+        } else if (!cancelled) {
+          setHealthKitDiagnostics(null);
+        }
+
+        const refinements = {
+          ovulationSignalDate: hkSignals.ovulationSignalDate,
+          peakFertileMucusDate: hkSignals.peakFertileMucusDate,
+          bbtRiseAnchorDate: hkSignals.bbtRiseAnchorDate,
+        };
+
+        let lastPeriod: Date | null = null;
+
+        if (isIos && hkSignals.lastPeriodStart) {
+          lastPeriod = hkSignals.lastPeriodStart;
+          source = 'healthkit';
+          await upsertLastPeriodStart(lastPeriod);
+        } else if (lastFromDb) {
+          lastPeriod = lastFromDb;
+          source = 'sqlite';
+        }
+
+        if (lastPeriod) {
+          const { phase, day } = getCurrentCycleInfoWithHealthKitRefinements(lastPeriod, refinements);
+          if (!cancelled) {
+            setState({
+              cyclePhase: phase,
+              cycleDay: day,
+              lastPeriodStart: lastPeriod,
+              ...hkContextFields(hkSignals),
+            });
+          }
+
+          if (
+            isIos &&
+            source === 'healthkit' &&
+            lastPeriod != null &&
+            hkSignals.lifecycleContext !== 'pregnancy' &&
+            hkSignals.lifecycleContext !== 'lactation'
+          ) {
+            try {
+              const nextCycleDate = addLocalCalendarDays(lastPeriod, DEFAULT_CYCLE_LENGTH_DAYS);
+              const notionRow = await getCurrentPhase(notionUser);
+              if (!cancelled) {
+                const notionNorm = normalizePhase(notionRow.phase);
+                const hkNorm = normalizePhase(cyclePhaseToPhase(phase));
+                const comparable =
+                  notionNorm != null &&
+                  notionNorm !== 'all' &&
+                  hkNorm != null &&
+                  hkNorm !== 'all';
+                if (comparable && notionNorm !== hkNorm) {
+                  if (!isDevSkipNotionPhaseWrite()) {
+                    await updatePhase(notionUser, phase, nextCycleDate);
+                  }
+                }
+              }
+            } catch (notionSyncErr) {
+              const msg =
+                notionSyncErr instanceof Error ? notionSyncErr.message : String(notionSyncErr);
+              reportErrorToSentry(notionSyncErr, {
+                domain: 'health_data',
+                message: msg,
+                user: notionUser,
+              });
             }
           }
         } else {
+          const notion = await loadNotionPhaseOnly(notionUser);
           if (!cancelled) {
-            setHealthKitDiagnostics(null);
-          }
-          if (!cancelled && !lastFromDb) {
-            const notion = await loadNotionPhaseOnly(notionUser);
-            setState(notion);
+            setState({
+              ...notion,
+              ...hkContextFields(hkSignals),
+            });
           }
         }
 

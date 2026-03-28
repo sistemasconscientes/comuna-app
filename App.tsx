@@ -10,6 +10,7 @@ import migrations from './src/db/migrations/migrations';
 import Home from './src/screens/Home';
 import Stock from './src/screens/Stock';
 import MealPrep from './src/screens/MealPrep';
+import HealthKitData from './src/screens/HealthKitData';
 import Profile from './src/screens/Profile';
 import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
@@ -76,13 +77,14 @@ function MigrationFailureReporter({ error }: { error: Error }) {
 }
 
 /** Pestañas visibles en la barra inferior (Perfil se abre solo desde ⚙️ en Inicio). */
-type TabBarTab = 'home' | 'stock' | 'comidas';
+type TabBarTab = 'home' | 'stock' | 'comidas' | 'salud';
 type Tab = TabBarTab | 'perfil';
 
 const TABS: { key: TabBarTab; label: string }[] = [
   { key: 'home', label: 'Inicio' },
   { key: 'stock', label: 'Stock' },
   { key: 'comidas', label: 'Comidas' },
+  { key: 'salud', label: 'Salud' },
 ];
 
 function App() {
@@ -374,6 +376,7 @@ function App() {
               {activeTab === 'home' && <Home onOpenSettings={() => setActiveTab('perfil')} />}
               {activeTab === 'stock' && <Stock user={user} />}
               {activeTab === 'comidas' && <MealPrep />}
+              {activeTab === 'salud' && <HealthKitData />}
               {activeTab === 'perfil' && (
                 <Profile onBackToTabs={() => setActiveTab('home')} />
               )}

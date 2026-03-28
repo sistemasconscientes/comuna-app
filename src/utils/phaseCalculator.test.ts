@@ -3,6 +3,8 @@ import {
   getPhaseFromCycleDay,
   getCycleDayFromDate,
   getCurrentCycleInfo,
+  getCurrentCycleInfoWithHealthKitRefinements,
+  inferBbtRiseAnchorFromSamples,
 } from './phaseCalculator';
 
 describe('📅 getPhaseFromCycleDay', () => {
@@ -102,5 +104,60 @@ describe('derivePeriodStartFromFlowSampleDates', () => {
     const r = derivePeriodStartFromFlowSampleDates([newFlow, oldFlow]);
     expect(r?.getMonth()).toBe(2);
     expect(r?.getDate()).toBe(26);
+  });
+});
+
+describe('getCurrentCycleInfoWithHealthKitRefinements', () => {
+  const lastStart = new Date(2026, 2, 1);
+
+  it('sin señales → igual que getCurrentCycleInfo', () => {
+    const a = getCurrentCycleInfo(lastStart);
+    const b = getCurrentCycleInfoWithHealthKitRefinements(lastStart, {
+      ovulationSignalDate: null,
+      peakFertileMucusDate: null,
+      bbtRiseAnchorDate: null,
+    });
+    expect(b).toEqual(a);
+  });
+
+  it('pico LH en ventana fuerza ovulación aunque el modelo diga menstrual', () => {
+    const today = new Date(2026, 2, 5, 10, 0, 0);
+    const r = getCurrentCycleInfoWithHealthKitRefinements(
+      lastStart,
+      {
+        ovulationSignalDate: new Date(2026, 2, 5, 8, 0, 0),
+        peakFertileMucusDate: null,
+        bbtRiseAnchorDate: null,
+      },
+      undefined,
+      today,
+    );
+    expect(r.phase).toBe('ovulacion');
+    expect(r.day).toBe(5);
+  });
+});
+
+describe('inferBbtRiseAnchorFromSamples', () => {
+  it('menos de 10 muestras → null', () => {
+    const rows = Array.from({ length: 9 }, (_, i) => ({
+      date: new Date(2026, 0, i + 1),
+      value: 36.4,
+    }));
+    expect(inferBbtRiseAnchorFromSamples(rows, false)).toBeNull();
+  });
+
+  it('subida clara en °C devuelve ancla (primer día del bloque alto)', () => {
+    const rows = [
+      ...Array.from({ length: 7 }, (_, i) => ({
+        date: new Date(2026, 0, i + 1),
+        value: 36.35 + i * 0.01,
+      })),
+      { date: new Date(2026, 0, 8), value: 36.55 },
+      { date: new Date(2026, 0, 9), value: 36.58 },
+      { date: new Date(2026, 0, 10), value: 36.6 },
+    ];
+    const anchor = inferBbtRiseAnchorFromSamples(rows, false);
+    expect(anchor).not.toBeNull();
+    expect(anchor!.getDate()).toBe(8);
   });
 });

@@ -14,7 +14,7 @@ Mostrar datos persistidos en AsyncStorage al abrir la pantalla (sin spinner si h
 
 ## Formato de almacenamiento
 
-- Clave: prefijo interno + `key` lógica (p. ej. `stock_diana`, `meal_prep`).
+- Clave: prefijo interno + `key` lógica (p. ej. `stock_diana`, `meal_prep_estefania`).
 - Valor: JSON `{ value: T, fetchedAt: number }` donde `fetchedAt` es `Date.now()` en ms tras un fetch exitoso.
 - `T` debe ser serializable con `JSON.stringify`. Los objetos con `Date` (p. ej. `SharedStock` en el bundle de Stock) se normalizan al consumir con [`reviveSharedStockMapFromCache`](../../src/api/sharedStock.ts).
 
@@ -41,11 +41,11 @@ Mostrar datos persistidos en AsyncStorage al abrir la pantalla (sin spinner si h
 | Pantalla | Key | TTL | Lista / scroll |
 |----------|-----|-----|----------------|
 | Stock | `stock_${user}` | 5 min | `FlatList` + `RefreshControl` |
-| Comidas | `meal_prep` | 30 min | `ScrollView` + `RefreshControl` |
+| Comidas | `meal_prep_${user}` | 30 min | `ScrollView` + `RefreshControl` |
 
 Stock: el bundle cacheado incluye suplementos Notion + sync SQLite (`idByNotionId`) + `sharedByNotionId` (backend). La tabla `stock` local sigue cargándose con `useStock()` (sin caché en este hook).
 
-MealPrep: el fetcher equivale al pipeline previo (`getMealPrep` → expandir tablas → `getTodayMeals(expanded, user)`). Los eventos PostHog existentes se disparan dentro del fetcher (sin nuevos eventos por la capa de caché).
+MealPrep: el fetcher equivale al pipeline previo (`getMealPrep` → expandir tablas → `getTodayMeals(expanded, user)`). La clave incluye `user` porque el resultado mostrado es por perfil (columnas distintas Diana/Estefanía). Los eventos PostHog existentes se disparan dentro del fetcher (sin nuevos eventos por la capa de caché).
 
 ---
 
@@ -57,6 +57,7 @@ MealPrep: el fetcher equivale al pipeline previo (`getMealPrep` → expandir tab
 | SWR-C2 | Si el TTL expiró y hay datos mostrados, la revalidación no vuelve a poner `loading` en `true`. |
 | SWR-C3 | Pull-to-refresh llama a `refresh` y muestra el indicador nativo mientras `refreshing` es `true`. |
 | SWR-C4 | Tras éxito de fetch, se actualiza AsyncStorage con el nuevo `value` y `fetchedAt`. |
+| SWR-C5 | Comidas: la key de caché incluye el usuario activo; al cambiar de perfil no se reutiliza el plan/comidas del otro usuario hasta que corresponda su propia entrada en storage. |
 
 ---
 

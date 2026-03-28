@@ -21,9 +21,9 @@ App móvil iOS de seguimiento de suplementos basada en fases del ciclo menstrual
 - `src/api/notion.ts` — Fetch desde Notion API. La app sincroniza al iniciar. Funciones principales: `getSupplements(user, currentPhase, applyTemporadaFilter?)`, `getCurrentPhase(user)`, `updatePhase(user, phase, nextCycle)` (tabla inline de fases con texto + emoji), `markForRestock(notion_id)`, `getMealPrep()` (hijos directos de la página del plan), `listNotionBlockChildrenPage` (hijos de un bloque; Comidas expande tablas con esto)
 - `src/utils/mealPrepParser.ts` — `expandMealPrepNotionBlocks`, `getTodayMeals` para la pestaña Comidas
 - `src/utils/observability.ts` — `getAppEnvironment`, `reportErrorToSentry` (Sentry); PostHog solo eventos de producto en hooks/screens
-- `src/api/healthkit.ts` — iOS: lectura de última menstruación para derivar fase (ver spec HealthKit)
+- `src/api/healthkit.ts` — iOS: `fetchHealthKitCycleSignals` (flujo, ovulación, moco, BBT, irregular, contexto vital); `getLastMenstruation` delega en ello; `getHealthKitDataScreenSnapshot` para la pestaña Salud (ver specs HealthKit)
 - `src/db/schema.ts` — Schema SQLite local: `supplements`, `dailyLogs`, `stock` (incl. `restock_flagged` para deduplicar recompra en Notion), `phases`, `cycle_states`
-- `src/hooks/` — Lógica de negocio. Un hook por dominio. `useHealthData`: con datos de HealthKit, compara fase/fecha con Notion y llama a `updatePhase` solo si difieren. `useStock`: persiste `restock_flagged` al marcar recompra.
+- `src/hooks/` — Lógica de negocio. Un hook por dominio. `useHealthData`: con datos de HealthKit, compara fase/fecha con Notion y llama a `updatePhase` solo si difieren. `useStock`: persiste `restock_flagged` al marcar recompra. `useHealthKitDataScreen`: caché del snapshot Salud/HealthKit.
 - `src/screens/` — Pantallas con mínima lógica propia.
 - `src/types/index.ts` — Todos los types e interfaces del proyecto
 
@@ -60,9 +60,10 @@ Opcional (PostHog — eventos de producto; ver `docs/specs/posthog-analytics.md`
 
 Opcional (Sentry — errores y fallos de dominio; `src/utils/observability.ts`):
 - `SENTRY_DSN` — si falta o está vacía, no se inicializa Sentry (`App.tsx`)
+- `SENTRY_AUTH_TOKEN` — solo entorno del **job EAS** (variable del proyecto, p. ej. `eas env:create` con `--visibility secret`): autentica `sentry-cli` al subir source maps en archive iOS; no es runtime de la app. Ver `docs/specs/posthog-analytics.md`.
 
 Opcional (entorno en builds release; en `__DEV__` siempre `development`):
-- `EXPO_PUBLIC_APP_ENV` — `preview` \| `production` (típico vía `eas.json`; EAS Secrets para DSN/PostHog en la nube)
+- `EXPO_PUBLIC_APP_ENV` — `preview` \| `production` (típico vía `eas.json`; EAS Secrets para DSN/PostHog/Sentry token en la nube)
 
 ## Qué NO hacer
 - No hardcodear credenciales de Notion fuera de `.env`

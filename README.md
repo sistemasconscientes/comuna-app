@@ -41,6 +41,8 @@ BACKEND_API_KEY=
 # EXPO_PUBLIC_APP_ENV=preview
 ```
 
+**EAS Build + Sentry:** si usás `SENTRY_DSN` en builds de tienda, el archive de iOS sube source maps vía `sentry-cli` y necesita **`SENTRY_AUTH_TOKEN`** como variable de entorno del proyecto en EAS ([documentación](https://docs.expo.dev/eas/environment-variables/), visibilidad `secret`). Crear un [Organization Token](https://docs.sentry.io/account/auth-tokens/) en Sentry y ejecutar p. ej. `eas env:create --name SENTRY_AUTH_TOKEN --value "..." --environment preview --environment production --visibility secret --non-interactive --scope project`. Detalle y válvulas (`SENTRY_ALLOW_FAILURE`, `SENTRY_DISABLE_AUTO_UPLOAD`): [`docs/specs/posthog-analytics.md`](docs/specs/posthog-analytics.md).
+
 Correr la app:
 
 ```bash

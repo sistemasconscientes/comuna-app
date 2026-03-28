@@ -91,6 +91,8 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
     error,
     cycleDataSource,
     healthKitDiagnostics,
+    healthKitIrregularCycleHint,
+    healthKitLifecycleContext,
     refetch,
   } = useHealthData(user);
 
@@ -215,6 +217,35 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
         )}
       </View>
 
+      {Platform.OS === 'ios' &&
+        !loading &&
+        (healthKitIrregularCycleHint || healthKitLifecycleContext !== 'none') && (
+          <View style={styles.healthContextCard}>
+            {healthKitIrregularCycleHint && (
+              <Text style={styles.healthContextText}>
+                En Salud constan datos de ciclo irregular reciente; la fase mostrada es orientativa.
+              </Text>
+            )}
+            {healthKitLifecycleContext === 'pregnancy' && (
+              <Text style={styles.healthContextText}>
+                Hay un test de embarazo positivo reciente en Salud; no sincronizamos la fase automáticamente
+                con Notion.
+              </Text>
+            )}
+            {healthKitLifecycleContext === 'lactation' && (
+              <Text style={styles.healthContextText}>
+                Hay datos de lactancia recientes en Salud; no sincronizamos la fase automáticamente con
+                Notion.
+              </Text>
+            )}
+            {healthKitLifecycleContext === 'contraceptive' && (
+              <Text style={styles.healthContextText}>
+                Hay registro de anticonceptivo reciente en Salud; la fase calculada es solo orientativa.
+              </Text>
+            )}
+          </View>
+        )}
+
       {__DEV__ && (
         <View style={styles.qaCard}>
           <Text style={styles.qaTitle}>Sentry (solo desarrollo)</Text>
@@ -335,6 +366,14 @@ const styles = StyleSheet.create({
   phaseLabelSmall: { fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: 1 },
   phaseValue: { fontSize: 28, fontWeight: '700', marginTop: 4 },
   cycleDay: { fontSize: 14, color: '#888', marginTop: 4 },
+  healthContextCard: {
+    backgroundColor: '#FFF8E6',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#F0E0B2',
+  },
+  healthContextText: { fontSize: 13, color: '#5D4E37', lineHeight: 19 },
   errorText: { color: '#C62828', fontSize: 14, marginTop: 4 },
   qaCard: {
     backgroundColor: '#F5F5F5',

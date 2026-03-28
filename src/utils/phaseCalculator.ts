@@ -102,12 +102,108 @@ export function getCycleDayFromDate(lastPeriodStart: Date, targetDate: Date = ne
 }
 
 /**
- * Devuelve fase y día del ciclo para hoy.
+ * Devuelve fase y día del ciclo para `targetDate` (por defecto el instante actual).
  */
 export function getCurrentCycleInfo(
   lastPeriodStart: Date,
-  config?: CycleConfig
+  config?: CycleConfig,
+  targetDate: Date = new Date(),
 ): { phase: CyclePhase; day: number } {
-  const day = getCycleDayFromDate(lastPeriodStart);
+  const day = getCycleDayFromDate(lastPeriodStart, targetDate);
   return { phase: getPhaseFromCycleDay(day, config), day };
+}
+
+/** Refina fase/día con señales opcionales de Salud (ovulación, moco, BBT). */
+export interface HealthKitPhaseRefinements {
+  ovulationSignalDate: Date | null;
+  peakFertileMucusDate: Date | null;
+  bbtRiseAnchorDate: Date | null;
+}
+
+const EMPTY_REFINEMENTS: HealthKitPhaseRefinements = {
+  ovulationSignalDate: null,
+  peakFertileMucusDate: null,
+  bbtRiseAnchorDate: null,
+};
+
+function localDayIndex(d: Date): number {
+  return startOfLocalCalendarDay(d).getTime();
+}
+
+/** `today` cae en el intervalo inclusivo de días civiles desde `anchor` durante `spanDays` (0 = solo el día de anchor). */
+function todayWithinLocalSpanFrom(anchor: Date, today: Date, spanDays: number): boolean {
+  const t = localDayIndex(today);
+  const a0 = localDayIndex(anchor);
+  const a1 = localDayIndex(addLocalCalendarDays(anchor, spanDays));
+  return t >= a0 && t <= a1;
+}
+
+/**
+ * Partiendo del modelo de ciclo por `lastPeriodStart`, ajusta la fase si hay señales fuertes en Salud:
+ * - Pico LH / estrógeno (test): ventana de 3 días civiles → `ovulacion`.
+ * - Moco fértil (aguado / clara de huevo): misma ventana si el modelo base es folicular u ovulatorio.
+ * - Subida térmica (BBT): primer día alto; si hoy está en los 10 días siguientes y el modelo aún es folicular/ovulatorio → `lutea`.
+ */
+export function getCurrentCycleInfoWithHealthKitRefinements(
+  lastPeriodStart: Date,
+  refinements: HealthKitPhaseRefinements | null | undefined,
+  config?: CycleConfig,
+  today: Date = new Date(),
+): { phase: CyclePhase; day: number } {
+  const r = refinements ?? EMPTY_REFINEMENTS;
+  const base = getCurrentCycleInfo(lastPeriodStart, config, today);
+
+  if (r.ovulationSignalDate && todayWithinLocalSpanFrom(r.ovulationSignalDate, today, 2)) {
+    return { ...base, phase: 'ovulacion' };
+  }
+
+  if (
+    r.peakFertileMucusDate &&
+    todayWithinLocalSpanFrom(r.peakFertileMucusDate, today, 2) &&
+    (base.phase === 'folicular' || base.phase === 'ovulacion')
+  ) {
+    return { ...base, phase: 'ovulacion' };
+  }
+
+  if (r.bbtRiseAnchorDate) {
+    const daysSinceBbt = localCalendarDaysBetween(r.bbtRiseAnchorDate, today);
+    if (
+      daysSinceBbt >= 0 &&
+      daysSinceBbt <= 10 &&
+      (base.phase === 'folicular' || base.phase === 'ovulacion')
+    ) {
+      return { ...base, phase: 'lutea' };
+    }
+  }
+
+  return base;
+}
+
+/**
+ * Heurística simple de “subida” post-ovulación: media de los primeros días vs últimos 3 valores.
+ * `unitIsFahrenheit` ajusta el umbral (~0,22 °F ≈ 0,12 °C).
+ */
+export function inferBbtRiseAnchorFromSamples(
+  samples: readonly { date: Date; value: number }[],
+  unitIsFahrenheit: boolean,
+): Date | null {
+  if (samples.length < 10) return null;
+  const sorted = [...samples].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const riseMin = unitIsFahrenheit ? 0.22 : 0.12;
+
+  const n = sorted.length;
+  const earlyCount = Math.min(7, n - 6);
+  if (earlyCount < 3) return null;
+
+  let earlyMean = 0;
+  for (let i = 0; i < earlyCount; i++) earlyMean += sorted[i]!.value;
+  earlyMean /= earlyCount;
+
+  const lateStart = n - 3;
+  let lateMean = 0;
+  for (let i = lateStart; i < n; i++) lateMean += sorted[i]!.value;
+  lateMean /= 3;
+
+  if (lateMean - earlyMean < riseMin) return null;
+  return startOfLocalCalendarDay(sorted[lateStart]!.date);
 }

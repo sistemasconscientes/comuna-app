@@ -68,7 +68,7 @@ export default function MealPrep() {
   }, [user, posthog]);
 
   const { data, loading, error, refreshing, refresh } = useCache(
-    'meal_prep',
+    `meal_prep_${user}`,
     loadMealPrep,
     30 * 60 * 1000
   );

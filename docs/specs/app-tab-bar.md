@@ -17,6 +17,7 @@ Pestañas inferiores de la app (sin React Navigation): estado local `activeTab` 
 | Inicio | `Home` | Fase del ciclo, progreso del día, lista de suplementos para **hoy** (`useDailyLog(user)` con fecha por defecto). Cabecera con ⚙️ abre **Perfil**. |
 | Stock | `Stock` | Inventario / frascos. |
 | Comidas | `MealPrep` | Plan de comidas. |
+| Salud | `HealthKitData` | Lecturas de Apple Salud visibles (valor, sin datos, permiso o error); ver [`healthkit-data-screen.md`](./healthkit-data-screen.md). |
 
 ## Perfil (fuera de la barra)
 
@@ -38,7 +39,7 @@ La pestaña **Checklist** se eliminó: duplicaba la lista de suplementos del dí
 
 | ID | Criterio |
 |----|----------|
-| TAB-1 | La barra inferior muestra exactamente tres pestañas: Inicio, Stock, Comidas. **No** incluye Perfil. |
+| TAB-1 | La barra inferior muestra exactamente cuatro pestañas: Inicio, Stock, Comidas, Salud. **No** incluye Perfil. |
 | TAB-2 | No existe ruta ni pestaña «Checklist» accesible desde la UI. |
 | TAB-3 | Inicio sigue permitiendo marcar/desmarcar suplementos para la fecha de hoy. |
 | TAB-4 | Estilo visual alineado con [`home-screen-ui.md`](./home-screen-ui.md): fondo crema en la zona de pestañas, pestaña activa con fondo terracota (`#C97B6E`) y texto claro. |

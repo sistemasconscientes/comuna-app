@@ -6,6 +6,7 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 |------|-------------|
 | [posthog-analytics.md](./posthog-analytics.md) | PostHog: eventos de producto, env, identify; Sentry para errores (`observability.ts`) |
 | [healthkit-cycle-sync.md](./healthkit-cycle-sync.md) | Ciclo menstrual: HealthKit, SQLite, Notion, QA iOS |
+| [healthkit-data-screen.md](./healthkit-data-screen.md) | Pestaña Salud: snapshot legible de lecturas HealthKit, Sentry en errores de extracción |
 | [stock-edit-modal-ios-keyboard.md](./stock-edit-modal-ios-keyboard.md) | Modal Stock + teclado en iOS |
 | [stock-restock-notion.md](./stock-restock-notion.md) | Bajo stock: `markForRestock`, `restock_flagged`, UI |
 | [notion-supplements-temporada.md](./notion-supplements-temporada.md) | `getSupplements`: filtro cliente por Temporada (año, Q1–Q4, fases) |

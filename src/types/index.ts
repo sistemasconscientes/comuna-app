@@ -79,8 +79,47 @@ export interface HealthKitDiagnostics {
   healthStoreAvailable: boolean;
 }
 
+/** Contexto de ciclo leído en Salud (no sustituye el perfil Diana/Estefanía en la app). */
+export type HealthKitLifecycleContext = 'none' | 'pregnancy' | 'lactation' | 'contraceptive';
+
+/** Señales opcionales de Ciclo menstrual / fertilidad desde HealthKit (ver `fetchHealthKitCycleSignals`). */
+export interface HealthKitCycleSignals {
+  lastPeriodStart: Date | null;
+  ovulationSignalDate: Date | null;
+  peakFertileMucusDate: Date | null;
+  bbtRiseAnchorDate: Date | null;
+  irregularCycleReported: boolean;
+  lifecycleContext: HealthKitLifecycleContext;
+}
+
+/** Fila de la pestaña Salud (lecturas HealthKit visibles para la usuaria). */
+export type HealthKitDataScreenRowKind =
+  | 'info'
+  | 'permission'
+  | 'no_data'
+  | 'value'
+  | 'error'
+  | 'unavailable';
+
+export interface HealthKitDataScreenRow {
+  id: string;
+  label: string;
+  kind: HealthKitDataScreenRowKind;
+  text: string;
+  hint?: string;
+}
+
+export interface HealthKitDataScreenSnapshot {
+  rows: HealthKitDataScreenRow[];
+  refreshedAt: string;
+}
+
 export interface HealthData {
   cyclePhase: CyclePhase | null;
   cycleDay: number | null;
   lastPeriodStart: Date | null;
+  /** Apple Salud reportó irregularidad de ciclo reciente (tipos iOS 16+). */
+  healthKitIrregularCycleHint: boolean;
+  /** Embarazo, lactancia o anticonceptivo reciente en Salud; la app no escribe fase en Notion automáticamente si es embarazo/lactancia. */
+  healthKitLifecycleContext: HealthKitLifecycleContext;
 }

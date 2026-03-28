@@ -1,0 +1,18 @@
+diff --git a/node_modules/@kingstinct/react-native-healthkit/ReactNativeHealthkit.podspec b/node_modules/@kingstinct/react-native-healthkit/ReactNativeHealthkit.podspec
+index e0d40dc..679af5e 100644
+--- a/node_modules/@kingstinct/react-native-healthkit/ReactNativeHealthkit.podspec
++++ b/node_modules/@kingstinct/react-native-healthkit/ReactNativeHealthkit.podspec
+@@ -38,10 +38,12 @@ Pod::Spec.new do |s|
+   # Workaround for Swift 6.2 (Xcode 26): shared_ptr lost automatic CxxConvertibleToBool conformance,
+   # causing nitrogen-generated Bool(fromCxx:) calls to fail. Replace with use_count() > 0.
+   # This can be removed once nitrogen fixes the codegen template upstream.
++  # output_files + touch: evita el warning de Xcode "will be run during every build because it does not specify any outputs"
+   s.script_phase = {
+     :name => '[ReactNativeHealthkit] Fix Swift 6.2 CxxConvertibleToBool',
+-    :script => "perl -i -pe 's/Bool\\(fromCxx: cachedCxxPart\\)/cachedCxxPart.use_count() > 0/g' \"${PODS_TARGET_SRCROOT}/nitrogen/generated/ios/swift/\"*Spec_cxx.swift 2>/dev/null || true",
++    :script => "perl -i -pe 's/Bool\\(fromCxx: cachedCxxPart\\)/cachedCxxPart.use_count() > 0/g' \"${PODS_TARGET_SRCROOT}/nitrogen/generated/ios/swift/\"*Spec_cxx.swift 2>/dev/null || true; touch \"${DERIVED_FILE_DIR}/.rn_healthkit_swift62_fix.stamp\"",
+     :execution_position => :before_compile,
++    :output_files => ['$(DERIVED_FILE_DIR)/.rn_healthkit_swift62_fix.stamp'],
+   }
+ 
+   s.dependency 'React-jsi'
