@@ -53,7 +53,8 @@
           "project": "comunaapp",
           "organization": "sistemasconscientes"
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "android": {
       "package": "com.janee.comunaapp",

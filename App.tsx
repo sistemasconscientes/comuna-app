@@ -14,12 +14,21 @@ import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
 import { SENTRY_DSN } from '@env';
 import * as Sentry from '@sentry/react-native';
+import {
+  getAppEnvironment,
+  getSentryDist,
+  getSentryRelease,
+  reportErrorToSentry,
+} from './src/utils/observability';
 
 const sentryDsn = (SENTRY_DSN ?? '').trim();
 
 if (sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
+    environment: getAppEnvironment(),
+    release: getSentryRelease(),
+    dist: getSentryDist(),
     // https://docs.sentry.io/platforms/react-native/data-management/data-collected/
     sendDefaultPii: true,
     enableLogs: true,
@@ -52,16 +61,16 @@ function PostHogIdentifyUser({ user }: { user: User }) {
 }
 
 function MigrationFailureReporter({ error }: { error: Error }) {
-  const posthog = usePostHog();
   const reported = React.useRef(false);
   React.useEffect(() => {
-    if (reported.current || !posthog) return;
+    if (reported.current) return;
     reported.current = true;
-    posthog.capture('migration_failed', {
-      message: error.message,
+    reportErrorToSentry(error, {
+      domain: 'drizzle_migrations',
       error_name: error.name,
+      message: error.message,
     });
-  }, [posthog, error]);
+  }, [error]);
   return null;
 }
 
@@ -165,7 +174,8 @@ function App() {
           posthog?.capture('user_picker_shown', { reason: 'no_stored_value' });
         }
       } catch (e) {
-        posthog?.capture('user_persistence_failed', {
+        reportErrorToSentry(e, {
+          domain: 'async_storage',
           operation: 'read',
           message: persistenceErrorMessage(e),
         });
@@ -192,7 +202,8 @@ function App() {
         setShowUserPicker(true);
         posthog?.capture('user_picker_shown', { reason: 'manual_clear' });
       } catch (e) {
-        posthog?.capture('user_persistence_failed', {
+        reportErrorToSentry(e, {
+          domain: 'async_storage',
           operation: 'remove',
           message: persistenceErrorMessage(e),
         });
@@ -219,7 +230,8 @@ function App() {
             posthog?.capture('user_switched_in_profile', { previous_user: prev, user: u });
           }
         } catch (e) {
-          posthog?.capture('user_persistence_failed', {
+          reportErrorToSentry(e, {
+            domain: 'async_storage',
             operation: 'write',
             message: persistenceErrorMessage(e),
           });
@@ -245,7 +257,8 @@ function App() {
           setActiveTab('home');
           posthog?.capture('user_picker_completed', { user: u, reason, persisted: true });
         } catch (e) {
-          posthog?.capture('user_persistence_failed', {
+          reportErrorToSentry(e, {
+            domain: 'async_storage',
             operation: 'write',
             message: persistenceErrorMessage(e),
           });

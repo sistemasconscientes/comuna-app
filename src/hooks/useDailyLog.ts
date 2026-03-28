@@ -1,16 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { usePostHog } from 'posthog-react-native';
 import { eq, and } from 'drizzle-orm';
 import { db, dailyLogs } from '../db';
 import type { User } from '../context/UserContext';
 import type { DailyLog } from '../types';
+import { reportErrorToSentry } from '../utils/observability';
 
 function today(): string {
   return new Date().toISOString().split('T')[0];
 }
 
 export function useDailyLog(user: User, date: string = today()) {
-  const posthog = usePostHog();
   const [data, setData] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -26,7 +25,7 @@ export function useDailyLog(user: User, date: string = today()) {
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
       setError(err);
-      posthog?.capture('daily_log_load_failed', {
+      reportErrorToSentry(err, {
         domain: 'sqlite',
         message: err.message,
         date,
@@ -35,7 +34,7 @@ export function useDailyLog(user: User, date: string = today()) {
     } finally {
       setLoading(false);
     }
-  }, [date, posthog, user]);
+  }, [date, user]);
 
   useEffect(() => { load(); }, [load]);
 

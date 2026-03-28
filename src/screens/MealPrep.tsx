@@ -16,6 +16,7 @@ import {
   getTodayMeals,
   type NotionBlock,
 } from '../utils/mealPrepParser';
+import { reportErrorToSentry } from '../utils/observability';
 
 type MealPrepCacheData = {
   weekTitle: string | null;
@@ -57,7 +58,7 @@ export default function MealPrep() {
       return { weekTitle: prep.title, today: todayMeals };
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      posthog?.capture('notion_meal_prep_load_failed', {
+      reportErrorToSentry(e, {
         domain: 'notion',
         message,
         user,

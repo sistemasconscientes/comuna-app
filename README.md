@@ -30,8 +30,15 @@ NOTION_MEAL_PREP_HUB_PAGE_ID=
 EXPO_PUBLIC_BACKEND_URL=http://192.168.1.0:3000
 BACKEND_API_KEY=
 
-# Opcional: Sentry (ver sección Sentry en docs/specs/posthog-analytics.md)
+# Opcional: PostHog (eventos de producto)
+# POSTHOG_API_KEY=
+# POSTHOG_HOST=https://us.i.posthog.com
+
+# Opcional: Sentry (errores) — ver docs/specs/posthog-analytics.md
 # SENTRY_DSN=
+
+# Opcional: en release sin __DEV__, etiqueta preview|production (EAS lo define en eas.json)
+# EXPO_PUBLIC_APP_ENV=preview
 ```
 
 Correr la app:

@@ -1,10 +1,11 @@
 import 'react-native-gesture-handler';
-import React from 'react';
+import React, { ErrorInfo } from 'react';
 import { registerRootComponent } from 'expo';
 import { View, Text, StyleSheet } from 'react-native';
-import { PostHogProvider, PostHogErrorBoundary, usePostHog } from 'posthog-react-native';
+import { PostHogProvider, usePostHog } from 'posthog-react-native';
 import { POSTHOG_API_KEY, POSTHOG_HOST } from '@env';
 import App from './App';
+import { getAppEnvironment, reportErrorToSentry } from './src/utils/observability';
 
 const hasPostHog = Boolean((POSTHOG_API_KEY ?? '').trim());
 const posthogHost = (POSTHOG_HOST ?? '').trim() || 'https://us.i.posthog.com';
@@ -36,6 +37,50 @@ const fallbackStyles = StyleSheet.create({
   message: { fontSize: 15, color: '#444' },
 });
 
+type RootBoundaryState = {
+  error: unknown | null;
+  componentStack: string;
+};
+
+class RootErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  RootBoundaryState
+> {
+  state: RootBoundaryState = { error: null, componentStack: '' };
+
+  static getDerivedStateFromError(error: unknown): Partial<RootBoundaryState> {
+    return { error };
+  }
+
+  componentDidCatch(error: unknown, info: ErrorInfo): void {
+    reportErrorToSentry(error, {
+      domain: 'react_render',
+      component_stack: info.componentStack ?? '',
+    });
+    this.setState({ componentStack: info.componentStack ?? '' });
+  }
+
+  render(): React.ReactNode {
+    const { error, componentStack } = this.state;
+    if (error != null) {
+      return <PostHogErrorFallback error={error} componentStack={componentStack} />;
+    }
+    return this.props.children;
+  }
+}
+
+/** Super-propiedad en todos los eventos PostHog (filtrar dev / preview / prod en el dashboard). */
+function PostHogRegisterAppEnvironment() {
+  const posthog = usePostHog();
+  const done = React.useRef(false);
+  React.useEffect(() => {
+    if (!hasPostHog || !posthog || done.current) return;
+    done.current = true;
+    void posthog.register({ app_environment: getAppEnvironment() });
+  }, [posthog]);
+  return null;
+}
+
 /** Una vez por cold start en dev, si PostHog está activo — revisar en PostHog → Activity / Live events. */
 function PostHogIntegrationVerify() {
   const posthog = usePostHog();
@@ -60,21 +105,13 @@ function Root() {
         disabled: !hasPostHog,
         host: posthogHost,
         captureAppLifecycleEvents: false,
-        ...(hasPostHog && {
-          errorTracking: {
-            autocapture: {
-              uncaughtExceptions: true,
-              unhandledRejections: true,
-              console: ['error', 'warn'] as const,
-            },
-          },
-        }),
       }}
     >
-      <PostHogErrorBoundary fallback={PostHogErrorFallback}>
+      <RootErrorBoundary>
+        <PostHogRegisterAppEnvironment />
         <PostHogIntegrationVerify />
         <App />
-      </PostHogErrorBoundary>
+      </RootErrorBoundary>
     </PostHogProvider>
   );
 }

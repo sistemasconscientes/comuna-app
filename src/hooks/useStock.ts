@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { usePostHog } from 'posthog-react-native';
 import { eq } from 'drizzle-orm';
 import { getSharedStock } from '../api/sharedStock';
 import type { SharedStock } from '../api/sharedStock';
 import { db, stock } from '../db';
 import type { StockEntry, Supplement } from '../types';
+import { reportErrorToSentry } from '../utils/observability';
 
 export function useStock() {
-  const posthog = usePostHog();
   const [data, setData] = useState<StockEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -20,14 +19,14 @@ export function useStock() {
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
       setError(err);
-      posthog?.capture('stock_load_failed', {
+      reportErrorToSentry(err, {
         domain: 'sqlite',
         message: err.message,
       });
     } finally {
       setLoading(false);
     }
-  }, [posthog]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 

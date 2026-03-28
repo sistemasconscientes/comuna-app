@@ -6,7 +6,10 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "development"
+      }
     },
     "preview": {
       "distribution": "internal",
@@ -14,10 +17,15 @@
         "buildConfiguration": "Release"
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://comuna-backend-vbck.onrender.com"
+        "EXPO_PUBLIC_BACKEND_URL": "https://comuna-backend-vbck.onrender.com",
+        "EXPO_PUBLIC_APP_ENV": "preview"
       }
     },
-    "production": {}
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "production"
+      }
+    }
   },
   "submit": {
     "production": {}

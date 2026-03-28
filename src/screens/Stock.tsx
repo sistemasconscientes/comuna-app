@@ -16,7 +16,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { usePostHog } from 'posthog-react-native';
 import { markForRestock } from '../api/notion';
 import {
   reviveSharedStockMapFromCache,
@@ -91,11 +90,10 @@ interface EditState {
 }
 
 export default function Stock({ user }: Props) {
-  const posthog = usePostHog();
   const { cyclePhase } = useHealthData(user);
   const fetchStockBundle = useCallback(
-    () => fetchSupplementsWithStock(user, cyclePhase ?? '', posthog),
-    [user, cyclePhase, posthog]
+    () => fetchSupplementsWithStock(user, cyclePhase ?? ''),
+    [user, cyclePhase]
   );
   const {
     data: stockBundle,

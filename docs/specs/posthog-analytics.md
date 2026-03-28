@@ -1,18 +1,18 @@
-# Spec: PostHog — analítica y errores críticos
+# Spec: PostHog — analítica de producto
 
 **Estado:** implementado  
-**Entrada:** [`index.tsx`](../../index.tsx) · **App:** [`App.tsx`](../../App.tsx) (persistencia usuario + picker, pestañas) · **Hooks:** `src/hooks/useSupplements.ts`, `useHealthData.ts`, `useStock.ts`, `useDailyLog.ts` · **Pantallas:** `src/screens/Home.tsx`, `MealPrep.tsx`, `Profile.tsx`, `DailyLogByDate.tsx`, `Stock.tsx`
+**Errores y logging:** Sentry ([`src/utils/observability.ts`](../../src/utils/observability.ts), [`App.tsx`](../../App.tsx), boundary en [`index.tsx`](../../index.tsx)).  
+**Entrada PostHog:** [`index.tsx`](../../index.tsx) · **App:** [`App.tsx`](../../App.tsx) · **Hooks:** `useSupplements.ts`, `useHealthData.ts`, `useStock.ts`, `useDailyLog.ts` (sin eventos de fallo) · **Pantallas:** `MealPrep.tsx`, `Profile.tsx`, `DailyLogByDate.tsx`, `Stock.tsx`
 
 ---
 
 ## Objetivo
 
-- Tener PostHog listo para producción sin hardcodear credenciales.
-- Captura **automática** de errores globales (JS no capturados, promesas rechazadas, `console.error` / `console.warn`).
-- Captura **explícita** en fallos críticos de dominio (Notion, HealthKit, SQLite, migraciones).
-- Segmentar por perfil de app (`diana` | `estefania`) vía `identify`.
+- PostHog solo para **eventos de producto**: flujos, intención de uso, verificación en dev y (futuro) feature flags / experimentos.
+- **No** duplicar errores globales en PostHog: excepciones, fallos de dominio y logs estructurados van a **Sentry** (`reportErrorToSentry` o captura nativa del SDK).
+- Segmentar por perfil de app (`diana` | `estefania`) vía `identify` y por entorno vía propiedad registrada `app_environment` (`development` | `preview` | `production`).
 
-Fuera de alcance: autocapture de UI (toques/pantallas), session replay, feature flags (salvo que un spec futuro lo defina).
+Fuera de alcance en PostHog: autocapture de UI (toques/pantallas), session replay, captura automática de `console`/`uncaughtExceptions` (retirada a favor de Sentry).
 
 ---
 
@@ -22,8 +22,9 @@ Fuera de alcance: autocapture de UI (toques/pantallas), session replay, feature 
 |-----------------|-------------|--------------------------------------------------|
 | `POSTHOG_API_KEY` | No        | Si falta o está vacía, el SDK va con `disabled: true` (cero envíos). |
 | `POSTHOG_HOST`    | No        | Host del proyecto; por defecto `https://us.i.posthog.com`. |
+| `EXPO_PUBLIC_APP_ENV` | No    | En release (`__DEV__` falso): `preview` \| `production` (típico vía [`eas.json`](../../eas.json)). En Metro/dev, `getAppEnvironment()` usa `development` por `__DEV__`. |
 
-- Declaración TypeScript: [`src/types/env.d.ts`](../../src/types/env.d.ts).
+- Declaración TypeScript: [`src/types/env.d.ts`](../../src/types/env.d.ts) (`ProcessEnv`).
 - **No** commitear API keys. Rotar clave si se expuso en chat o repo.
 
 ### Criterios de aceptación (config)
@@ -39,15 +40,15 @@ Fuera de alcance: autocapture de UI (toques/pantallas), session replay, feature 
 ## Árbol de proveedores
 
 1. `PostHogProvider` (raíz).
-2. `PostHogErrorBoundary` envuelve `App`.
-3. `autocapture={false}` (sin autocapture de navegación/toques).
-4. `captureAppLifecycleEvents: false` (solo errores + eventos explícitos; cambiar solo vía este spec).
-5. Con API key activa: `errorTracking.autocapture` con `uncaughtExceptions`, `unhandledRejections`, `console: ['error','warn']`.
+2. `RootErrorBoundary` (React) envuelve `App`: errores de render → Sentry + fallback en español (sin `PostHogErrorBoundary` para no enviar excepciones a PostHog).
+3. `autocapture={false}`.
+4. `captureAppLifecycleEvents: false`.
+5. **Sin** `errorTracking.autocapture` en PostHog (errores → Sentry).
 
 ### Error Boundary (React)
 
 - Fallback en español: título “Algo salió mal” + mensaje del error.
-- Errores de render hijos se reportan al contexto PostHog del boundary.
+- El boundary reporta a Sentry con `domain: react_render`.
 
 | ID   | Criterio |
 |------|----------|
@@ -59,6 +60,7 @@ Fuera de alcance: autocapture de UI (toques/pantallas), session replay, feature 
 
 - Tras seleccionar perfil: `posthog.identify(user, { app: 'comuna' })` con `user ∈ { diana, estefania }`.
 - Al cambiar de perfil, se vuelve a llamar `identify` con el nuevo `user`.
+- En arranque (si PostHog activo): `posthog.register({ app_environment })` alineado con [`getAppEnvironment()`](../../src/utils/observability.ts).
 
 | ID   | Criterio |
 |------|----------|
@@ -66,30 +68,35 @@ Fuera de alcance: autocapture de UI (toques/pantallas), session replay, feature 
 
 ---
 
-## Eventos explícitos (snake_case)
+## Eventos explícitos en PostHog (snake_case)
 
-Todos los `capture` son no-op si PostHog está deshabilitado (`posthog?.capture`).
+Solo eventos de **producto / flujo**. Los `capture` son no-op si PostHog está deshabilitado (`posthog?.capture`).
 
 | Evento | Disparador | Propiedades mínimas |
 |--------|------------|---------------------|
-| `migration_failed` | Fallo de `useMigrations` | `message`, `error_name` |
-| `notion_supplements_sync_failed` | Fallo al obtener suplementos desde Notion | `domain: 'notion'`, `message`, `user` |
-| `notion_supplements_local_sync_failed` | Fallo al persistir suplementos en SQLite tras fetch OK | `domain: 'sqlite'`, `message`, `user` |
-| `health_data_load_failed` | Fallo en la carga general (DB/Notion) del hook de salud | `domain: 'health_data'`, `message`, `user` |
-| `health_data_notion_sync_failed` | Fallo al leer/escribir Notion tras sync exitoso de HealthKit (comparación o `updatePhase`) | `domain: 'health_data'`, `message`, `user` |
-| `healthkit_last_menstruation_failed` | Fallo al leer última menstruación en HealthKit (iOS) | `domain: 'healthkit'`, `message`, `user` |
-| `healthkit_sync_retried` | Pulsar «Reintentar sincronización con Salud» en Perfil (iOS) | `user` |
-| `stock_load_failed` | Fallo al leer tabla stock | `domain: 'sqlite'`, `message` |
-| `daily_log_load_failed` | Fallo al leer daily logs por fecha | `domain: 'sqlite'`, `message`, `date`, `user` |
 | `meal_prep_loaded` | Carga completa de la pestaña Comidas (éxito o sin plan en Notion) | `user`, `has_week_plan`, `has_today_meals`, `meals_count`; si hay plan: `top_level_block_count`, `expanded_block_count` |
-| `notion_meal_prep_load_failed` | Excepción al obtener/expandir/parsear meal prep | `domain: 'notion'`, `message`, `user` |
 | `selected_user_restored` | Hidratación en arranque: hay `selected_user` válido en AsyncStorage | `user` |
 | `user_picker_shown` | Se muestra la pantalla de selector de perfil (sin pestañas) | `reason`: `no_stored_value` \| `manual_clear` |
 | `user_picker_completed` | Elección de perfil en la pantalla de selector de `App` | `user`, `reason` (mismo valor que `user_picker_shown`), `persisted`: `true` si AsyncStorage guardó OK; `false` si hubo error de persistencia pero la app abrió pestañas igual |
 | `user_switched_in_profile` | Cambio Diana/Estefanía en Perfil (solo si el perfil cambia) | `previous_user`, `user` |
 | `stored_user_cleared` | Pulsar «Cambiar usuario» en Perfil (tras borrar clave) | `previous_user` |
-| `user_persistence_failed` | Error al leer/escribir/borrar `selected_user` en AsyncStorage | `operation`: `read` \| `write` \| `remove`, `message` |
 | `daily_log_history_opened` | Abrir «Mis tomas por día» desde Perfil (montaje de `DailyLogByDate`) | `user` |
+| `healthkit_sync_retried` | Pulsar «Reintentar sincronización con Salud» en Perfil (iOS) | `user` |
+
+### Eventos retirados de PostHog (ahora solo Sentry)
+
+| Antiguo evento PostHog | Destino Sentry |
+|------------------------|----------------|
+| `migration_failed` | `domain: drizzle_migrations` |
+| `notion_supplements_sync_failed` | `domain: notion` |
+| `notion_supplements_local_sync_failed` | `domain: sqlite` |
+| `health_data_load_failed` | `domain: health_data` |
+| `health_data_notion_sync_failed` | `domain: health_data` |
+| `healthkit_last_menstruation_failed` | `domain: healthkit` |
+| `stock_load_failed` | `domain: sqlite` |
+| `daily_log_load_failed` | `domain: sqlite` |
+| `notion_meal_prep_load_failed` | `domain: notion` |
+| `user_persistence_failed` | `domain: async_storage` + `operation` |
 
 ### Verificación de integración (no productivos)
 
@@ -101,11 +108,12 @@ Todos los `capture` son no-op si PostHog está deshabilitado (`posthog?.capture`
 ### Reglas
 
 - No incluir PII (emails, nombres reales) en propiedades.
-- Nuevos eventos críticos: **actualizar este spec** antes o en el mismo PR que el código.
+- Nuevos eventos de producto: **actualizar este spec** antes o en el mismo PR que el código.
+- **PostHog** queda reservado para experimentos / flags cuando un spec futuro lo defina.
 
 | ID   | Criterio |
 |------|----------|
-| PH-V1 | Cada evento de la tabla anterior se emite como máximo una vez por fallo lógico descrito (p. ej. `migration_failed` una vez por sesión de error de migración). |
+| PH-V1 | Cada evento de la tabla de producto se emite según el disparador descrito (p. ej. `user_picker_shown` al mostrar el gate). |
 | PH-V2 | Nombres de eventos solo `snake_case` y prefijados por dominio cuando aplique (`notion_`, `healthkit_`, etc.). |
 
 **Nota:** `healthkit_sync_retried` puede dispararse varias veces por sesión (cada tap); no es un error, es acción explícita de QA/usuaria.
@@ -114,21 +122,24 @@ Todos los `capture` son no-op si PostHog está deshabilitado (`posthog?.capture`
 
 ## Sentry (React Native)
 
-- **DSN:** variable `SENTRY_DSN` en `.env` (módulo `@env`, mismo patrón que Notion/PostHog). No versionar el valor real.
-- Si falta o está vacía: no se ejecuta `Sentry.init` y el root export es `App` sin `Sentry.wrap` (arranque sin crash).
-- Builds EAS: definir `SENTRY_DSN` en variables de entorno del perfil de build para que el bundle la incluya vía Babel/dotenv.
+- **DSN:** `SENTRY_DSN` en `.env` / EAS (módulo `@env`). No versionar el valor.
+- Si falta o está vacía: no se ejecuta `Sentry.init` y el export default de `App` es sin `Sentry.wrap`.
+- **`environment`:** coincide con `getAppEnvironment()` (`development` | `preview` | `production`).
+- **`release` / `dist`:** desde Expo config (`slug@version` y build nativo) vía [`getSentryRelease()` / `getSentryDist()`](../../src/utils/observability.ts).
+- **Fallos de dominio:** `reportErrorToSentry(error, { domain, user?, ...extra })` — tags `domain`, `app_environment`; opcional `user` como `id` de scope.
 
 | ID   | Criterio |
 |------|----------|
-| SE-C1 | Con `SENTRY_DSN` no vacío, el SDK se inicializa y el export default usa `Sentry.wrap(App)`. |
+| SE-C1 | Con `SENTRY_DSN` no vacío, el SDK se inicializa con `environment`/`release` acordes y el export default usa `Sentry.wrap(App)`. |
 | SE-C2 | Sin DSN, la app arranca sin inicializar Sentry. |
 | SE-C3 | Ningún DSN aparece hardcodeado en código fuente versionado. |
+| SE-C4 | Errores de render del boundary llegan a Sentry con `domain: react_render`. |
 
 ---
 
 ## Cambios futuros
 
-Cualquier modificación a proveedores, eventos o variables de entorno PostHog debe:
+Cualquier modificación a proveedores, eventos o variables de entorno PostHog / Sentry debe:
 
 1. Actualizar este documento.
 2. Mantener alineación con [`.cursor/rules/spec-driven.mdc`](../../.cursor/rules/spec-driven.mdc).
@@ -138,4 +149,5 @@ Cualquier modificación a proveedores, eventos o variables de entorno PostHog de
 ## Referencias
 
 - PostHog React Native SDK (`posthog-react-native`).
+- Sentry React Native (`@sentry/react-native`).
 - Documentación interna: [`CLAUDE.md`](../../CLAUDE.md) (variables de entorno).

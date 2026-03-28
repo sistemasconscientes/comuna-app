@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { usePostHog } from 'posthog-react-native';
 import { Platform } from 'react-native';
 import { eq } from 'drizzle-orm';
 import { getCurrentPhase, updatePhase } from '../api/notion';
@@ -17,6 +16,7 @@ import {
 } from '../utils/phaseCalculator';
 import type { CycleDataSource, HealthData, HealthKitDiagnostics } from '../types';
 import { NOTION_SKIP_PHASE_WRITE } from '@env';
+import { reportErrorToSentry } from '../utils/observability';
 
 /** Solo en __DEV__: si NOTION_SKIP_PHASE_WRITE es truthy, no escribir fase en Notion (QA sin pisar filas reales). */
 function isDevSkipNotionPhaseWrite(): boolean {
@@ -46,7 +46,6 @@ async function loadNotionPhaseOnly(
 }
 
 export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult {
-  const posthog = usePostHog();
   const [state, setState] = useState<HealthData>({
     cyclePhase: null,
     cycleDay: null,
@@ -167,7 +166,7 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
                   console.warn('[useHealthData] Notion sync tras HealthKit:', notionSyncErr);
                   const msg =
                     notionSyncErr instanceof Error ? notionSyncErr.message : String(notionSyncErr);
-                  posthog?.capture('health_data_notion_sync_failed', {
+                  reportErrorToSentry(notionSyncErr, {
                     domain: 'health_data',
                     message: msg,
                     user: notionUser,
@@ -181,7 +180,7 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
           } catch (err) {
             console.warn('HealthKit error:', err);
             const msg = err instanceof Error ? err.message : String(err);
-            posthog?.capture('healthkit_last_menstruation_failed', {
+            reportErrorToSentry(err, {
               domain: 'healthkit',
               message: msg,
               user,
@@ -208,7 +207,7 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
         if (!cancelled) {
           const err = e instanceof Error ? e : new Error(String(e));
           setError(err);
-          posthog?.capture('health_data_load_failed', {
+          reportErrorToSentry(err, {
             domain: 'health_data',
             message: err.message,
             user,
@@ -224,7 +223,7 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
     return () => {
       cancelled = true;
     };
-  }, [user, posthog, refreshToken]);
+  }, [user, refreshToken]);
 
   return {
     ...state,

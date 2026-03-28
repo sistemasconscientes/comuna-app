@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
-import { usePostHog } from 'posthog-react-native';
-import type { PostHog } from 'posthog-react-native';
 import { inArray } from 'drizzle-orm';
 import { getSharedStock, type SharedStock } from '../api/sharedStock';
 import { getSupplements } from '../api/notion';
 import type { Supplement } from '../types';
 import { db, supplements as supplementsTable } from '../db';
+import { reportErrorToSentry } from '../utils/observability';
 
 export type UseSupplementsOptions = {
   /** Si es false, se traen todos los suplementos (p. ej. Stock); el filtro por temporada es en la UI. */
@@ -24,8 +23,7 @@ export type SupplementsWithStockPayload = {
 export async function syncSupplementsFromNotion(
   user: 'diana' | 'estefania',
   currentPhase: string,
-  applyTemporadaFilter: boolean,
-  posthog: PostHog | null | undefined
+  applyTemporadaFilter: boolean
 ): Promise<{ supplements: Supplement[]; idByNotionId: Record<string, number> }> {
   const data = await getSupplements(user, currentPhase, applyTemporadaFilter);
 
@@ -67,7 +65,7 @@ export async function syncSupplementsFromNotion(
   } catch (err) {
     console.warn('Failed to sync Notion supplements to local DB', err);
     const msg = err instanceof Error ? err.message : String(err);
-    posthog?.capture('notion_supplements_local_sync_failed', {
+    reportErrorToSentry(err, {
       domain: 'sqlite',
       message: msg,
       user,
@@ -80,15 +78,13 @@ export async function syncSupplementsFromNotion(
 /** Stock: suplementos + mapping local + stock compartido (Persona Ambas). */
 export async function fetchSupplementsWithStock(
   user: 'diana' | 'estefania',
-  currentPhase: string,
-  posthog: PostHog | null | undefined
+  currentPhase: string
 ): Promise<SupplementsWithStockPayload> {
   try {
     const { supplements, idByNotionId } = await syncSupplementsFromNotion(
       user,
       currentPhase,
-      false,
-      posthog
+      false
     );
     const ambasIds = supplements.filter((s) => s.persona === 'Ambas').map((s) => s.notion_id);
     const pairs = await Promise.all(ambasIds.map(async (id) => [id, await getSharedStock(id)] as const));
@@ -96,7 +92,7 @@ export async function fetchSupplementsWithStock(
     return { supplements, idByNotionId, sharedByNotionId };
   } catch (e) {
     const err = e instanceof Error ? e : new Error(String(e));
-    posthog?.capture('notion_supplements_sync_failed', {
+    reportErrorToSentry(err, {
       domain: 'notion',
       message: err.message,
       user,
@@ -110,7 +106,6 @@ export function useSupplements(
   currentPhase: string,
   options?: UseSupplementsOptions,
 ) {
-  const posthog = usePostHog();
   const applyTemporadaFilter = options?.applyTemporadaFilter !== false;
   const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,8 +123,7 @@ export function useSupplements(
         const { supplements: data, idByNotionId: mapping } = await syncSupplementsFromNotion(
           user,
           currentPhase,
-          applyTemporadaFilter,
-          posthog
+          applyTemporadaFilter
         );
 
         if (!cancelled) {
@@ -140,7 +134,7 @@ export function useSupplements(
         if (!cancelled) {
           const err = e instanceof Error ? e : new Error(String(e));
           setError(err);
-          posthog?.capture('notion_supplements_sync_failed', {
+          reportErrorToSentry(err, {
             domain: 'notion',
             message: err.message,
             user,
@@ -153,7 +147,7 @@ export function useSupplements(
     return () => {
       cancelled = true;
     };
-  }, [user, phaseDep, applyTemporadaFilter, posthog]);
+  }, [user, phaseDep, applyTemporadaFilter]);
 
   return {
     supplements,

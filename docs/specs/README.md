@@ -4,7 +4,7 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 
 | Spec | Descripción |
 |------|-------------|
-| [posthog-analytics.md](./posthog-analytics.md) | PostHog: env, errores automáticos, eventos críticos, identify |
+| [posthog-analytics.md](./posthog-analytics.md) | PostHog: eventos de producto, env, identify; Sentry para errores (`observability.ts`) |
 | [healthkit-cycle-sync.md](./healthkit-cycle-sync.md) | Ciclo menstrual: HealthKit, SQLite, Notion, QA iOS |
 | [stock-edit-modal-ios-keyboard.md](./stock-edit-modal-ios-keyboard.md) | Modal Stock + teclado en iOS |
 | [stock-restock-notion.md](./stock-restock-notion.md) | Bajo stock: `markForRestock`, `restock_flagged`, UI |

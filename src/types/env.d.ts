@@ -2,6 +2,8 @@
 declare namespace NodeJS {
   interface ProcessEnv {
     EXPO_PUBLIC_BACKEND_URL?: string;
+    /** En builds release: preview | production (típico vía eas.json). En Metro, `getAppEnvironment()` usa `__DEV__`. */
+    EXPO_PUBLIC_APP_ENV?: string;
   }
 }
 
