@@ -36,15 +36,20 @@ No es obligatorio subir versión en cada PR interno: sí cuando el cambio forma 
 
 ## Comandos
 
-- **`npm run version:sync`** — Lee `package.json` y escribe en `app.json`: `expo.version`, `ios.buildNumber`, `android.versionCode`. Ejecutar tras cambiar `version` y/o `nativeBuild`.
+- **`npm run version:sync`** — Lee `package.json` y escribe en `app.json`: `expo.version`, `ios.buildNumber`, `android.versionCode`. Ejecutar tras cambiar `version` y/o `nativeBuild` a mano (si no usás los hooks de abajo).
 - **`npm run version:check`** — Solo lectura: falla con código distinto de 0 si `app.json` no refleja `version` y `nativeBuild` de `package.json`. Incluido al inicio de **`npm test`**.
+
+### Automático
+
+- **Lifecycle `version` en `package.json`:** tras `npm version patch|minor|major`, npm ejecuta `npm run version:sync`, así `app.json` se actualiza en el mismo comando (además del bump de semver en `package.json`).
+- **`eas-build-post-install`:** en **EAS Build**, tras `npm ci`, se ejecuta `version:sync`. Si alguien subió solo `package.json` y olvidó `app.json`, el build en la nube alinea `app.json` antes del prebuild nativo.
 
 Flujo típico al cerrar una feature con bump:
 
 ```bash
-npm version patch --no-git-tag-version   # o minor / major
+npm version patch --no-git-tag-version   # o minor / major — dispara version:sync vía hook "version"
 # Editar package.json: subir "nativeBuild" en +1 si este build va a tienda/TestFlight
-npm run version:sync
+npm run version:sync   # obligatorio tras tocar solo nativeBuild (npm version no lo cambia)
 git add package.json app.json package-lock.json
 ```
 

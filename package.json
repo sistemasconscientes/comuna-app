@@ -14,7 +14,9 @@
     "db:studio": "drizzle-kit studio",
     "test": "npm run version:check && jest",
     "version:check": "node scripts/sync-version.js --check",
-    "version:sync": "node scripts/sync-version.js"
+    "version:sync": "node scripts/sync-version.js",
+    "version": "npm run version:sync",
+    "eas-build-post-install": "npm run version:sync"
   },
   "jest": {
     "preset": "jest-expo",
