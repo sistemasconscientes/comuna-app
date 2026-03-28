@@ -16,7 +16,7 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 | [user-selected-persistence.md](./user-selected-persistence.md) | Usuario activo persistido en AsyncStorage, picker inicial, «Cambiar usuario» |
 | [app-tab-bar.md](./app-tab-bar.md) | Pestañas inferiores (`App.tsx`), retiro de Checklist vs Inicio |
 | [daily-log-by-date.md](./daily-log-by-date.md) | Registro de tomas por fecha, acceso desde Perfil |
-| [home-energy-chart.md](./home-energy-chart.md) | Inicio: tarjeta gráfica de nivel de energía (`EnergyChart`, `victory-native`) |
+| [home-energy-chart.md](./home-energy-chart.md) | Inicio: barra de fase del ciclo (`Home.tsx`, `useHealthData`, `phaseCalculator`) |
 | [home-screen-ui.md](./home-screen-ui.md) | Inicio: layout cabecera, paleta terracota/crema, lista tipo checklist |
 | [npm-deprecation-warnings.md](./npm-deprecation-warnings.md) | `npm warn deprecated`: diagnóstico, overrides seguros, avisos restantes |
 | [release-versioning.md](./release-versioning.md) | Semver, `nativeBuild` → iOS `buildNumber` / Android `versionCode`, EAS `local`, `version:sync`, `version:check` (también al inicio de `npm test`) |

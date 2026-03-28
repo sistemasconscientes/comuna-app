@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { EnergyChart, type EnergyChartPhase } from '../components/EnergyChart';
 import { useHealthData } from '../hooks/useHealthData';
 import { useSupplements } from '../hooks/useSupplements';
 import { useDailyLog } from '../hooks/useDailyLog';
 import { useUser, type User } from '../context/UserContext';
+import type { Phase } from '../types';
+import { DEFAULT_CYCLE_LENGTH_DAYS } from '../utils/phaseCalculator';
 
 const DEFAULT_USER_EMOJI = '🌿';
 
@@ -21,11 +22,58 @@ const C = {
   rowDivider: '#EFEAE4',
 };
 
-const PHASE_LABELS: Record<string, string> = {
+const PHASE_PILL_LABELS: Record<string, string> = {
   menstrual: 'Menstrual',
   folicular: 'Folicular',
   ovulacion: 'Ovulación',
   lutea: 'Lútea',
+};
+
+const PHASE_BAR_SHORT_LABELS: Record<Phase, string> = {
+  menstrual: 'Mens.',
+  folicular: 'Fol.',
+  ovulatoria: 'Ovul.',
+  lutea: 'Lútea',
+};
+
+const PHASE_CONFIG: Record<
+  Phase,
+  {
+    emoji: string;
+    message: string;
+    fillPercent: number;
+    color: string;
+    fillColor: string;
+  }
+> = {
+  menstrual: {
+    emoji: '🌑',
+    message: 'sangre que expulsa nuestros males',
+    fillPercent: 10,
+    color: '#E24B4A',
+    fillColor: '#F09595',
+  },
+  folicular: {
+    emoji: '🦖',
+    message: 'lista para comerte el mundo',
+    fillPercent: 40,
+    color: '#D4537E',
+    fillColor: '#F4C0D1',
+  },
+  ovulatoria: {
+    emoji: '👩‍❤️‍💋👩',
+    message: 'muévelo nena! 🍑',
+    fillPercent: 64,
+    color: '#BA7517',
+    fillColor: '#FAC775',
+  },
+  lutea: {
+    emoji: '🦥',
+    message: 'vamo suave',
+    fillPercent: 84,
+    color: '#534AB7',
+    fillColor: '#CECBF6',
+  },
 };
 
 const USER_LABELS: Record<User, string> = {
@@ -74,14 +122,20 @@ export default function Home({ onOpenSettings }: HomeProps) {
   );
   const { isTaken, markTaken } = useDailyLog(user);
 
-  const phaseLabel = cyclePhase ? PHASE_LABELS[cyclePhase] : '—';
+  const phaseLabel = cyclePhase ? PHASE_PILL_LABELS[cyclePhase] : '—';
 
-  const energyChartPhase: EnergyChartPhase =
+  const currentPhase: Phase =
     cyclePhase === 'ovulacion'
       ? 'ovulatoria'
       : cyclePhase === 'menstrual' || cyclePhase === 'folicular' || cyclePhase === 'lutea'
         ? cyclePhase
         : 'menstrual';
+
+  const config = PHASE_CONFIG[currentPhase];
+  const trackPercent =
+    cycleDay !== null
+      ? Math.min(100, (cycleDay / DEFAULT_CYCLE_LENGTH_DAYS) * 100)
+      : config.fillPercent;
 
   const takenCount = supplements.reduce((count, s) => {
     const localId = idByNotionId[s.notion_id];
@@ -128,16 +182,50 @@ export default function Home({ onOpenSettings }: HomeProps) {
         </TouchableOpacity>
       </View>
 
-      <EnergyChart currentPhase={energyChartPhase} dayInCycle={cycleDay ?? 1} />
+      <View style={styles.phaseCard}>
+        <View style={styles.phaseLabels}>
+          {(['menstrual', 'folicular', 'ovulatoria', 'lutea'] as const).map((p) => (
+            <Text
+              key={p}
+              style={[
+                styles.phaseLbl,
+                currentPhase === p && { color: config.color, fontWeight: '600' },
+              ]}
+            >
+              {PHASE_BAR_SHORT_LABELS[p]}
+            </Text>
+          ))}
+        </View>
 
-      <View style={styles.progressCard}>
-        <Text style={styles.progressText}>
-          {takenCount} / {supplements.length} suplementos hoy
-        </Text>
-        <View style={styles.progressBar}>
+        <View style={styles.phaseTrack}>
           <View
             style={[
-              styles.progressFill,
+              styles.phaseFill,
+              {
+                width: `${trackPercent}%`,
+                backgroundColor: config.fillColor,
+              },
+            ]}
+          />
+          <Text style={[styles.phaseMarker, { left: `${trackPercent}%` }]}>{config.emoji}</Text>
+        </View>
+
+        <View style={styles.phaseFooter}>
+          <Text style={[styles.phaseMessage, { color: config.color }]}>{config.message}</Text>
+        </View>
+      </View>
+
+      <View style={styles.todayHeaderBlock}>
+        <View style={styles.todayHeaderRow}>
+          <Text style={styles.sectionLabel}>Para hoy</Text>
+          <Text style={styles.supCountInline} accessibilityLabel={`${takenCount} de ${supplements.length} suplementos tomados`}>
+            {takenCount}/{supplements.length}
+          </Text>
+        </View>
+        <View style={styles.supProgressBarThin}>
+          <View
+            style={[
+              styles.supProgressFillThin,
               {
                 width: supplements.length ? `${(takenCount / supplements.length) * 100}%` : '0%',
               },
@@ -145,8 +233,6 @@ export default function Home({ onOpenSettings }: HomeProps) {
           />
         </View>
       </View>
-
-      <Text style={styles.sectionLabel}>Para hoy</Text>
 
       {supplements.length === 0 ? (
         <Text style={styles.emptyText}>
@@ -226,23 +312,54 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   settingsIcon: { fontSize: 20, color: C.text },
-  progressCard: {
-    backgroundColor: C.card,
-    borderRadius: 16,
-    padding: 16,
+  phaseCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 18,
+    paddingBottom: 16,
     borderWidth: 1,
     borderColor: C.border,
   },
-  progressText: { fontSize: 14, color: C.muted, marginBottom: 8 },
-  progressBar: { height: 6, backgroundColor: '#EDE8E0', borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 3, backgroundColor: C.accent },
+  phaseLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  phaseLbl: { fontSize: 11, color: '#b8b4ae', fontWeight: '500' },
+  phaseTrack: {
+    height: 11,
+    backgroundColor: '#f0ece6',
+    borderRadius: 6,
+    marginBottom: 14,
+    position: 'relative',
+    overflow: 'visible',
+  },
+  phaseFill: { height: '100%', borderRadius: 6 },
+  phaseMarker: { position: 'absolute', top: -11, fontSize: 24, transform: [{ translateX: -12 }] },
+  phaseFooter: { justifyContent: 'flex-start', alignItems: 'flex-start' },
+  phaseMessage: { fontSize: 15, lineHeight: 21, fontWeight: '500' },
+  todayHeaderBlock: { gap: 6 },
+  todayHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  supCountInline: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.muted,
+    fontVariant: ['tabular-nums'],
+  },
+  supProgressBarThin: {
+    height: 4,
+    backgroundColor: '#E5E0D8',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  supProgressFillThin: { height: '100%', borderRadius: 2, backgroundColor: C.accent },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
     color: C.muted,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginTop: 4,
+    marginTop: 0,
   },
   emptyText: { color: C.muted, fontStyle: 'italic', fontSize: 15 },
   checklistCard: {

@@ -90,6 +90,10 @@ const TABS: { key: TabBarTab; label: string }[] = [
 function App() {
   const { success, error } = useMigrations(db, migrations);
   const posthog = usePostHog();
+  /** No usar `posthog` como dependencia del efecto de hidratación: evita re-leer AsyncStorage si la instancia del hook cambia. */
+  const posthogRef = React.useRef(posthog);
+  posthogRef.current = posthog;
+
   const [activeTab, setActiveTab] = React.useState<Tab>('home');
   const [user, setUserState] = React.useState<User>('diana');
   const userRef = React.useRef(user);
@@ -170,11 +174,11 @@ function App() {
         const parsed = parseStoredUser(raw);
         if (parsed) {
           setUserState(parsed);
-          posthog?.capture('selected_user_restored', { user: parsed });
+          posthogRef.current?.capture('selected_user_restored', { user: parsed });
         } else {
           pickerReasonRef.current = 'no_stored_value';
           setShowUserPicker(true);
-          posthog?.capture('user_picker_shown', { reason: 'no_stored_value' });
+          posthogRef.current?.capture('user_picker_shown', { reason: 'no_stored_value' });
         }
       } catch (e) {
         reportErrorToSentry(e, {
@@ -185,7 +189,7 @@ function App() {
         if (cancelled) return;
         pickerReasonRef.current = 'no_stored_value';
         setShowUserPicker(true);
-        posthog?.capture('user_picker_shown', { reason: 'no_stored_value' });
+        posthogRef.current?.capture('user_picker_shown', { reason: 'no_stored_value' });
       } finally {
         if (!cancelled) setUserHydrated(true);
       }
@@ -193,7 +197,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [success, posthog]);
+  }, [success]);
 
   const clearStoredUserAndShowPicker = React.useCallback(() => {
     const prev = userRef.current;
