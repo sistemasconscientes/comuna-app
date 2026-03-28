@@ -2,68 +2,68 @@
 
 ## Alcance
 
-- **Versión de marketing (semver):** `version` en [`package.json`](../../package.json) (canónico) y `expo.version` en [`app.json`](../../app.json) — se alinean con `npm run version:sync`.
-- **Build nativos (por release / feature publicable):** un solo entero **`nativeBuild`** en [`package.json`](../../package.json) (canónico). El script [`scripts/sync-version.js`](../../scripts/sync-version.js) lo copia a `ios.buildNumber` (string) y `android.versionCode` (entero) en [`app.json`](../../app.json). Debe **subir al menos en 1** en cada release que suba a TestFlight / tiendas (Apple y Google exigen secuencia creciente).
-- **EAS Build:** [`eas.json`](../../eas.json) usa `appVersionSource: "local"`. **No** se usa `autoIncrement` en los perfiles: los números nativos salen del repo, no de incrementos automáticos en la nube.
+- **Plataforma:** el proyecto **solo distribuye iOS** (TestFlight / App Store) hasta nuevo aviso. Lo operativo es **`nativeBuild` → `ios.buildNumber`**. El bloque `android` en `app.json` y `android.versionCode` se mantienen alineados con `nativeBuild` solo por **coherencia con Expo** y un único `version:check`; **no hay releases Android** planificados.
+- **Versión de marketing (semver en `package.json`):** formato **`X.Y.Z` = versión · hito · feature** (tres números, sin prerelease en el flujo automatizado):
+  - **X** — versión mayor de producto (manual).
+  - **Y** — milestone (manual).
+  - **Z** — contador de **features** publicables; sube con **`npm run version:bump:feature`** al cerrar una feature que vaya a build.
+- **`nativeBuild`** (entero ≥ 1, canónico en `package.json`): se copia a `ios.buildNumber` (string) y `android.versionCode` vía [`scripts/sync-version.js`](../../scripts/sync-version.js). Debe **subir al menos en 1** en cada binary que subas a **TestFlight** (Apple exige build number creciente).
+- **EAS Build:** [`eas.json`](../../eas.json) usa `appVersionSource: "local"`. **No** se usa `autoIncrement` en los perfiles para semver; el bump de **`nativeBuild` en perfil `preview`** lo hace **`eas-build-pre-install`** (ver más abajo).
 
 ## Anti‑patrón (evitar)
 
-- **No** bump de release editando solo [`app.json`](../../app.json) (`expo.version`, `ios.buildNumber`, `android.versionCode`). La fuente canónica es [`package.json`](../../package.json) (`version`, `nativeBuild`); después `npm run version:sync`. Si el diff del PR solo muestra `app.json` y no `package.json`, CI fallará en `version:check` (o `npm test`) hasta alinear ambos en el mismo cambio.
+- **No** bump de release editando solo [`app.json`](../../app.json). La fuente canónica es [`package.json`](../../package.json) (`version`, `nativeBuild`); después `npm run version:sync`. Si el diff del PR solo muestra `app.json` y no `package.json`, CI fallará en `version:check` (o `npm test`) hasta alinear ambos en el mismo cambio.
 
-## Cuándo subir versión
+## Cuándo subir qué
 
-Alineado con `.cursor/rules/spec-driven.mdc` para cambios observables que se publican:
+| Acción | Cuándo |
+|--------|--------|
+| **`npm run version:bump:feature`** | Nueva feature publicable: sube solo **Z** (`1.2.5` → `1.2.6`). **X** e **Y**: editarlos a mano cuando cambie release o milestone. |
+| **`npm run version:bump:native`** | Antes de un preview local o para alinear el repo tras un build en la nube (ver Preview). |
+| Editar **`nativeBuild`** a mano | Alternativa al comando anterior; luego `npm run version:sync`. |
 
-| Bump | Cuándo |
-|------|--------|
-| **patch** | Fixes, ajustes de UI, correcciones sin cambiar el contrato de la app. |
-| **minor** | Nueva feature de usuario o comportamiento nuevo claramente identificable. |
-| **major** | Ruptura explícita (p. ej. cambio de flujo que obligue a reentrenar usuarios); uso poco frecuente. |
-
-No es obligatorio subir versión en cada PR interno: sí cuando el cambio forma parte de un **release** que se va a construir y distribuir (TestFlight, store, etc.).
+No es obligatorio subir **Z** en cada PR interno: sí cuando el cambio forma parte de un **release** que se va a construir y distribuir (TestFlight, etc.).
 
 ## Checklist antes de merge (release)
 
 | # | Criterio |
 |---|----------|
-| R1 | `package.json` → `version` (semver) y `nativeBuild` (entero ≥ 1) actualizados según el release. |
+| R1 | `package.json` → `version` (`X.Y.Z`) y `nativeBuild` (entero ≥ 1) actualizados según el release. |
 | R2 | Ejecutar `npm run version:sync` para propagar a `app.json`: `expo.version`, `ios.buildNumber`, `android.versionCode`. |
-| R3 | **`npm run version:check`** debe pasar (o **`npm test`**, que lo ejecuta antes de Jest): valida que `app.json` no se desalinee de `package.json`. |
-| R4 | Confirmar semver: `package.json` y `expo.version` iguales; `nativeBuild` coincide con `ios.buildNumber` (como string) y `android.versionCode` (como número). |
-| R5 | Tras `eas build`, verificar en el binario / tiendas que versión de marketing y build nativo coinciden con el commit. |
-
-**Features publicables:** al cerrar una feature que vaya a build de tienda/TestFlight, incluir en el mismo PR el bump R1–R2 y que R3 sea verde; el check automático evita olvidar sincronizar `app.json` tras editar `package.json`.
+| R3 | **`npm run version:check`** debe pasar (o **`npm test`**, que lo ejecuta antes de Jest). |
+| R4 | `package.json` y `expo.version` iguales; `nativeBuild` coincide con `ios.buildNumber` (string) y `android.versionCode` (número). |
+| R5 | Tras `eas build`, verificar en el binario / TestFlight que versión de marketing y build nativo coinciden con lo esperado. |
 
 ## Comandos
 
-- **`npm run version:sync`** — Lee `package.json` y escribe en `app.json`: `expo.version`, `ios.buildNumber`, `android.versionCode`. Ejecutar tras cambiar `version` y/o `nativeBuild` a mano (si no usás los hooks de abajo).
-- **`npm run version:check`** — Solo lectura: falla con código distinto de 0 si `app.json` no refleja `version` y `nativeBuild` de `package.json`. Incluido al inicio de **`npm test`**.
+| Comando | Descripción |
+|---------|-------------|
+| **`npm run version:sync`** | Escribe `app.json` desde `package.json`. |
+| **`npm run version:check`** | Valida alineación (CI / inicio de `npm test`). |
+| **`npm run version:bump:feature`** | `Z` + 1 y sync. Requiere `version` en forma `X.Y.Z` numérica. |
+| **`npm run version:bump:native`** | `nativeBuild` + 1 y sync. |
+| **`npm run eas:build:preview`** | `version:bump:native` y luego `eas build --profile preview` (deja el bump en el commit si corrés esto antes de push). |
 
-### Automático
+### Automático (EAS)
 
-- **Lifecycle `version` en `package.json`:** tras `npm version patch|minor|major`, npm ejecuta `npm run version:sync`, así `app.json` se actualiza en el mismo comando (además del bump de semver en `package.json`).
-- **`eas-build-post-install`:** en **EAS Build**, tras `npm ci`, se ejecuta `version:sync`. Si alguien subió solo `package.json` y olvidó `app.json`, el build en la nube alinea `app.json` antes del prebuild nativo.
+- **`eas-build-pre-install`:** si `EAS_BUILD_PROFILE` es **`preview`**, ejecuta **`version:bump:native`** en el worker **antes** de `npm ci`. Cada preview en la nube usa un **`nativeBuild`** distinto en el binary, evitando rechazos por mismo build number en TestFlight.
+- **`eas-build-post-install`:** `npm run version:sync` tras `npm ci`. Si el commit trae `package.json` actualizado y `app.json` viejo, el build alinea `app.json`.
 
-Flujo típico al cerrar una feature con bump:
+**Repo vs nube:** el bump en **preview remoto** modifica `package.json` solo en el filesystem del build; **no hace commit**. Para que `main` refleje el último `nativeBuild`, hacé **`npm run version:bump:native`** (y commit) antes de pushear, o alineá a mano tras varios previews.
 
-```bash
-npm version patch --no-git-tag-version   # o minor / major — dispara version:sync vía hook "version"
-# Editar package.json: subir "nativeBuild" en +1 si este build va a tienda/TestFlight
-npm run version:sync   # obligatorio tras tocar solo nativeBuild (npm version no lo cambia)
-git add package.json app.json package-lock.json
-```
+### Lifecycle `version` (npm)
 
-(`package-lock.json` puede cambiar si `npm version` lo toca; commitear según el flujo del equipo.)
+Tras `npm version patch|minor|major`, si tenés hook `version` en `package.json`, puede ejecutarse `version:sync`. Para el esquema **versión.hito.feature**, el flujo recomendado es **`npm run version:bump:feature`** en lugar de `npm version patch`, salvo que quieras subir **minor/major** con `npm version` y luego ajustar a tu convención.
 
 ## EAS
 
-- **`appVersionSource: "local"`** — Semver y números nativos vienen del proyecto en disco.
-- **Sin `autoIncrement`** — Evita desalinear lo commitado con lo que genera EAS en la nube; el incremento de `nativeBuild` es explícito en cada release.
+- **`appVersionSource: "local"`** — Semver y números nativos vienen del proyecto (o del bump en pre-install en preview).
+- **Sin `autoIncrement`** en `eas.json` para reemplazar `nativeBuild`; el incremento en preview está en **`eas-preview-bump-native.js`**.
 
 ## Opcional (futuro)
 
-- Mostrar versión instalada en Perfil con `expo-application` — fuera de alcance de este spec hasta que se defina UI.
+- Mostrar versión instalada en Perfil con `expo-application` — fuera de alcance hasta que se defina UI.
 
 ## En specs con «Cierre de feature»
 
-Si el PR incluye bump de app: seguir este documento y el checklist R1–R4 (incluye `nativeBuild`).
+Si el PR incluye bump de app: seguir este documento y el checklist R1–R4 (incluye `nativeBuild` cuando vaya a TestFlight).

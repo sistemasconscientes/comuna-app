@@ -29,6 +29,9 @@ NOTION_MEAL_PREP_HUB_PAGE_ID=
 # Stock compartido (Persona Ambas): URL del backend Express — en iPhone en la misma WiFi que el Mac, usar IP LAN (ver npm run start:device)
 EXPO_PUBLIC_BACKEND_URL=http://192.168.1.0:3000
 BACKEND_API_KEY=
+
+# Opcional: Sentry (ver sección Sentry en docs/specs/posthog-analytics.md)
+# SENTRY_DSN=
 ```
 
 Correr la app:

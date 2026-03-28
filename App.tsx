@@ -12,22 +12,21 @@ import MealPrep from './src/screens/MealPrep';
 import Profile from './src/screens/Profile';
 import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
+import { SENTRY_DSN } from '@env';
 import * as Sentry from '@sentry/react-native';
 
-Sentry.init({
-  dsn: 'https://195f1353a29b39e772a6a2df24485c0d@o4510404971921408.ingest.us.sentry.io/4510404975329280',
+const sentryDsn = (SENTRY_DSN ?? '').trim();
 
-  // Adds more context data to events (IP address, cookies, user, etc.)
-  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
-  sendDefaultPii: true,
-
-  // Enable Logs
-  enableLogs: true,
-  integrations: [Sentry.feedbackIntegration()],
-
-  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
-  // spotlight: __DEV__,
-});
+if (sentryDsn) {
+  Sentry.init({
+    dsn: sentryDsn,
+    // https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+    sendDefaultPii: true,
+    enableLogs: true,
+    integrations: [Sentry.feedbackIntegration()],
+    // spotlight: __DEV__,
+  });
+}
 
 const SELECTED_USER_KEY = 'selected_user';
 const DEFAULT_USER_EMOJI = '🌿';
@@ -76,7 +75,7 @@ const TABS: { key: TabBarTab; label: string }[] = [
   { key: 'comidas', label: 'Comidas' },
 ];
 
-export default Sentry.wrap(function App() {
+function App() {
   const { success, error } = useMigrations(db, migrations);
   const posthog = usePostHog();
   const [activeTab, setActiveTab] = React.useState<Tab>('home');
@@ -389,7 +388,7 @@ export default Sentry.wrap(function App() {
       </SafeAreaView>
     </UserContext.Provider>
   );
-});
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F0E8' },
@@ -448,3 +447,5 @@ const styles = StyleSheet.create({
   tabLabel: { fontSize: 12, color: '#7A756D', fontWeight: '600' },
   tabLabelActive: { color: '#FFFFFF' },
 });
+
+export default sentryDsn ? Sentry.wrap(App) : App;

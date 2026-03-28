@@ -112,6 +112,20 @@ Todos los `capture` son no-op si PostHog está deshabilitado (`posthog?.capture`
 
 ---
 
+## Sentry (React Native)
+
+- **DSN:** variable `SENTRY_DSN` en `.env` (módulo `@env`, mismo patrón que Notion/PostHog). No versionar el valor real.
+- Si falta o está vacía: no se ejecuta `Sentry.init` y el root export es `App` sin `Sentry.wrap` (arranque sin crash).
+- Builds EAS: definir `SENTRY_DSN` en variables de entorno del perfil de build para que el bundle la incluya vía Babel/dotenv.
+
+| ID   | Criterio |
+|------|----------|
+| SE-C1 | Con `SENTRY_DSN` no vacío, el SDK se inicializa y el export default usa `Sentry.wrap(App)`. |
+| SE-C2 | Sin DSN, la app arranca sin inicializar Sentry. |
+| SE-C3 | Ningún DSN aparece hardcodeado en código fuente versionado. |
+
+---
+
 ## Cambios futuros
 
 Cualquier modificación a proveedores, eventos o variables de entorno PostHog debe:

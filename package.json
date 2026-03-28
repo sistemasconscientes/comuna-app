@@ -1,7 +1,7 @@
 {
   "name": "La Comuna App",
-  "version": "1.1.0",
-  "nativeBuild": 3,
+  "version": "1.1.1",
+  "nativeBuild": 4,
   "main": "index.tsx",
   "scripts": {
     "start": "expo start",
@@ -15,8 +15,12 @@
     "test": "npm run version:check && jest",
     "version:check": "node scripts/sync-version.js --check",
     "version:sync": "node scripts/sync-version.js",
+    "version:bump:feature": "node scripts/bump-feature-version.js",
+    "version:bump:native": "node scripts/bump-native-build.js",
     "version": "npm run version:sync",
-    "eas-build-post-install": "npm run version:sync"
+    "eas-build-pre-install": "node scripts/eas-preview-bump-native.js",
+    "eas-build-post-install": "npm run version:sync",
+    "eas:build:preview": "npm run version:bump:native && eas build --profile preview"
   },
   "jest": {
     "preset": "jest-expo",

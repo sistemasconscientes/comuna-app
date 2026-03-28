@@ -22,4 +22,6 @@ declare module '@env' {
   export const POSTHOG_HOST: string;
   /** Misma clave que API_KEY en el backend Render (stock compartido Ambas) */
   export const BACKEND_API_KEY: string;
+  /** Opcional: Sentry React Native; si falta o está vacío, no se llama `Sentry.init` ni `Sentry.wrap` */
+  export const SENTRY_DSN: string | undefined;
 }

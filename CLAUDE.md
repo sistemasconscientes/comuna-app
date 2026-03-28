@@ -57,6 +57,9 @@ Opcional (PostHog: errores automáticos + eventos críticos en hooks):
 - `POSTHOG_API_KEY` — si no está definida, PostHog no envía datos (`disabled`)
 - `POSTHOG_HOST` — ej. `https://us.i.posthog.com`
 
+Opcional (Sentry):
+- `SENTRY_DSN` — si falta o está vacía, no se inicializa Sentry (`App.tsx`)
+
 ## Qué NO hacer
 - No hardcodear credenciales de Notion fuera de `.env`
 - No meter lógica de negocio directamente en screens

@@ -2,6 +2,7 @@
  * Sincroniza desde package.json hacia app.json:
  * - version → expo.version
  * - nativeBuild → ios.buildNumber (string) y android.versionCode (entero)
+ *   (Android solo coherencia Expo; releases del proyecto son iOS-only.)
  *
  * Uso:
  *   node scripts/sync-version.js           — escribe app.json
