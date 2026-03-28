@@ -16,6 +16,14 @@ import {
   getCurrentCycleInfo,
 } from '../utils/phaseCalculator';
 import type { CycleDataSource, HealthData, HealthKitDiagnostics } from '../types';
+import { NOTION_SKIP_PHASE_WRITE } from '@env';
+
+/** Solo en __DEV__: si NOTION_SKIP_PHASE_WRITE es truthy, no escribir fase en Notion (QA sin pisar filas reales). */
+function isDevSkipNotionPhaseWrite(): boolean {
+  if (!__DEV__) return false;
+  const v = NOTION_SKIP_PHASE_WRITE?.trim().toLowerCase();
+  return v === 'true' || v === '1' || v === 'yes';
+}
 
 export type UseHealthDataResult = HealthData & {
   loading: boolean;
@@ -145,7 +153,14 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
                       hkNorm != null &&
                       hkNorm !== 'all';
                     if (comparable && notionNorm !== hkNorm) {
-                      await updatePhase(notionUser, phase, nextCycleDate);
+                      if (isDevSkipNotionPhaseWrite()) {
+                        console.warn(
+                          '[useHealthData] NOTION_SKIP_PHASE_WRITE: omitiendo updatePhase (dev)',
+                          { user: notionUser, notionNorm, hkNorm },
+                        );
+                      } else {
+                        await updatePhase(notionUser, phase, nextCycleDate);
+                      }
                     }
                   }
                 } catch (notionSyncErr) {

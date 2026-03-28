@@ -2,6 +2,11 @@ declare module '@env' {
   export const NOTION_API_KEY: string;
   export const NOTION_SUPPLEMENTS_DB_ID: string;
   export const NOTION_PHASES_PAGE_ID: string;
+  /**
+   * Opcional. Si es `true`/`1`/`yes` (case-insensitive) y la app corre en `__DEV__`,
+   * no se llama a `updatePhase` tras comparar HealthKit con Notion (evita pisar la tabla de fases en dispositivo de desarrollo).
+   */
+  export const NOTION_SKIP_PHASE_WRITE: string | undefined;
   /** Página hub con sección "Comidas Activas" (p. ej. Cocina y Comida) */
   export const NOTION_MEAL_PREP_HUB_PAGE_ID: string;
   /** Opcional: analítica y error tracking (si falta, PostHog queda desactivado) */

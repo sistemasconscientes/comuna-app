@@ -27,6 +27,13 @@ Fuera de alcance: escritura en Salud, background delivery, UI nativa de permisos
 | Salud | Dispositivo físico recomendado; datos de menstruación/sangrado en la app Salud. |
 | Permisos | Si iOS no muestra de nuevo el sheet: **Ajustes → Salud → Acceso a datos y apps → La Comuna**. |
 
+### Variable opcional: `NOTION_SKIP_PHASE_WRITE` (solo desarrollo)
+
+- Declarada en `.env` (raíz) y tipada en [`src/types/env.d.ts`](../../src/types/env.d.ts). Valores reconocidos como activos (tras `trim` + minúsculas): `true`, `1`, `yes`.
+- **Solo aplica si `__DEV__` es verdadero.** En builds de release/production el flag se ignora y `updatePhase` puede ejecutarse con la misma lógica que siempre.
+- Cuando está activo, tras la comparación HealthKit vs Notion que dispararía `updatePhase`, el hook **no** llama a `updatePhase` y emite `console.warn` indicando el omitido (útil para probar otro perfil en dispositivo físico sin sobrescribir la fila de fases en Notion).
+- Documentación de ejemplo: [`.env.example`](../../.env.example), [README](../../README.md).
+
 ---
 
 ## Origen de datos (`cycleDataSource`)
@@ -44,7 +51,7 @@ Fuera de alcance: escritura en Salud, background delivery, UI nativa de permisos
 1. Si hay `lastPeriodStart` en SQLite para el usuario: mostrar fase/día desde ese valor (`cycleDataSource` → `sqlite` hasta que HK confirme).
 2. En **iOS:** pedir/leer HealthKit (`getLastMenstruation` → dentro, `initHealthKit` + `requestAuthorization` la primera vez).
 3. Si HealthKit devuelve fecha: guardar en SQLite, recalcular fase/día, `cycleDataSource` → `healthkit`.
-   - **Solo si HealthKit devolvió una fecha** (no en caso de `null`): **una sola vez por carga** (no en cada render), leer `getCurrentPhase(user)` en Notion para el **usuario seleccionado en la app** y comparar la fase de Notion con la fase derivada de HealthKit, **ambas normalizadas con `normalizePhase`**. Si la celda de Notion no normaliza a una fase de ciclo concreta (`null`) o normaliza a `'all'`, **no** se llama a `updatePhase` (Notion no se altera por este flujo automático). Si ambas son fases comparables y **difieren**, llamar a `updatePhase` (la fecha de próximo ciclo es inicio de último período + **28 días civiles locales** vía `addLocalCalendarDays`; **no** se usa la comparación de fechas como disparador de escritura). Fallos de Notion en este paso no bloquean la UI; se registran en consola y PostHog (`health_data_notion_sync_failed`).
+   - **Solo si HealthKit devolvió una fecha** (no en caso de `null`): **una sola vez por carga** (no en cada render), leer `getCurrentPhase(user)` en Notion para el **usuario seleccionado en la app** y comparar la fase de Notion con la fase derivada de HealthKit, **ambas normalizadas con `normalizePhase`**. Si la celda de Notion no normaliza a una fase de ciclo concreta (`null`) o normaliza a `'all'`, **no** se llama a `updatePhase` (Notion no se altera por este flujo automático). Si ambas son fases comparables y **difieren**, llamar a `updatePhase` **salvo** que `__DEV__` y `NOTION_SKIP_PHASE_WRITE` estén activos (ver sección anterior): en ese caso no se escribe y se registra advertencia en consola. La fecha de próximo ciclo en `updatePhase` es inicio de último período + **28 días civiles locales** vía `addLocalCalendarDays`; **no** se usa la comparación de fechas como disparador de escritura. Fallos de Notion en este paso no bloquean la UI; se registran en consola y PostHog (`health_data_notion_sync_failed`).
 4. Si no hay fecha de HK y no había dato local: fase desde Notion (`notion`).
 
 En la **primera instalación** sin SQLite, en iOS se intenta Salud **antes** que Notion para evitar un parpadeo de fase solo-Notion y luego HK.
@@ -60,7 +67,7 @@ En la **primera instalación** sin SQLite, en iOS se intenta Salud **antes** que
 | HK3 | En Expo Go o sin módulo Nitro/HealthKit, la app arranca; origen no es `healthkit`. | iOS |
 | HK4 | Perfil en iOS muestra **origen del ciclo** y estado **HealthKit** (módulo / tienda de salud) para QA. | iOS |
 | HK5 | Botón **Reintentar sincronización con Salud** resetea la petición de autorización y vuelve a cargar datos (útil tras cambiar Ajustes). | iOS dev |
-| HK6 | Con origen `healthkit` y fecha válida de Salud, la app lee la fila de **ese mismo usuario** en Notion; si la fase en Notion (normalizada) y la fase derivada de HK (normalizada) son fases de ciclo comparables y **difieren**, actualiza vía `updatePhase`; si coinciden, si Notion es `null`/`all` tras normalizar, o si no hay muestra de HK, **no** escribe. La fecha de próximo ciclo no dispara la escritura por sí sola. No se dispara en cada render, solo en el flujo de carga del hook. | iOS dev |
+| HK6 | Con origen `healthkit` y fecha válida de Salud, la app lee la fila de **ese mismo usuario** en Notion; si la fase en Notion (normalizada) y la fase derivada de HK (normalizada) son fases de ciclo comparables y **difieren**, actualiza vía `updatePhase` **excepto** en `__DEV__` con `NOTION_SKIP_PHASE_WRITE` activo (no escribe, `console.warn`). Si coinciden, si Notion es `null`/`all` tras normalizar, o si no hay muestra de HK, **no** escribe. La fecha de próximo ciclo no dispara la escritura por sí sola. No se dispara en cada render, solo en el flujo de carga del hook. | iOS dev |
 
 ---
 

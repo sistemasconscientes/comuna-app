@@ -23,6 +23,8 @@ NOTION_SUPPLEMENTS_DB_ID=
 NOTION_PHASES_PAGE_ID=
 # Opcional: pestaña Comidas / meal prep (página con heading "Comidas Activas")
 NOTION_MEAL_PREP_HUB_PAGE_ID=
+# Opcional (solo __DEV__): evita updatePhase en Notion al probar otro perfil sin pisar su fila de fases
+# NOTION_SKIP_PHASE_WRITE=true
 ```
 
 Correr la app:
@@ -70,7 +72,7 @@ Al iniciar, la app consulta Notion para:
 1. **Suplementos** — desde `NOTION_SUPPLEMENTS_DB_ID`, filtrados por usuario y disponibilidad
 2. **Fase actual** — desde `NOTION_PHASES_PAGE_ID`, tabla inline con fase (texto + emoji) y próximo ciclo por usuario
 
-En **iOS** con datos de Salud, la app puede **escribir** de vuelta en esa tabla vía `updatePhase` cuando la fase calculada difiere de Notion (ver `docs/specs/healthkit-cycle-sync.md`).
+En **iOS** con datos de Salud, la app puede **escribir** de vuelta en esa tabla vía `updatePhase` cuando la fase calculada difiere de Notion (ver `docs/specs/healthkit-cycle-sync.md`). En desarrollo, `NOTION_SKIP_PHASE_WRITE=true` en `.env` desactiva esa escritura solo cuando `__DEV__` es verdadero.
 
 **Stock:** si un suplemento tiene menos de 7 días estimados, se llama una vez a `markForRestock` en Notion por fila (deduplicado con `restock_flagged` en SQLite; ver `docs/specs/stock-restock-notion.md`).
 
