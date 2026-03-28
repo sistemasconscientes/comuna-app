@@ -2,7 +2,7 @@
 
 ## Alcance
 
-- Pantalla [`src/screens/MealPrep.tsx`](../../src/screens/MealPrep.tsx): `getMealPrep()` (hijos directos de la página del plan, `listBlockChildrenAll` en `notion.ts`) → `expandMealPrepNotionBlocks(prep.blocks, fetchHijosTabla)` → `getTodayMeals(expanded)`. El callback de expansión usa `fetch` a la API de Notion con `NOTION_API_KEY` desde `@env` (mismo criterio que `notion.ts`).
+- Pantalla [`src/screens/MealPrep.tsx`](../../src/screens/MealPrep.tsx): `getMealPrep()` (hijos directos de la página del plan, `listBlockChildrenAll` en `notion.ts`) → `expandMealPrepNotionBlocks(prep.blocks, fetchHijosTabla)` → `getTodayMeals(expanded)`. El callback de expansión delega en `listNotionBlockChildrenPage` (`notion.ts`), que usa `notionFetch` y **rechaza respuestas HTTP no OK** (no se enmascaran 401/403 como lista vacía).
 - Navegación: pestaña **Comidas** en la barra inferior de [`App.tsx`](../../App.tsx), mismo patrón que Inicio / Stock / Perfil (ver [`app-tab-bar.md`](./app-tab-bar.md)).
 
 ## Parsing (`mealPrepParser.ts`)
@@ -29,8 +29,7 @@
 ## API Notion
 
 - `getMealPrep` (en `notion.ts`) lista **toda** la página del plan con `listBlockChildrenAll`; las filas `table_row` **no** vienen en ese listado.
-- La pantalla llama `expandMealPrepNotionBlocks`, que por cada bloque `table` pide `GET /v1/blocks/{id}/children?page_size=…` (vía callback `fetch` + `NOTION_API_KEY`).
-- Sigue existiendo `listNotionBlockChildrenPage` en `notion.ts` para otros usos; la pestaña Comidas no depende de ella.
+- La pantalla llama `expandMealPrepNotionBlocks`, que por cada bloque `table` pide `GET /v1/blocks/{id}/children?page_size=…` vía `listNotionBlockChildrenPage` (mismo cliente y manejo de errores que el resto de Notion).
 
 ---
 

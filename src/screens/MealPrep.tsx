@@ -7,8 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { usePostHog } from 'posthog-react-native';
-import { NOTION_API_KEY } from '@env';
-import { getMealPrep } from '../api/notion';
+import { getMealPrep, listNotionBlockChildrenPage } from '../api/notion';
 import { useUser } from '../context/UserContext';
 import {
   expandMealPrepNotionBlocks,
@@ -50,20 +49,7 @@ export default function MealPrep() {
         // de la página — hay que hacer fetch adicional por cada tabla.
         const expanded = await expandMealPrepNotionBlocks(
           prep.blocks as NotionBlock[],
-          async (blockId: string, pageSize: number) => {
-            const res = await fetch(
-              `https://api.notion.com/v1/blocks/${blockId}/children?page_size=${pageSize}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${NOTION_API_KEY}`,
-                  'Notion-Version': '2022-06-28',
-                  'Content-Type': 'application/json',
-                },
-              }
-            );
-            const data = await res.json();
-            return data.results ?? [];
-          }
+          (blockId, pageSize) => listNotionBlockChildrenPage(blockId, pageSize)
         );
 
         if (cancelled) return;

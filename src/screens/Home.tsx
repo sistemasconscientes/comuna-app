@@ -44,7 +44,7 @@ function formatTodayLongEs(): string {
 
 type HomeProps = {
   /** Navega a Perfil / ajustes (misma acción que pestaña Perfil). */
-  onOpenSettings?: () => void;
+  onOpenSettings: () => void;
 };
 
 export default function Home({ onOpenSettings }: HomeProps) {
