@@ -13,6 +13,7 @@ import { useUser } from '../context/UserContext';
 import { useHealthKitDataScreen } from '../hooks/useHealthKitDataScreen';
 import type { HealthKitDataScreenRow, HealthKitDataScreenRowKind } from '../types';
 import { reportErrorToSentry } from '../utils/observability';
+import { FLOATING_TAB_BAR_EXTRA } from '../constants/floatingTabBar';
 
 function kindColor(kind: HealthKitDataScreenRowKind): string {
   switch (kind) {
@@ -70,7 +71,10 @@ export default function HealthKitData() {
       style={styles.scroll}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: 12 + insets.top, paddingBottom: 32 + insets.bottom },
+        {
+          paddingTop: 12 + insets.top,
+          paddingBottom: 32 + insets.bottom + FLOATING_TAB_BAR_EXTRA,
+        },
       ]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}
     >

@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -80,11 +82,20 @@ function MigrationFailureReporter({ error }: { error: Error }) {
 type TabBarTab = 'home' | 'stock' | 'comidas' | 'salud';
 type Tab = TabBarTab | 'perfil';
 
-const TABS: { key: TabBarTab; label: string }[] = [
-  { key: 'home', label: 'Inicio' },
-  { key: 'stock', label: 'Stock' },
-  { key: 'comidas', label: 'Comidas' },
-  { key: 'salud', label: 'Salud' },
+type IoniconName = NonNullable<ComponentProps<typeof Ionicons>['name']>;
+
+const TAB_FLOAT_MARGIN = 10;
+
+const TABS: {
+  key: TabBarTab;
+  label: string;
+  icon: IoniconName;
+  iconActive: IoniconName;
+}[] = [
+  { key: 'home', label: 'Inicio', icon: 'home-outline', iconActive: 'home' },
+  { key: 'stock', label: 'Stock', icon: 'cube-outline', iconActive: 'cube' },
+  { key: 'comidas', label: 'Comidas', icon: 'restaurant-outline', iconActive: 'restaurant' },
+  { key: 'salud', label: 'Salud', icon: 'heart-outline', iconActive: 'heart' },
 ];
 
 function App() {
@@ -316,11 +327,20 @@ function App() {
       value={{ user, setUser: persistSetUser, clearStoredUserAndShowPicker }}
     >
       {!showUserPicker && <PostHogIdentifyUser user={user} />}
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <StatusBar style="dark" />
 
         {showUserPicker ? (
-          <View style={[styles.screen, styles.gateContent]}>
+          <View
+            style={[
+              styles.screen,
+              styles.gateContent,
+              {
+                paddingTop: tabBarInsets.top,
+                paddingBottom: 16 + tabBarInsets.bottom,
+              },
+            ]}
+          >
             <Text style={styles.gateTitle}>¿Quién usa la app?</Text>
             <Text style={styles.gateSubtitle}>Elige tu perfil para continuar</Text>
             <View style={styles.gateRow}>
@@ -376,7 +396,7 @@ function App() {
             </View>
           </View>
         ) : (
-          <>
+          <View style={styles.tabbedRoot}>
             <View style={styles.screen}>
               {activeTab === 'home' && <Home onOpenSettings={() => setActiveTab('perfil')} />}
               {activeTab === 'stock' && <Stock user={user} />}
@@ -387,22 +407,44 @@ function App() {
               )}
             </View>
 
-            <View style={[styles.tabBar, { paddingBottom: 12 + tabBarInsets.bottom }]}>
-              {TABS.map((tab) => {
-                const active = activeTab === tab.key;
-                return (
-                  <TouchableOpacity
-                    key={tab.key}
-                    style={[styles.tab, active && styles.tabActive]}
-                    onPress={() => setActiveTab(tab.key)}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+            <View
+              pointerEvents="box-none"
+              style={[
+                styles.tabBarFloatOuter,
+                { bottom: tabBarInsets.bottom + TAB_FLOAT_MARGIN },
+              ]}
+            >
+              <View style={styles.tabBarPill}>
+                {TABS.map((tab) => {
+                  const active = activeTab === tab.key;
+                  const color = active ? '#C97B6E' : 'rgba(255,255,255,0.52)';
+                  return (
+                    <TouchableOpacity
+                      key={tab.key}
+                      style={styles.tabItem}
+                      onPress={() => setActiveTab(tab.key)}
+                      activeOpacity={0.75}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={tab.label}
+                    >
+                      <Ionicons
+                        name={active ? tab.iconActive : tab.icon}
+                        size={22}
+                        color={color}
+                      />
+                      <Text
+                        style={[styles.tabLabelFloat, active && styles.tabLabelFloatActive]}
+                        numberOfLines={1}
+                      >
+                        {tab.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
-          </>
+          </View>
         )}
       </SafeAreaView>
     </UserContext.Provider>
@@ -442,28 +484,51 @@ const styles = StyleSheet.create({
   emojiChipActive: { borderColor: '#222', backgroundColor: '#222' },
   emojiChipText: { fontSize: 18 },
   emojiChipTextActive: { color: '#fff' },
-  tabBar: {
-    flexDirection: 'row',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    gap: 8,
-    backgroundColor: '#EDE8DF',
-    borderTopWidth: 1,
-    borderTopColor: '#E0D9CE',
+  tabbedRoot: { flex: 1 },
+  tabBarFloatOuter: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    alignItems: 'stretch',
   },
-  tab: {
+  tabBarPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: 34,
+    backgroundColor: 'rgba(36, 32, 30, 0.94)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.08)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.22,
+        shadowRadius: 16,
+      },
+      android: { elevation: 12 },
+      default: {},
+    }),
+  },
+  tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 999,
-    backgroundColor: 'transparent',
+    paddingVertical: 4,
+    gap: 4,
+    minWidth: 0,
   },
-  tabActive: {
-    backgroundColor: '#C97B6E',
+  tabLabelFloat: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.52)',
+    letterSpacing: 0.2,
   },
-  tabLabel: { fontSize: 12, color: '#7A756D', fontWeight: '600' },
-  tabLabelActive: { color: '#FFFFFF' },
+  tabLabelFloatActive: {
+    color: '#C97B6E',
+  },
 });
 
 export default sentryDsn ? Sentry.wrap(App) : App;

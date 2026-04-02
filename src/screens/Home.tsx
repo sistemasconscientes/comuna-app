@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,6 +17,7 @@ import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
 import { useUser, type User } from '../context/UserContext';
 import type { Phase } from '../types';
 import { DEFAULT_CYCLE_LENGTH_DAYS } from '../utils/phaseCalculator';
+import { FLOATING_TAB_BAR_EXTRA } from '../constants/floatingTabBar';
 
 const DEFAULT_USER_EMOJI = '🌿';
 
@@ -175,9 +177,12 @@ export default function Home({ onOpenSettings }: HomeProps) {
         styles.content,
         {
           paddingTop: 8 + insets.top,
-          paddingBottom: 28 + insets.bottom,
+          paddingBottom: insets.bottom + FLOATING_TAB_BAR_EXTRA,
         },
       ]}
+      {...(Platform.OS === 'ios'
+        ? ({ contentInsetAdjustmentBehavior: 'never' } as const)
+        : {})}
     >
       {fetchError && (
         <View style={styles.errorBanner}>
@@ -311,7 +316,7 @@ export default function Home({ onOpenSettings }: HomeProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28, gap: 14 },
+  content: { paddingHorizontal: 20, gap: 14 },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

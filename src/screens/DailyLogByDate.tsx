@@ -14,6 +14,7 @@ import { useHealthData } from '../hooks/useHealthData';
 import { useSupplements } from '../hooks/useSupplements';
 import { useDailyLog } from '../hooks/useDailyLog';
 import { useSelectableLogDate, useCalendarDayLocal } from '../hooks/useSelectableLogDate';
+import { FLOATING_TAB_BAR_EXTRA } from '../constants/floatingTabBar';
 
 const PHASE_COLORS: Record<string, string> = {
   menstrual: '#E57373',
@@ -77,7 +78,7 @@ export default function DailyLogByDate({ onBack }: Props) {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: 40 + insets.bottom },
+          { paddingBottom: 40 + insets.bottom + FLOATING_TAB_BAR_EXTRA },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator

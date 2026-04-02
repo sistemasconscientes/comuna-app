@@ -18,7 +18,7 @@ Alineación visual con referencia de producto: paleta cálida (fondo crema/beige
 | UI-2 | Cabecera superior: fila con bloque izquierdo (emoji + nombre en línea, fecha debajo en gris) y botón circular/outline de ajustes a la derecha que navega a Perfil (`onOpenSettings`). |
 | UI-3 | Debajo de la fecha: pastilla de fase con fondo rosado muy suave, punto terracota y texto de fase legible (sin tarjeta grande centrada duplicada si la info ya está en la pastilla). |
 | UI-4 | Lista del día: contenedor tipo tarjeta blanca, esquinas muy redondeadas, filas separadas por línea sutil; checkbox circular; al marcar: relleno terracota y marca ✓ blanca. |
-| UI-5 | Barra de pestañas: pestaña activa con fondo terracota y texto claro; inactivas sobre fondo crema/beige coherente con la referencia. |
+| UI-5 | Barra de pestañas: **flotante** (píldora oscura con sombra), icono + texto por pestaña; activa terracota, inactivas atenuadas; ver [`app-tab-bar.md`](./app-tab-bar.md) TAB-4. |
 | UI-6 | Entre la cabecera y «Para hoy»: tarjeta de **barra de fase** prioritaria (tipografía y pista legibles; ver [`home-energy-chart.md`](./home-energy-chart.md)). El avance de suplementos es secundario: una línea con contador `n/m` y barra fina, sin tarjeta grande duplicada. |
 | UI-7 | Contenido scrollable con `padding` que tenga en cuenta **safe area** (cabecera bajo Dynamic Island / notch, final de lista sobre home indicator); estados de **carga** y **error** visibles (ver [`daily-log-local-calendar.md`](./daily-log-local-calendar.md)). |
 
@@ -27,4 +27,4 @@ Alineación visual con referencia de producto: paleta cálida (fondo crema/beige
 ## Fuera de alcance
 
 - Rediseños mayores fuera de paleta y jerarquía descrita. Fecha del día, refetch Notion y detalle de safe area: [`daily-log-local-calendar.md`](./daily-log-local-calendar.md).
-- Añadir librerías de iconos; se usa carácter Unicode para engranaje si aplica.
+- La **tab bar** usa `@expo/vector-icons` (Ionicons). El botón ⚙️ de Inicio puede seguir en Unicode.

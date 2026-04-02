@@ -18,6 +18,7 @@ import {
   type NotionBlock,
 } from '../utils/mealPrepParser';
 import { reportErrorToSentry } from '../utils/observability';
+import { FLOATING_TAB_BAR_EXTRA } from '../constants/floatingTabBar';
 
 type MealPrepCacheData = {
   weekTitle: string | null;
@@ -83,7 +84,10 @@ export default function MealPrep() {
       style={styles.container}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: 12 + insets.top, paddingBottom: 32 + insets.bottom },
+        {
+          paddingTop: 12 + insets.top,
+          paddingBottom: 32 + insets.bottom + FLOATING_TAB_BAR_EXTRA,
+        },
       ]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >

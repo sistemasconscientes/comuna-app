@@ -42,5 +42,6 @@ La pestaña **Checklist** se eliminó: duplicaba la lista de suplementos del dí
 | TAB-1 | La barra inferior muestra exactamente cuatro pestañas: Inicio, Stock, Comidas, Salud. **No** incluye Perfil. |
 | TAB-2 | No existe ruta ni pestaña «Checklist» accesible desde la UI. |
 | TAB-3 | Inicio sigue permitiendo marcar/desmarcar suplementos para la fecha de hoy. |
-| TAB-4 | Estilo visual alineado con [`home-screen-ui.md`](./home-screen-ui.md): fondo crema en la zona de pestañas, pestaña activa con fondo terracota (`#C97B6E`) y texto claro. |
+| TAB-4 | Barra **flotante** tipo píldora: márgenes laterales (~16), elevación/sombra en iOS, fondo oscuro semitransparente; cada pestaña con **icono** (Ionicons) + etiqueta; activa en terracota (`#C97B6E`), inactiva en blanco atenuado. Coherente con [`home-screen-ui.md`](./home-screen-ui.md). |
 | TAB-5 | Perfil se abre desde el botón ⚙️ del header de Inicio. Desde Perfil, la usuaria puede volver con la fila «‹ Inicio» en la parte superior **y** pulsando cualquier pestaña de la barra inferior (cambia `activeTab` y deja de mostrar `Profile`). |
+| TAB-6 | **Safe area iOS:** `SafeAreaView` en `App.tsx` con `edges={['left','right']}`. La tab bar flotante usa `position: 'absolute'`, `bottom: insets.bottom + 10` y márgenes horizontales. Listas/scroll suman `insets.bottom + FLOATING_TAB_BAR_EXTRA` (`src/constants/floatingTabBar.ts`, ~78 pt de margen + píldora + aire) para que el último ítem no quede bajo la píldora. Gate: `paddingTop` / `paddingBottom` con insets. |

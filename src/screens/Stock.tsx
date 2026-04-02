@@ -24,15 +24,16 @@ import {
   type SharedStock,
 } from '../api/sharedStock';
 import { useCache } from '../hooks/useCache';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHealthData } from '../hooks/useHealthData';
 import { fetchSupplementsWithStock } from '../hooks/useSupplements';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
 import { useStock } from '../hooks/useStock';
 import type { Supplement, StockEntry } from '../types';
 import { filterSupplementsByCurrentTemporada } from '../utils/temporadaFilter';
 import { getLocalTodayISO } from '../utils/dateUtils';
 import { reportErrorToSentry } from '../utils/observability';
+import { FLOATING_TAB_BAR_EXTRA } from '../constants/floatingTabBar';
 
 type User = 'diana' | 'estefania';
 
@@ -322,7 +323,10 @@ export default function Stock({ user }: Props) {
         data={visibleSupplements}
         keyExtractor={(s) => s.notion_id}
         style={styles.listFlex}
-        contentContainerStyle={[styles.list, { paddingBottom: 20 + insets.bottom }]}
+        contentContainerStyle={[
+          styles.list,
+          { paddingBottom: 20 + insets.bottom + FLOATING_TAB_BAR_EXTRA },
+        ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={refreshStockBundle} />
         }

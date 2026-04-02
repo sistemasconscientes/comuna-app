@@ -9,12 +9,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
 import { usePostHog } from 'posthog-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUser, type User } from '../context/UserContext';
 import { useHealthData } from '../hooks/useHealthData';
 import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
+import { FLOATING_TAB_BAR_EXTRA } from '../constants/floatingTabBar';
 import DailyLogByDate from './DailyLogByDate';
 import type { CycleDataSource } from '../types';
 
@@ -117,7 +118,10 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
       style={styles.scroll}
       contentContainerStyle={[
         styles.scrollContent,
-        { paddingTop: 8 + insets.top, paddingBottom: 32 + insets.bottom },
+        {
+          paddingTop: 8 + insets.top,
+          paddingBottom: 32 + insets.bottom + FLOATING_TAB_BAR_EXTRA,
+        },
       ]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator

@@ -33,7 +33,7 @@ Los timestamps de instante (`createdAt`, `updatedAt` en SQLite) pueden seguir en
 | Tras lectura SQLite | Si alguna fila devuelta tuviera `date !== logDate` esperado, no usar filas inconsistentes (defensa) y reportar a Sentry. |
 | Notion | Sin caché persistente nueva; basta dependencia de `calendarDayKey` en los efectos de fetch. |
 | Errores | Si falla Notion (o carga inicial), banner o mensaje explícito; no confundir con “0 suplementos” en silencio. |
-| Safe area | `useSafeAreaInsets` en contenido scrollable; tab bar con padding inferior coherente si hace falta. |
+| Safe area | `App.tsx`: `SafeAreaView` solo laterales; pestañas aplican `insets.top`; scroll con `insets.bottom + FLOATING_TAB_BAR_EXTRA` por tab bar flotante (ver [`app-tab-bar.md`](./app-tab-bar.md) TAB-6). |
 
 ---
 
