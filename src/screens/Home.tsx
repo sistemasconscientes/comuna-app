@@ -1,9 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useHealthData } from '../hooks/useHealthData';
 import { useSupplements } from '../hooks/useSupplements';
 import { useDailyLog } from '../hooks/useDailyLog';
+import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
 import { useUser, type User } from '../context/UserContext';
 import type { Phase } from '../types';
 import { DEFAULT_CYCLE_LENGTH_DAYS } from '../utils/phaseCalculator';
@@ -96,6 +105,8 @@ type HomeProps = {
 };
 
 export default function Home({ onOpenSettings }: HomeProps) {
+  const insets = useSafeAreaInsets();
+  const calendarDayKey = useCalendarDayLocal();
   const { user } = useUser();
   const [userEmoji, setUserEmoji] = React.useState<string>(DEFAULT_USER_EMOJI);
 
@@ -115,12 +126,19 @@ export default function Home({ onOpenSettings }: HomeProps) {
     };
   }, [user]);
 
-  const { cyclePhase, cycleDay, loading: healthLoading, error: healthError } = useHealthData(user);
-  const { supplements, idByNotionId, error: supplementsError } = useSupplements(
-    user,
-    cyclePhase ?? '',
-  );
-  const { isTaken, markTaken } = useDailyLog(user);
+  const { cyclePhase, cycleDay, loading: healthLoading, error: healthError } = useHealthData(user, {
+    calendarDayKey,
+  });
+  const {
+    supplements,
+    idByNotionId,
+    loading: supplementsLoading,
+    error: supplementsError,
+  } = useSupplements(user, cyclePhase ?? '', { calendarDayKey });
+  const { isTaken, markTaken, loading: logLoading, error: logError } = useDailyLog(user, calendarDayKey);
+
+  const dataLoading = healthLoading || supplementsLoading || logLoading;
+  const fetchError = healthError ?? supplementsError ?? logError;
 
   const phaseLabel = cyclePhase ? PHASE_PILL_LABELS[cyclePhase] : '—';
 
@@ -145,14 +163,35 @@ export default function Home({ onOpenSettings }: HomeProps) {
 
   const dateLine = formatTodayLongEs();
 
+  const showEmptySupplements =
+    !dataLoading &&
+    !fetchError &&
+    supplements.length === 0;
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {(healthError || supplementsError) && (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop: 8 + insets.top,
+          paddingBottom: 28 + insets.bottom,
+        },
+      ]}
+    >
+      {fetchError && (
         <View style={styles.errorBanner}>
           <Text style={styles.errorText}>
-            Error al cargar datos de Notion:{'\n'}
-            {(healthError ?? supplementsError)?.message}
+            Error al cargar datos:{'\n'}
+            {fetchError.message}
           </Text>
+        </View>
+      )}
+
+      {dataLoading && !fetchError && (
+        <View style={styles.loadingRow} accessibilityLabel="Cargando datos">
+          <ActivityIndicator size="small" color={C.accent} />
+          <Text style={styles.loadingText}>Cargando datos…</Text>
         </View>
       )}
 
@@ -234,11 +273,11 @@ export default function Home({ onOpenSettings }: HomeProps) {
         </View>
       </View>
 
-      {supplements.length === 0 ? (
+      {showEmptySupplements ? (
         <Text style={styles.emptyText}>
           {cyclePhase ? 'Sin suplementos para esta fase.' : 'Sin datos de fase.'}
         </Text>
-      ) : (
+      ) : !fetchError && supplements.length > 0 ? (
         <View style={styles.checklistCard}>
           {supplements.map((s, index) => {
             const localId = idByNotionId[s.notion_id];
@@ -265,7 +304,7 @@ export default function Home({ onOpenSettings }: HomeProps) {
             );
           })}
         </View>
-      )}
+      ) : null}
     </ScrollView>
   );
 }
@@ -402,4 +441,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   errorText: { color: '#C62828', fontSize: 13 },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+  },
+  loadingText: { fontSize: 14, color: C.muted },
 });

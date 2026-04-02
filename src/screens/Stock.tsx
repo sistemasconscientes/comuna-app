@@ -24,11 +24,14 @@ import {
   type SharedStock,
 } from '../api/sharedStock';
 import { useCache } from '../hooks/useCache';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHealthData } from '../hooks/useHealthData';
 import { fetchSupplementsWithStock } from '../hooks/useSupplements';
+import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
 import { useStock } from '../hooks/useStock';
 import type { Supplement, StockEntry } from '../types';
 import { filterSupplementsByCurrentTemporada } from '../utils/temporadaFilter';
+import { getLocalTodayISO } from '../utils/dateUtils';
 import { reportErrorToSentry } from '../utils/observability';
 
 type User = 'diana' | 'estefania';
@@ -53,10 +56,6 @@ function calcDays(entry: StockEntry): DaysInfo {
   const pillsRemaining = entry.totalPills - daysSinceOpened * entry.pillsPerDay;
   const daysRemaining = Math.floor(pillsRemaining / entry.pillsPerDay);
   return { daysRemaining, pillsRemaining };
-}
-
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function parseBottleDateInput(isoDay: string): Date {
@@ -91,10 +90,12 @@ interface EditState {
 }
 
 export default function Stock({ user }: Props) {
-  const { cyclePhase } = useHealthData(user);
+  const insets = useSafeAreaInsets();
+  const calendarDayKey = useCalendarDayLocal();
+  const { cyclePhase } = useHealthData(user, { calendarDayKey });
   const fetchStockBundle = useCallback(
     () => fetchSupplementsWithStock(user, cyclePhase ?? ''),
-    [user, cyclePhase]
+    [user, cyclePhase, calendarDayKey]
   );
   const {
     data: stockBundle,
@@ -102,7 +103,7 @@ export default function Stock({ user }: Props) {
     error: cacheError,
     refreshing,
     refresh: refreshStockBundle,
-  } = useCache(`stock_${user}`, fetchStockBundle, 5 * 60 * 1000);
+  } = useCache(`stock_${user}_${calendarDayKey}`, fetchStockBundle, 5 * 60 * 1000);
 
   const supplements = stockBundle?.supplements ?? [];
   const idByNotionId = stockBundle?.idByNotionId ?? {};
@@ -197,7 +198,7 @@ export default function Stock({ user }: Props) {
     setEditState({
       supplement: sup,
       localId: localId ?? null,
-      bottleOpenedAt: entry?.bottleOpenedAt ?? todayISO(),
+      bottleOpenedAt: entry?.bottleOpenedAt ?? getLocalTodayISO(),
       totalPills: entry?.totalPills?.toString() ?? '',
       pillsPerDay: entry?.pillsPerDay?.toString() ?? '',
     });
@@ -238,7 +239,7 @@ export default function Stock({ user }: Props) {
       Alert.alert('Valores inválidos', 'Completá total de pastillas y pastillas/día primero.');
       return;
     }
-    const today = todayISO();
+    const today = getLocalTodayISO();
     try {
       if (editState.supplement.persona === 'Ambas') {
         await updateSharedStock(editState.supplement.notion_id, {
@@ -285,7 +286,7 @@ export default function Stock({ user }: Props) {
   }).length;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: 12 + insets.top }]}>
       <Text style={styles.title}>Stock</Text>
 
       <View style={styles.filterRow}>
@@ -321,7 +322,7 @@ export default function Stock({ user }: Props) {
         data={visibleSupplements}
         keyExtractor={(s) => s.notion_id}
         style={styles.listFlex}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: 20 + insets.bottom }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={refreshStockBundle} />
         }

@@ -2,7 +2,7 @@
 
 **Estado:** implementado  
 **Errores y logging:** Sentry ([`src/utils/observability.ts`](../../src/utils/observability.ts), [`App.tsx`](../../App.tsx), boundary en [`index.tsx`](../../index.tsx)).  
-**Entrada PostHog:** [`index.tsx`](../../index.tsx) · **App:** [`App.tsx`](../../App.tsx) · **Hooks:** `useSupplements.ts`, `useHealthData.ts`, `useStock.ts`, `useDailyLog.ts`, `useHealthKitDataScreen.ts` (sin eventos de fallo en el hook) · **Pantallas:** `MealPrep.tsx`, `Profile.tsx`, `DailyLogByDate.tsx`, `Stock.tsx`, `HealthKitData.tsx`
+**Entrada PostHog:** [`index.tsx`](../../index.tsx) · **App:** [`App.tsx`](../../App.tsx) · **Hooks:** `useSupplements.ts`, `useHealthData.ts`, `useStock.ts`, `useDailyLog.ts`, `useSelectableLogDate.ts` (`useCalendarDayLocal` → `calendar_day_tick`), `useHealthKitDataScreen.ts` (sin eventos de fallo en el hook) · **Pantallas:** `MealPrep.tsx`, `Profile.tsx`, `DailyLogByDate.tsx`, `Stock.tsx`, `HealthKitData.tsx`
 
 ---
 
@@ -83,6 +83,7 @@ Solo eventos de **producto / flujo**. Los `capture` son no-op si PostHog está d
 | `daily_log_history_opened` | Abrir «Mis tomas por día» desde Perfil (montaje de `DailyLogByDate`) | `user` |
 | `healthkit_sync_retried` | Pulsar «Reintentar sincronización con Salud» en Perfil (iOS) | `user` |
 | `healthkit_data_screen_viewed` | Primer montaje de la pestaña Salud (`HealthKitData`) | `user` |
+| `calendar_day_tick` | El día civil local cambió al volver la app a primer plano (`AppState` → `active`) o al sincronizar (`useCalendarDayLocal`) | `previous_calendar_day`, `calendar_day` (YYYY-MM-DD), `reason`: `app_active` — una emisión por día aunque varios componentes monten el hook |
 
 ### Eventos retirados de PostHog (ahora solo Sentry)
 

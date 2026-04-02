@@ -9,6 +9,8 @@ import { reportErrorToSentry } from '../utils/observability';
 export type UseSupplementsOptions = {
   /** Si es false, se traen todos los suplementos (p. ej. Stock); el filtro por temporada es en la UI. */
   applyTemporadaFilter?: boolean;
+  /** Día civil local (YYYY-MM-DD): al cambiar, refetch Notion aunque la fase sea la misma. */
+  calendarDayKey?: string;
 };
 
 export type SupplementsWithStockPayload = {
@@ -112,6 +114,7 @@ export function useSupplements(
   const [idByNotionId, setIdByNotionId] = useState<Record<string, number>>({});
 
   const phaseDep = applyTemporadaFilter ? currentPhase : '';
+  const calendarDayKey = options?.calendarDayKey ?? '';
 
   useEffect(() => {
     let cancelled = false;
@@ -146,7 +149,7 @@ export function useSupplements(
     return () => {
       cancelled = true;
     };
-  }, [user, phaseDep, applyTemporadaFilter]);
+  }, [user, phaseDep, applyTemporadaFilter, calendarDayKey]);
 
   return {
     supplements,

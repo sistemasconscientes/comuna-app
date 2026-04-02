@@ -14,7 +14,7 @@ Pestañas inferiores de la app (sin React Navigation): estado local `activeTab` 
 
 | Pestaña | Pantalla | Rol |
 |---------|----------|-----|
-| Inicio | `Home` | Fase del ciclo, progreso del día, lista de suplementos para **hoy** (`useDailyLog(user)` con fecha por defecto). Cabecera con ⚙️ abre **Perfil**. |
+| Inicio | `Home` | Fase del ciclo, progreso del día, lista de suplementos para **hoy** (`useDailyLog(user, todayKey)` con `todayKey` de `useCalendarDayLocal`). Cabecera con ⚙️ abre **Perfil**. |
 | Stock | `Stock` | Inventario / frascos. |
 | Comidas | `MealPrep` | Plan de comidas. |
 | Salud | `HealthKitData` | Lecturas de Apple Salud visibles (valor, sin datos, permiso o error); ver [`healthkit-data-screen.md`](./healthkit-data-screen.md). |

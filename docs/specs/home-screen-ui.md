@@ -20,10 +20,11 @@ Alineación visual con referencia de producto: paleta cálida (fondo crema/beige
 | UI-4 | Lista del día: contenedor tipo tarjeta blanca, esquinas muy redondeadas, filas separadas por línea sutil; checkbox circular; al marcar: relleno terracota y marca ✓ blanca. |
 | UI-5 | Barra de pestañas: pestaña activa con fondo terracota y texto claro; inactivas sobre fondo crema/beige coherente con la referencia. |
 | UI-6 | Entre la cabecera y «Para hoy»: tarjeta de **barra de fase** prioritaria (tipografía y pista legibles; ver [`home-energy-chart.md`](./home-energy-chart.md)). El avance de suplementos es secundario: una línea con contador `n/m` y barra fina, sin tarjeta grande duplicada. |
+| UI-7 | Contenido scrollable con `padding` que tenga en cuenta **safe area** (cabecera bajo Dynamic Island / notch, final de lista sobre home indicator); estados de **carga** y **error** visibles (ver [`daily-log-local-calendar.md`](./daily-log-local-calendar.md)). |
 
 ---
 
 ## Fuera de alcance
 
-- Cambiar datos o lógica de `useHealthData` / `useSupplements` / `useDailyLog`.
+- Rediseños mayores fuera de paleta y jerarquía descrita. Fecha del día, refetch Notion y detalle de safe area: [`daily-log-local-calendar.md`](./daily-log-local-calendar.md).
 - Añadir librerías de iconos; se usa carácter Unicode para engranaje si aplica.

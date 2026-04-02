@@ -1,11 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePostHog } from 'posthog-react-native';
 import { useUser } from '../context/UserContext';
 import { useHealthData } from '../hooks/useHealthData';
 import { useSupplements } from '../hooks/useSupplements';
 import { useDailyLog } from '../hooks/useDailyLog';
-import { useSelectableLogDate } from '../hooks/useSelectableLogDate';
+import { useSelectableLogDate, useCalendarDayLocal } from '../hooks/useSelectableLogDate';
 
 const PHASE_COLORS: Record<string, string> = {
   menstrual: '#E57373',
@@ -19,16 +27,22 @@ type Props = {
 };
 
 export default function DailyLogByDate({ onBack }: Props) {
+  const insets = useSafeAreaInsets();
   const posthog = usePostHog();
   const { user } = useUser();
+  const calendarDayKey = useCalendarDayLocal();
   const { dateISO, formattedLabel, goPrevDay, goNextDay, setToday, isAtToday } =
     useSelectableLogDate();
-  const { cyclePhase, loading: healthLoading, error: healthError } = useHealthData(user);
-  const { supplements, idByNotionId, error: supplementsError } = useSupplements(
-    user,
-    cyclePhase ?? '',
-  );
-  const { isTaken, markTaken } = useDailyLog(user, dateISO);
+  const { cyclePhase, loading: healthLoading, error: healthError } = useHealthData(user, {
+    calendarDayKey,
+  });
+  const {
+    supplements,
+    idByNotionId,
+    loading: supplementsLoading,
+    error: supplementsError,
+  } = useSupplements(user, cyclePhase ?? '', { calendarDayKey });
+  const { isTaken, markTaken, loading: logLoading, error: logError } = useDailyLog(user, dateISO);
 
   React.useEffect(() => {
     posthog?.capture('daily_log_history_opened', { user });
@@ -42,9 +56,14 @@ export default function DailyLogByDate({ onBack }: Props) {
     return count + (isTaken(localId) ? 1 : 0);
   }, 0);
 
+  const dataLoading = healthLoading || supplementsLoading || logLoading;
+  const fetchError = healthError ?? supplementsError ?? logError;
+  const showEmptySupplements =
+    !dataLoading && !fetchError && supplements.length === 0;
+
   return (
     <View style={styles.wrapper}>
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { paddingTop: 12 + insets.top }]}>
         <View style={styles.topBarSide}>
           <TouchableOpacity onPress={onBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Text style={styles.backLabel}>‹ Volver</Text>
@@ -56,16 +75,26 @@ export default function DailyLogByDate({ onBack }: Props) {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: 40 + insets.bottom },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator
       >
-        {(healthError || supplementsError) && (
+        {fetchError && (
           <View style={styles.errorBanner}>
             <Text style={styles.errorText}>
               Error al cargar datos:{'\n'}
-              {(healthError ?? supplementsError)?.message}
+              {fetchError.message}
             </Text>
+          </View>
+        )}
+
+        {dataLoading && !fetchError && (
+          <View style={styles.loadingRow} accessibilityLabel="Cargando datos">
+            <ActivityIndicator size="small" color="#888" />
+            <Text style={styles.muted}>Cargando datos…</Text>
           </View>
         )}
 
@@ -116,12 +145,10 @@ export default function DailyLogByDate({ onBack }: Props) {
           </View>
         </View>
 
-        {healthLoading ? (
-          <Text style={styles.muted}>Cargando fase…</Text>
-        ) : (
+        {!dataLoading && !fetchError && (
           <>
             <Text style={styles.sectionTitle}>Lista</Text>
-            {supplements.length === 0 && (
+            {showEmptySupplements && (
               <Text style={styles.emptyText}>
                 {cyclePhase ? 'Sin suplementos para esta fase.' : 'Sin datos de fase.'}
               </Text>
@@ -164,7 +191,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E8E8E8',
     backgroundColor: '#fff',
@@ -179,7 +206,8 @@ const styles = StyleSheet.create({
     color: '#222',
   },
   scroll: { flex: 1 },
-  content: { padding: 20, paddingBottom: 40, gap: 12 },
+  content: { padding: 20, gap: 12 },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   sectionLabel: {
     fontSize: 12,
     color: '#888',

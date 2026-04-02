@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
@@ -88,6 +88,7 @@ const TABS: { key: TabBarTab; label: string }[] = [
 ];
 
 function App() {
+  const tabBarInsets = useSafeAreaInsets();
   const { success, error } = useMigrations(db, migrations);
   const posthog = usePostHog();
   /** No usar `posthog` como dependencia del efecto de hidratación: evita re-leer AsyncStorage si la instancia del hook cambia. */
@@ -204,10 +205,10 @@ function App() {
     void (async () => {
       try {
         await AsyncStorage.removeItem(SELECTED_USER_KEY);
-        posthog?.capture('stored_user_cleared', { previous_user: prev });
+        posthogRef.current?.capture('stored_user_cleared', { previous_user: prev });
         pickerReasonRef.current = 'manual_clear';
         setShowUserPicker(true);
-        posthog?.capture('user_picker_shown', { reason: 'manual_clear' });
+        posthogRef.current?.capture('user_picker_shown', { reason: 'manual_clear' });
       } catch (e) {
         reportErrorToSentry(e, {
           domain: 'async_storage',
@@ -216,10 +217,10 @@ function App() {
         });
         pickerReasonRef.current = 'manual_clear';
         setShowUserPicker(true);
-        posthog?.capture('user_picker_shown', { reason: 'manual_clear' });
+        posthogRef.current?.capture('user_picker_shown', { reason: 'manual_clear' });
       }
     })();
-  }, [posthog]);
+  }, []);
 
   const persistSetUser = React.useCallback(
     (u: User) => {
@@ -234,7 +235,7 @@ function App() {
           await AsyncStorage.setItem(SELECTED_USER_KEY, u);
           if (userRef.current !== u) return;
           if (!showPickerRef.current) {
-            posthog?.capture('user_switched_in_profile', { previous_user: prev, user: u });
+            posthogRef.current?.capture('user_switched_in_profile', { previous_user: prev, user: u });
           }
         } catch (e) {
           reportErrorToSentry(e, {
@@ -248,7 +249,7 @@ function App() {
         }
       })();
     },
-    [posthog],
+    [],
   );
 
   const completeGateSelection = React.useCallback(
@@ -262,7 +263,7 @@ function App() {
           setUserState(u);
           setShowUserPicker(false);
           setActiveTab('home');
-          posthog?.capture('user_picker_completed', { user: u, reason, persisted: true });
+          posthogRef.current?.capture('user_picker_completed', { user: u, reason, persisted: true });
         } catch (e) {
           reportErrorToSentry(e, {
             domain: 'async_storage',
@@ -272,11 +273,11 @@ function App() {
           setUserState(u);
           setShowUserPicker(false);
           setActiveTab('home');
-          posthog?.capture('user_picker_completed', { user: u, reason, persisted: false });
+          posthogRef.current?.capture('user_picker_completed', { user: u, reason, persisted: false });
         }
       })();
     },
-    [posthog, emojiKeyForUser, userEmojiByUser],
+    [emojiKeyForUser, userEmojiByUser],
   );
 
   if (error) {
@@ -386,7 +387,7 @@ function App() {
               )}
             </View>
 
-            <View style={styles.tabBar}>
+            <View style={[styles.tabBar, { paddingBottom: 12 + tabBarInsets.bottom }]}>
               {TABS.map((tab) => {
                 const active = activeTab === tab.key;
                 return (
@@ -445,7 +446,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 10,
     paddingVertical: 10,
-    paddingBottom: 12,
     gap: 8,
     backgroundColor: '#EDE8DF',
     borderTopWidth: 1,

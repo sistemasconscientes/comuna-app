@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePostHog } from 'posthog-react-native';
 import { getMealPrep, listNotionBlockChildrenPage } from '../api/notion';
 import { useUser } from '../context/UserContext';
@@ -24,6 +25,7 @@ type MealPrepCacheData = {
 };
 
 export default function MealPrep() {
+  const insets = useSafeAreaInsets();
   const posthog = usePostHog();
   const { user } = useUser();
 
@@ -79,7 +81,10 @@ export default function MealPrep() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: 12 + insets.top, paddingBottom: 32 + insets.bottom },
+      ]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
       {error && (

@@ -19,7 +19,7 @@ Fuera de alcance: reconstruir la fase del ciclo histórica por día; cálculo de
 | Aspecto | Regla |
 |---------|--------|
 | Lista de suplementos | Misma fuente que Inicio: [`useSupplements`](../../src/hooks/useSupplements.ts) con usuario activo y **fase actual** (`useHealthData`). Es coherente con la pestaña Checklist retirada. |
-| Fecha | Se muestra etiqueta legible (español) + ISO; **‹ ›** cambian un día (no se puede ir más allá de hoy en calendario local). **Ir a hoy** si la fecha elegida no es hoy. |
+| Fecha | Se muestra etiqueta legible (español) + ISO; **‹ ›** cambian un día (no se puede ir más allá de hoy). **“Hoy”** y el tope derecho usan `getLocalTodayISO()` (calendario local del dispositivo; ver [daily-log-local-calendar.md](./daily-log-local-calendar.md)). **Ir a hoy** si la fecha elegida no es hoy. |
 | Marcado | Igual que Inicio: tap en fila alterna tomado/no tomado (`markTaken` en `dailyLogs` para usuario activo + fecha seleccionada). |
 | Volver | Control explícito que cierra la subpantalla y devuelve al contenido habitual de Perfil. |
 

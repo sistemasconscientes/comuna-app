@@ -1,12 +1,49 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
+import { usePostHog } from 'posthog-react-native';
+import { getLocalTodayISO } from '../utils/dateUtils';
 
-/** Fecha local de hoy como YYYY-MM-DD (no UTC). */
+/** Una sola emisión PostHog por día nuevo aunque varios componentes usen `useCalendarDayLocal`. */
+let lastPostedCalendarDayTick: string | null = null;
+
+/** Fecha local de hoy como YYYY-MM-DD (delega en `getLocalTodayISO`). */
 export function localTodayISO(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  return getLocalTodayISO();
+}
+
+/**
+ * Día civil local actual; se recalcula al montar y cuando la app pasa a `active`.
+ * Dispara `calendar_day_tick` en PostHog si el día cambió (best-effort).
+ * @see docs/specs/daily-log-local-calendar.md
+ */
+export function useCalendarDayLocal(): string {
+  const posthog = usePostHog();
+  const [todayKey, setTodayKey] = useState(() => getLocalTodayISO());
+
+  useEffect(() => {
+    const sync = () => {
+      const next = getLocalTodayISO();
+      setTodayKey((prev) => {
+        if (prev !== next && posthog && lastPostedCalendarDayTick !== next) {
+          lastPostedCalendarDayTick = next;
+          posthog.capture('calendar_day_tick', {
+            previous_calendar_day: prev,
+            calendar_day: next,
+            reason: 'app_active',
+          });
+        }
+        return next;
+      });
+    };
+
+    sync();
+    const sub = AppState.addEventListener('change', (s: AppStateStatus) => {
+      if (s === 'active') sync();
+    });
+    return () => sub.remove();
+  }, [posthog]);
+
+  return todayKey;
 }
 
 /** Suma días a una fecha ISO en calendario local. */

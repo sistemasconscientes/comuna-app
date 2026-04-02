@@ -16,6 +16,7 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 | [user-selected-persistence.md](./user-selected-persistence.md) | Usuario activo persistido en AsyncStorage, picker inicial, «Cambiar usuario» |
 | [app-tab-bar.md](./app-tab-bar.md) | Pestañas inferiores (`App.tsx`), retiro de Checklist vs Inicio |
 | [daily-log-by-date.md](./daily-log-by-date.md) | Registro de tomas por fecha, acceso desde Perfil |
+| [daily-log-local-calendar.md](./daily-log-local-calendar.md) | Día civil local (no UTC), refetch Notion al cambiar día, safe area Inicio/listas |
 | [home-energy-chart.md](./home-energy-chart.md) | Inicio: barra de fase del ciclo (`Home.tsx`, `useHealthData`, `phaseCalculator`) |
 | [home-screen-ui.md](./home-screen-ui.md) | Inicio: layout cabecera, paleta terracota/crema, lista tipo checklist |
 | [npm-deprecation-warnings.md](./npm-deprecation-warnings.md) | `npm warn deprecated`: diagnóstico, overrides seguros, avisos restantes |

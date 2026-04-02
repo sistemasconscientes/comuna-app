@@ -5,11 +5,11 @@ import type { User } from '../context/UserContext';
 import type { DailyLog } from '../types';
 import { reportErrorToSentry } from '../utils/observability';
 
-function today(): string {
-  return new Date().toISOString().split('T')[0];
-}
-
-export function useDailyLog(user: User, date: string = today()) {
+/**
+ * Registro de tomas para `date` (YYYY-MM-DD) en calendario local del dispositivo.
+ * No usar `toISOString().split('T')[0]` para esta fecha: ver docs/specs/daily-log-local-calendar.md
+ */
+export function useDailyLog(user: User, date: string) {
   const [data, setData] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -21,7 +21,19 @@ export function useDailyLog(user: User, date: string = today()) {
         .select()
         .from(dailyLogs)
         .where(and(eq(dailyLogs.date, date), eq(dailyLogs.user, user)));
-      setData(rows as DailyLog[]);
+
+      const mismatched = rows.filter((r) => r.date !== date);
+      if (mismatched.length > 0) {
+        reportErrorToSentry(new Error('daily_logs row date mismatch'), {
+          domain: 'sqlite',
+          message: 'Fila con date distinta al WHERE',
+          expected_date: date,
+          user,
+          bad_count: mismatched.length,
+        });
+      }
+      const sane = rows.filter((r) => r.date === date) as DailyLog[];
+      setData(sane);
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
       setError(err);
@@ -36,7 +48,9 @@ export function useDailyLog(user: User, date: string = today()) {
     }
   }, [date, user]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const markTaken = useCallback(
     async (supplementId: number, taken: boolean, notes?: string) => {

@@ -1,7 +1,7 @@
 {
   "name": "La Comuna App",
-  "version": "1.1.3",
-  "nativeBuild": 5,
+  "version": "1.1.4",
+  "nativeBuild": 6,
   "main": "index.tsx",
   "scripts": {
     "start": "expo start",

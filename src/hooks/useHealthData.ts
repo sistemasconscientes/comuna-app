@@ -41,6 +41,11 @@ export type UseHealthDataResult = HealthData & {
   refetch: () => void;
 };
 
+export type UseHealthDataOptions = {
+  /** Día civil local (YYYY-MM-DD): al cambiar, se vuelve a ejecutar el fetch (Notion / HealthKit). */
+  calendarDayKey?: string;
+};
+
 async function loadNotionPhaseOnly(
   user: 'diana' | 'estefania',
 ): Promise<Pick<HealthData, 'cyclePhase' | 'cycleDay' | 'lastPeriodStart'>> {
@@ -53,7 +58,10 @@ async function loadNotionPhaseOnly(
   };
 }
 
-export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult {
+export function useHealthData(
+  user: 'diana' | 'estefania',
+  options?: UseHealthDataOptions,
+): UseHealthDataResult {
   const [state, setState] = useState<HealthData>({
     cyclePhase: null,
     cycleDay: null,
@@ -229,7 +237,7 @@ export function useHealthData(user: 'diana' | 'estefania'): UseHealthDataResult 
     return () => {
       cancelled = true;
     };
-  }, [user, refreshToken]);
+  }, [user, refreshToken, options?.calendarDayKey]);
 
   return {
     ...state,

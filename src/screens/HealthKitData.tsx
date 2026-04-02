@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePostHog } from 'posthog-react-native';
 import { useUser } from '../context/UserContext';
 import { useHealthKitDataScreen } from '../hooks/useHealthKitDataScreen';
@@ -43,6 +44,7 @@ function RowCard({ row }: { row: HealthKitDataScreenRow }) {
 }
 
 export default function HealthKitData() {
+  const insets = useSafeAreaInsets();
   const posthog = usePostHog();
   const { user } = useUser();
   const { data, loading, error, refreshing, refresh } = useHealthKitDataScreen();
@@ -66,7 +68,10 @@ export default function HealthKitData() {
   return (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: 12 + insets.top, paddingBottom: 32 + insets.bottom },
+      ]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}
     >
       <Text style={styles.title}>Salud (HealthKit)</Text>

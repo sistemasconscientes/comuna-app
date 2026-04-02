@@ -11,8 +11,10 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
 import { usePostHog } from 'posthog-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUser, type User } from '../context/UserContext';
 import { useHealthData } from '../hooks/useHealthData';
+import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
 import DailyLogByDate from './DailyLogByDate';
 import type { CycleDataSource } from '../types';
 
@@ -49,6 +51,8 @@ type ProfileProps = {
 };
 
 export default function Profile({ onBackToTabs }: ProfileProps) {
+  const insets = useSafeAreaInsets();
+  const calendarDayKey = useCalendarDayLocal();
   const posthog = usePostHog();
   const [dailyLogOpen, setDailyLogOpen] = React.useState(false);
   const { user, setUser, clearStoredUserAndShowPicker } = useUser();
@@ -94,7 +98,7 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
     healthKitIrregularCycleHint,
     healthKitLifecycleContext,
     refetch,
-  } = useHealthData(user);
+  } = useHealthData(user, { calendarDayKey });
 
   const onRetryHealthKit = () => {
     posthog?.capture('healthkit_sync_retried', { user });
@@ -111,7 +115,10 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
   return (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent,
+        { paddingTop: 8 + insets.top, paddingBottom: 32 + insets.bottom },
+      ]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator
     >
