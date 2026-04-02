@@ -7,6 +7,7 @@ import { PostHogProvider, usePostHog } from 'posthog-react-native';
 import { POSTHOG_API_KEY, POSTHOG_HOST } from '@env';
 import App from './App';
 import { getAppEnvironment, reportErrorToSentry } from './src/utils/observability';
+import { theme } from './src/theme/colors';
 
 const hasPostHog = Boolean((POSTHOG_API_KEY ?? '').trim());
 const posthogHost = (POSTHOG_HOST ?? '').trim() || 'https://us.i.posthog.com';
@@ -32,10 +33,10 @@ const fallbackStyles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: theme.bg,
   },
-  title: { fontSize: 18, fontWeight: '600', marginBottom: 8, color: '#222' },
-  message: { fontSize: 15, color: '#444' },
+  title: { fontSize: 18, fontWeight: '600', marginBottom: 8, color: theme.text },
+  message: { fontSize: 15, color: theme.textSecondary },
 });
 
 type RootBoundaryState = {

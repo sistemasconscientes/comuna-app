@@ -67,3 +67,20 @@ Tras `npm version patch|minor|major`, si tenés hook `version` en `package.json`
 ## En specs con «Cierre de feature»
 
 Si el PR incluye bump de app: seguir este documento y el checklist R1–R4 (incluye `nativeBuild` cuando vaya a TestFlight).
+
+---
+
+## Smoke manual antes/después de TestFlight (solo iOS)
+
+**Distribución real:** el equipo valida en **iPhone / TestFlight**; no hay checklist Android (el bloque `android` en Expo se mantiene solo por alineación de `version:sync` / `version:check`).
+
+| # | Paso |
+|---|------|
+| S1 | **Gate / perfil:** si probás «Cambiar usuario», completar picker y llegar a pestañas. |
+| S2 | **Inicio:** marcar/desmarcar al menos un suplemento del día; abrir **⚙️** → Perfil. |
+| S3 | **Stock:** chips «Todas» / «Temporada actual»; abrir edición de un ítem (modal + teclado si aplica). |
+| S4 | **Comidas:** pull-to-refresh; con y sin plan en Notion según entorno. |
+| S5 | **Salud:** lista carga o mensajes esperables (sin datos / permisos). |
+| S6 | **Perfil → Mis tomas:** volver; cambiar usuaria una vez y confirmar datos distintos. |
+| S7 | **Versión en binario:** Ajustes del sistema → app → versión y build coinciden con `package.json` / TestFlight. |
+| S8 | **Sentry (opcional):** si `SENTRY_DSN` está en el build **no**-`__DEV__`, verificar que un error de prueba llega al proyecto (y que el job EAS no falla por `SENTRY_AUTH_TOKEN` si subís source maps; válvulas en [`posthog-analytics.md`](./posthog-analytics.md)). |

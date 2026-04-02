@@ -13,23 +13,28 @@ import { useUser } from '../context/UserContext';
 import { useHealthKitDataScreen } from '../hooks/useHealthKitDataScreen';
 import type { HealthKitDataScreenRow, HealthKitDataScreenRowKind } from '../types';
 import { reportErrorToSentry } from '../utils/observability';
-import { FLOATING_TAB_BAR_EXTRA } from '../constants/floatingTabBar';
+import {
+  FLOATING_TAB_BAR_EXTRA,
+  SCREEN_PADDING_TOP_EXTRA,
+  SCREEN_SCROLL_PADDING_BOTTOM_EXTRA,
+} from '../constants/floatingTabBar';
+import { theme } from '../theme/colors';
 
 function kindColor(kind: HealthKitDataScreenRowKind): string {
   switch (kind) {
     case 'error':
-      return '#B00020';
+      return theme.errorText;
     case 'permission':
-      return '#C45C2A';
+      return '#E8A87C';
     case 'no_data':
-      return '#6B6560';
+      return theme.textMuted;
     case 'unavailable':
-      return '#6B6560';
+      return theme.textMuted;
     case 'value':
-      return '#1E1E1E';
+      return theme.text;
     case 'info':
     default:
-      return '#3D3A36';
+      return theme.textSecondary;
   }
 }
 
@@ -72,8 +77,9 @@ export default function HealthKitData() {
       contentContainerStyle={[
         styles.content,
         {
-          paddingTop: 12 + insets.top,
-          paddingBottom: 32 + insets.bottom + FLOATING_TAB_BAR_EXTRA,
+          paddingTop: SCREEN_PADDING_TOP_EXTRA + insets.top,
+          paddingBottom:
+            SCREEN_SCROLL_PADDING_BOTTOM_EXTRA + insets.bottom + FLOATING_TAB_BAR_EXTRA,
         },
       ]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}
@@ -94,7 +100,7 @@ export default function HealthKitData() {
 
       {error && !data ? (
         <View style={styles.card}>
-          <Text style={[styles.cardText, { color: '#B00020' }]}>
+          <Text style={[styles.cardText, { color: theme.errorText }]}>
             No se pudo cargar la vista. Tirá hacia abajo para reintentar.
           </Text>
         </View>
@@ -114,21 +120,21 @@ export default function HealthKitData() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: '#F5F0E8' },
-  content: { padding: 20, paddingBottom: 32, gap: 12 },
-  title: { fontSize: 22, fontWeight: '700', color: '#222', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#666', lineHeight: 20, marginBottom: 8 },
+  scroll: { flex: 1, backgroundColor: theme.bg },
+  content: { padding: 20, paddingBottom: SCREEN_SCROLL_PADDING_BOTTOM_EXTRA, gap: 12 },
+  title: { fontSize: 22, fontWeight: '700', color: theme.text, marginBottom: 4 },
+  subtitle: { fontSize: 14, color: theme.textSecondary, lineHeight: 20, marginBottom: 8 },
   centered: { paddingVertical: 24, alignItems: 'center', gap: 8 },
-  loadingText: { color: '#666', fontSize: 14 },
+  loadingText: { color: theme.textMuted, fontSize: 14 },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E8E2D8',
+    borderColor: theme.border,
   },
-  cardLabel: { fontSize: 12, fontWeight: '600', color: '#7A756D', marginBottom: 6 },
+  cardLabel: { fontSize: 12, fontWeight: '600', color: theme.textMuted, marginBottom: 6 },
   cardText: { fontSize: 16, fontWeight: '600', lineHeight: 22 },
-  cardHint: { fontSize: 13, color: '#888', marginTop: 6, lineHeight: 18 },
-  footer: { fontSize: 12, color: '#999', marginTop: 8 },
+  cardHint: { fontSize: 13, color: theme.textSecondary, marginTop: 6, lineHeight: 18 },
+  footer: { fontSize: 12, color: theme.textMuted, marginTop: 8 },
 });

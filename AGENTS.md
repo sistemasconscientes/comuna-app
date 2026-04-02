@@ -2,6 +2,7 @@
 
 - Las respuestas al usuario deben estar en español.
 - Al cerrar una feature suele pedir dejar specs/documentación al día y el árbol listo para commit.
+- **No usa Android** para uso ni QA: priorizar iOS / TestFlight; no proponer pasos ni fixes solo-Android salvo que pida explícitamente compatibilidad.
 
 ## Learned Workspace Facts
 

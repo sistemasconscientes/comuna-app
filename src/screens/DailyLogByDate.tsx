@@ -14,7 +14,12 @@ import { useHealthData } from '../hooks/useHealthData';
 import { useSupplements } from '../hooks/useSupplements';
 import { useDailyLog } from '../hooks/useDailyLog';
 import { useSelectableLogDate, useCalendarDayLocal } from '../hooks/useSelectableLogDate';
-import { FLOATING_TAB_BAR_EXTRA } from '../constants/floatingTabBar';
+import {
+  FLOATING_TAB_BAR_EXTRA,
+  SCREEN_PADDING_TOP_EXTRA,
+  SCREEN_SCROLL_PADDING_BOTTOM_EXTRA,
+} from '../constants/floatingTabBar';
+import { theme } from '../theme/colors';
 
 const PHASE_COLORS: Record<string, string> = {
   menstrual: '#E57373',
@@ -64,7 +69,7 @@ export default function DailyLogByDate({ onBack }: Props) {
 
   return (
     <View style={styles.wrapper}>
-      <View style={[styles.topBar, { paddingTop: 12 + insets.top }]}>
+      <View style={[styles.topBar, { paddingTop: SCREEN_PADDING_TOP_EXTRA + insets.top }]}>
         <View style={styles.topBarSide}>
           <TouchableOpacity onPress={onBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Text style={styles.backLabel}>‹ Volver</Text>
@@ -78,7 +83,10 @@ export default function DailyLogByDate({ onBack }: Props) {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: 40 + insets.bottom + FLOATING_TAB_BAR_EXTRA },
+          {
+            paddingBottom:
+              SCREEN_SCROLL_PADDING_BOTTOM_EXTRA + insets.bottom + FLOATING_TAB_BAR_EXTRA,
+          },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator
@@ -187,41 +195,41 @@ export default function DailyLogByDate({ onBack }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: '#FAFAFA' },
+  wrapper: { flex: 1, backgroundColor: theme.bg },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-    backgroundColor: '#fff',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.border,
+    backgroundColor: theme.bgElevated,
   },
   topBarSide: { flex: 1 },
-  backLabel: { fontSize: 17, color: '#222', fontWeight: '500' },
+  backLabel: { fontSize: 17, color: theme.text, fontWeight: '500' },
   topTitle: {
     flex: 2,
     textAlign: 'center',
     fontSize: 17,
     fontWeight: '700',
-    color: '#222',
+    color: theme.text,
   },
   scroll: { flex: 1 },
   content: { padding: 20, gap: 12 },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   sectionLabel: {
     fontSize: 12,
-    color: '#888',
+    color: theme.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
+    borderColor: theme.border,
     paddingVertical: 4,
   },
   arrowBtn: {
@@ -231,39 +239,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   arrowBtnDisabled: { opacity: 0.35 },
-  arrowBtnText: { fontSize: 28, color: '#222', fontWeight: '300', lineHeight: 32 },
-  arrowBtnTextDisabled: { color: '#999' },
+  arrowBtnText: { fontSize: 28, color: theme.text, fontWeight: '300', lineHeight: 32 },
+  arrowBtnTextDisabled: { color: theme.textMuted },
   dateCenter: { flex: 1, alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8 },
   datePrimary: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222',
+    color: theme.text,
     textAlign: 'center',
     textTransform: 'capitalize',
   },
-  dateSecondary: { fontSize: 12, color: '#888', marginTop: 4 },
+  dateSecondary: { fontSize: 12, color: theme.textMuted, marginTop: 4 },
   todayBtn: {
     alignSelf: 'flex-start',
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 8,
-    backgroundColor: '#E8E8E8',
+    backgroundColor: theme.card,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
-  todayBtnText: { fontSize: 14, fontWeight: '600', color: '#333' },
-  progressCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16 },
-  progressText: { fontSize: 14, color: '#555', marginBottom: 8 },
-  progressBar: { height: 8, backgroundColor: '#eee', borderRadius: 4, overflow: 'hidden' },
+  todayBtnText: { fontSize: 14, fontWeight: '600', color: theme.text },
+  progressCard: { backgroundColor: theme.card, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: theme.border },
+  progressText: { fontSize: 14, color: theme.textSecondary, marginBottom: 8 },
+  progressBar: { height: 8, backgroundColor: theme.trackBg, borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#222', marginTop: 8 },
-  emptyText: { color: '#aaa', fontStyle: 'italic' },
-  muted: { color: '#888', fontSize: 14 },
+  sectionTitle: { fontSize: 18, fontWeight: '600', color: theme.text, marginTop: 8 },
+  emptyText: { color: theme.textMuted, fontStyle: 'italic' },
+  muted: { color: theme.textMuted, fontSize: 14 },
   supRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
     borderRadius: 12,
     padding: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
   supRowTaken: { opacity: 0.5 },
   checkbox: {
@@ -271,14 +283,14 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#ccc',
+    borderColor: theme.borderStrong,
   },
-  supName: { fontSize: 16, fontWeight: '500', color: '#222' },
-  supDose: { fontSize: 13, color: '#888', marginTop: 2 },
+  supName: { fontSize: 16, fontWeight: '500', color: theme.text },
+  supDose: { fontSize: 13, color: theme.textMuted, marginTop: 2 },
   errorBanner: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: theme.errorBg,
     borderRadius: 8,
     padding: 12,
   },
-  errorText: { color: '#C62828', fontSize: 13 },
+  errorText: { color: theme.errorText, fontSize: 13 },
 });

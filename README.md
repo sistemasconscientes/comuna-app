@@ -43,6 +43,8 @@ BACKEND_API_KEY=
 
 **EAS Build + Sentry:** si usás `SENTRY_DSN` en builds de tienda, el archive de iOS sube source maps vía `sentry-cli` y necesita **`SENTRY_AUTH_TOKEN`** como variable de entorno del proyecto en EAS ([documentación](https://docs.expo.dev/eas/environment-variables/), visibilidad `secret`). Crear un [Organization Token](https://docs.sentry.io/account/auth-tokens/) en Sentry y ejecutar p. ej. `eas env:create --name SENTRY_AUTH_TOKEN --value "..." --environment preview --environment production --visibility secret --non-interactive --scope project`. Detalle y válvulas (`SENTRY_ALLOW_FAILURE`, `SENTRY_DISABLE_AUTO_UPLOAD`): [`docs/specs/posthog-analytics.md`](docs/specs/posthog-analytics.md).
 
+**Cierre de release (solo iOS / TestFlight):** versión y `nativeBuild` en [`docs/specs/release-versioning.md`](docs/specs/release-versioning.md); misma página incluye **smoke manual** (gate, pestañas, Perfil, versión en binario, Sentry opcional). El uso diario y la QA son **iOS**; `android` en Expo queda alineado por `version:sync`, no hay releases Android planificados.
+
 Correr la app:
 
 ```bash

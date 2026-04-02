@@ -17,20 +17,24 @@ import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
 import { useUser, type User } from '../context/UserContext';
 import type { Phase } from '../types';
 import { DEFAULT_CYCLE_LENGTH_DAYS } from '../utils/phaseCalculator';
-import { FLOATING_TAB_BAR_EXTRA } from '../constants/floatingTabBar';
+import {
+  FLOATING_TAB_BAR_EXTRA,
+  SCREEN_PADDING_TOP_EXTRA,
+  SCREEN_SCROLL_PADDING_BOTTOM_EXTRA,
+} from '../constants/floatingTabBar';
+import { theme } from '../theme/colors';
 
 const DEFAULT_USER_EMOJI = '🌿';
 
-/** Paleta alineada con referencia: crema + terracota */
 const C = {
-  bg: '#F5F0E8',
-  card: '#FFFFFF',
-  accent: '#C97B6E',
-  text: '#2C2C2C',
-  muted: '#8E8E8E',
-  border: '#E8E4DC',
-  pillBg: '#FCE8E6',
-  rowDivider: '#EFEAE4',
+  bg: theme.bg,
+  card: theme.card,
+  accent: theme.accent,
+  text: theme.text,
+  muted: theme.textMuted,
+  border: theme.border,
+  pillBg: theme.pillBg,
+  rowDivider: theme.rowDivider,
 };
 
 const PHASE_PILL_LABELS: Record<string, string> = {
@@ -176,8 +180,9 @@ export default function Home({ onOpenSettings }: HomeProps) {
       contentContainerStyle={[
         styles.content,
         {
-          paddingTop: 8 + insets.top,
-          paddingBottom: insets.bottom + FLOATING_TAB_BAR_EXTRA,
+          paddingTop: SCREEN_PADDING_TOP_EXTRA + insets.top,
+          paddingBottom:
+            SCREEN_SCROLL_PADDING_BOTTOM_EXTRA + insets.bottom + FLOATING_TAB_BAR_EXTRA,
         },
       ]}
       {...(Platform.OS === 'ios'
@@ -357,7 +362,7 @@ const styles = StyleSheet.create({
   },
   settingsIcon: { fontSize: 20, color: C.text },
   phaseCard: {
-    backgroundColor: '#fff',
+    backgroundColor: C.card,
     borderRadius: 18,
     padding: 18,
     paddingBottom: 16,
@@ -365,10 +370,10 @@ const styles = StyleSheet.create({
     borderColor: C.border,
   },
   phaseLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  phaseLbl: { fontSize: 11, color: '#b8b4ae', fontWeight: '500' },
+  phaseLbl: { fontSize: 11, color: theme.textMuted, fontWeight: '500' },
   phaseTrack: {
     height: 11,
-    backgroundColor: '#f0ece6',
+    backgroundColor: theme.trackBg,
     borderRadius: 6,
     marginBottom: 14,
     position: 'relative',
@@ -392,7 +397,7 @@ const styles = StyleSheet.create({
   },
   supProgressBarThin: {
     height: 4,
-    backgroundColor: '#E5E0D8',
+    backgroundColor: theme.trackBg,
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -426,7 +431,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: '#D4CFC6',
+    borderColor: theme.borderStrong,
     backgroundColor: C.card,
     alignItems: 'center',
     justifyContent: 'center',
@@ -440,12 +445,12 @@ const styles = StyleSheet.create({
   supName: { fontSize: 16, fontWeight: '600', color: C.text },
   supDose: { fontSize: 13, color: C.muted, marginTop: 3 },
   errorBanner: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: theme.errorBg,
     borderRadius: 12,
     padding: 12,
     marginBottom: 4,
   },
-  errorText: { color: '#C62828', fontSize: 13 },
+  errorText: { color: theme.errorText, fontSize: 13 },
   loadingRow: {
     flexDirection: 'row',
     alignItems: 'center',

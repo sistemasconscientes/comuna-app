@@ -18,7 +18,12 @@ import {
   type NotionBlock,
 } from '../utils/mealPrepParser';
 import { reportErrorToSentry } from '../utils/observability';
-import { FLOATING_TAB_BAR_EXTRA } from '../constants/floatingTabBar';
+import {
+  FLOATING_TAB_BAR_EXTRA,
+  SCREEN_PADDING_TOP_EXTRA,
+  SCREEN_SCROLL_PADDING_BOTTOM_EXTRA,
+} from '../constants/floatingTabBar';
+import { theme } from '../theme/colors';
 
 type MealPrepCacheData = {
   weekTitle: string | null;
@@ -85,8 +90,9 @@ export default function MealPrep() {
       contentContainerStyle={[
         styles.content,
         {
-          paddingTop: 12 + insets.top,
-          paddingBottom: 32 + insets.bottom + FLOATING_TAB_BAR_EXTRA,
+          paddingTop: SCREEN_PADDING_TOP_EXTRA + insets.top,
+          paddingBottom:
+            SCREEN_SCROLL_PADDING_BOTTOM_EXTRA + insets.bottom + FLOATING_TAB_BAR_EXTRA,
         },
       ]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
@@ -99,7 +105,7 @@ export default function MealPrep() {
 
       {loading && !data ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#222" />
+          <ActivityIndicator size="large" color={theme.accent} />
           <Text style={styles.loadingText}>Cargando plan…</Text>
         </View>
       ) : error && !data ? null : !weekTitle ? (
@@ -128,29 +134,29 @@ export default function MealPrep() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA' },
-  content: { padding: 20, gap: 12, paddingBottom: 32 },
+  container: { flex: 1, backgroundColor: theme.bg },
+  content: { padding: 20, gap: 12, paddingBottom: SCREEN_SCROLL_PADDING_BOTTOM_EXTRA },
   centered: { paddingVertical: 40, alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 14, color: '#888' },
-  weekTitle: { fontSize: 20, fontWeight: '700', color: '#222' },
-  daySubtitle: { fontSize: 16, fontWeight: '600', color: '#444', marginTop: 4 },
-  muted: { fontSize: 15, color: '#888', fontStyle: 'italic' },
-  emptyText: { fontSize: 15, color: '#aaa', fontStyle: 'italic', marginTop: 8 },
+  loadingText: { fontSize: 14, color: theme.textMuted },
+  weekTitle: { fontSize: 20, fontWeight: '700', color: theme.text },
+  daySubtitle: { fontSize: 16, fontWeight: '600', color: theme.textSecondary, marginTop: 4 },
+  muted: { fontSize: 15, color: theme.textMuted, fontStyle: 'italic' },
+  emptyText: { fontSize: 15, color: theme.textMuted, fontStyle: 'italic', marginTop: 8 },
   list: { gap: 10, marginTop: 8 },
   mealRow: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#ECECEC',
+    borderColor: theme.border,
   },
-  mealTipo: { fontSize: 13, color: '#888', textTransform: 'capitalize', marginBottom: 4 },
-  mealPlato: { fontSize: 16, fontWeight: '500', color: '#222' },
+  mealTipo: { fontSize: 13, color: theme.textMuted, textTransform: 'capitalize', marginBottom: 4 },
+  mealPlato: { fontSize: 16, fontWeight: '500', color: theme.text },
   errorBanner: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: theme.errorBg,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
   },
-  errorText: { color: '#C62828', fontSize: 13 },
+  errorText: { color: theme.errorText, fontSize: 13 },
 });

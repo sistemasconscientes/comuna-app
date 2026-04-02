@@ -15,7 +15,12 @@ import { usePostHog } from 'posthog-react-native';
 import { useUser, type User } from '../context/UserContext';
 import { useHealthData } from '../hooks/useHealthData';
 import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
-import { FLOATING_TAB_BAR_EXTRA } from '../constants/floatingTabBar';
+import {
+  FLOATING_TAB_BAR_EXTRA,
+  SCREEN_PADDING_TOP_EXTRA,
+  SCREEN_SCROLL_PADDING_BOTTOM_EXTRA,
+} from '../constants/floatingTabBar';
+import { theme } from '../theme/colors';
 import DailyLogByDate from './DailyLogByDate';
 import type { CycleDataSource } from '../types';
 
@@ -119,8 +124,9 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
       contentContainerStyle={[
         styles.scrollContent,
         {
-          paddingTop: 8 + insets.top,
-          paddingBottom: 32 + insets.bottom + FLOATING_TAB_BAR_EXTRA,
+          paddingTop: SCREEN_PADDING_TOP_EXTRA + insets.top,
+          paddingBottom:
+            SCREEN_SCROLL_PADDING_BOTTOM_EXTRA + insets.bottom + FLOATING_TAB_BAR_EXTRA,
         },
       ]}
       keyboardShouldPersistTaps="handled"
@@ -304,7 +310,7 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#333" />
+              <ActivityIndicator color={theme.text} />
             ) : (
               <Text style={styles.retryBtnText}>Reintentar sincronización con Salud</Text>
             )}
@@ -316,96 +322,100 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: '#FAFAFA' },
-  scrollContent: { padding: 20, paddingBottom: 32, gap: 16 },
+  scroll: { flex: 1, backgroundColor: theme.bg },
+  scrollContent: { padding: 20, paddingBottom: SCREEN_SCROLL_PADDING_BOTTOM_EXTRA, gap: 16 },
   backRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 2, marginBottom: 4 },
-  backChevron: { fontSize: 28, fontWeight: '300', color: '#222', lineHeight: 32, marginTop: -2 },
-  backLabel: { fontSize: 17, fontWeight: '600', color: '#222' },
-  title: { fontSize: 24, fontWeight: '700', color: '#222' },
-  selectorCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20 },
-  selectorLabel: { fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
+  backChevron: { fontSize: 28, fontWeight: '300', color: theme.text, lineHeight: 32, marginTop: -2 },
+  backLabel: { fontSize: 17, fontWeight: '600', color: theme.text },
+  title: { fontSize: 24, fontWeight: '700', color: theme.text },
+  selectorCard: { backgroundColor: theme.card, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: theme.border },
+  selectorLabel: { fontSize: 12, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
   selectorRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   selectorUserStack: { flex: 1 },
   selectorBtn: {
     paddingVertical: 12,
     borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.bgElevated,
     alignItems: 'center',
     width: '100%',
   },
-  selectorBtnActive: { borderColor: '#222', backgroundColor: '#222' },
-  selectorBtnText: { fontSize: 16, fontWeight: '600', color: '#888' },
-  selectorBtnTextActive: { color: '#fff' },
+  selectorBtnActive: { borderColor: theme.accent, backgroundColor: theme.accentSoft },
+  selectorBtnText: { fontSize: 16, fontWeight: '600', color: theme.textMuted },
+  selectorBtnTextActive: { color: theme.text },
   emojiPickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 10 },
   emojiChip: {
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#fff',
+    borderColor: theme.border,
+    backgroundColor: theme.bgElevated,
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 32,
   },
-  emojiChipActive: { borderColor: '#222', backgroundColor: '#222' },
+  emojiChipActive: { borderColor: theme.accent, backgroundColor: theme.accentSoft },
   emojiChipText: { fontSize: 18 },
-  emojiChipTextActive: { color: '#fff' },
+  emojiChipTextActive: { color: theme.text },
   changeUserBtn: {
     marginTop: 16,
     paddingVertical: 12,
     alignItems: 'center',
   },
-  changeUserBtnText: { fontSize: 14, fontWeight: '600', color: '#666' },
+  changeUserBtnText: { fontSize: 14, fontWeight: '600', color: theme.textSecondary },
   linkCard: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
+    borderColor: theme.border,
   },
-  linkCardTitle: { fontSize: 16, fontWeight: '600', color: '#222' },
-  linkCardSubtitle: { fontSize: 13, color: '#888', marginTop: 6, lineHeight: 18 },
+  linkCardTitle: { fontSize: 16, fontWeight: '600', color: theme.text },
+  linkCardSubtitle: { fontSize: 13, color: theme.textSecondary, marginTop: 6, lineHeight: 18 },
   phaseCard: {
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: 16,
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
+    borderColor: theme.border,
     alignItems: 'center',
   },
-  phaseLabelSmall: { fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: 1 },
+  phaseLabelSmall: { fontSize: 12, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: 1 },
   phaseValue: { fontSize: 28, fontWeight: '700', marginTop: 4 },
-  cycleDay: { fontSize: 14, color: '#888', marginTop: 4 },
+  cycleDay: { fontSize: 14, color: theme.textSecondary, marginTop: 4 },
   healthContextCard: {
-    backgroundColor: '#FFF8E6',
+    backgroundColor: theme.warningBg,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#F0E0B2',
+    borderColor: theme.border,
   },
-  healthContextText: { fontSize: 13, color: '#5D4E37', lineHeight: 19 },
-  errorText: { color: '#C62828', fontSize: 14, marginTop: 4 },
+  healthContextText: { fontSize: 13, color: theme.warningText, lineHeight: 19 },
+  errorText: { color: theme.errorText, fontSize: 14, marginTop: 4 },
   qaCard: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.bgElevated,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
+    borderColor: theme.border,
     gap: 8,
   },
-  qaTitle: { fontSize: 13, fontWeight: '700', color: '#444' },
-  qaHint: { fontSize: 11, color: '#888', lineHeight: 16, marginTop: 4 },
-  qaLine: { fontSize: 13, color: '#333' },
-  qaMuted: { color: '#888' },
+  qaTitle: { fontSize: 13, fontWeight: '700', color: theme.textSecondary },
+  qaHint: { fontSize: 11, color: theme.textMuted, lineHeight: 16, marginTop: 4 },
+  qaLine: { fontSize: 13, color: theme.text },
+  qaMuted: { color: theme.textMuted },
   retryBtn: {
     marginTop: 8,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#E8E8E8',
+    backgroundColor: theme.card,
     alignItems: 'center',
     minHeight: 44,
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.border,
   },
-  retryBtnText: { fontSize: 14, fontWeight: '600', color: '#333' },
+  retryBtnText: { fontSize: 14, fontWeight: '600', color: theme.text },
 });

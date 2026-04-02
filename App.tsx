@@ -24,6 +24,7 @@ import {
   getSentryRelease,
   reportErrorToSentry,
 } from './src/utils/observability';
+import { theme } from './src/theme/colors';
 
 const sentryDsn = (SENTRY_DSN ?? '').trim();
 
@@ -296,7 +297,7 @@ function App() {
       <SafeAreaView style={styles.container}>
         <MigrationFailureReporter error={error} />
         <View style={styles.screen}>
-          <Text>Error en migraciones: {error.message}</Text>
+          <Text style={styles.bootText}>Error en migraciones: {error.message}</Text>
         </View>
       </SafeAreaView>
     );
@@ -306,7 +307,7 @@ function App() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.screen}>
-          <Text>Iniciando base de datos...</Text>
+          <Text style={styles.bootText}>Iniciando base de datos...</Text>
         </View>
       </SafeAreaView>
     );
@@ -316,7 +317,7 @@ function App() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.screen}>
-          <Text>Iniciando base de datos...</Text>
+          <Text style={styles.bootText}>Iniciando base de datos...</Text>
         </View>
       </SafeAreaView>
     );
@@ -328,7 +329,7 @@ function App() {
     >
       {!showUserPicker && <PostHogIdentifyUser user={user} />}
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
 
         {showUserPicker ? (
           <View
@@ -336,7 +337,7 @@ function App() {
               styles.screen,
               styles.gateContent,
               {
-                paddingTop: tabBarInsets.top,
+                paddingTop: tabBarInsets.top + 12,
                 paddingBottom: 16 + tabBarInsets.bottom,
               },
             ]}
@@ -452,38 +453,39 @@ function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F0E8' },
+  container: { flex: 1, backgroundColor: theme.bg },
   screen: { flex: 1 },
+  bootText: { color: theme.text, fontSize: 16, paddingHorizontal: 24, textAlign: 'center' },
   gateContent: { padding: 24, justifyContent: 'center', gap: 16 },
-  gateTitle: { fontSize: 24, fontWeight: '700', color: '#222', textAlign: 'center' },
-  gateSubtitle: { fontSize: 15, color: '#666', textAlign: 'center', marginBottom: 8 },
+  gateTitle: { fontSize: 24, fontWeight: '700', color: theme.text, textAlign: 'center' },
+  gateSubtitle: { fontSize: 15, color: theme.textSecondary, textAlign: 'center', marginBottom: 8 },
   gateRow: { flexDirection: 'row', gap: 12 },
   gateUserStack: { flex: 1 },
   gateBtn: {
     paddingVertical: 16,
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#222',
-    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: theme.borderStrong,
+    backgroundColor: theme.card,
     alignItems: 'center',
     width: '100%',
   },
-  gateBtnText: { fontSize: 17, fontWeight: '600', color: '#222' },
+  gateBtnText: { fontSize: 17, fontWeight: '600', color: theme.text },
   emojiPickerRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 10 },
   emojiChip: {
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#fff',
+    borderColor: theme.border,
+    backgroundColor: theme.bgElevated,
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 32,
   },
-  emojiChipActive: { borderColor: '#222', backgroundColor: '#222' },
+  emojiChipActive: { borderColor: theme.accent, backgroundColor: theme.accentSoft },
   emojiChipText: { fontSize: 18 },
-  emojiChipTextActive: { color: '#fff' },
+  emojiChipTextActive: { color: theme.text },
   tabbedRoot: { flex: 1 },
   tabBarFloatOuter: {
     position: 'absolute',
@@ -498,7 +500,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 6,
     borderRadius: 34,
-    backgroundColor: 'rgba(36, 32, 30, 0.94)',
+    backgroundColor: 'rgba(30, 28, 26, 0.96)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.08)',
     ...Platform.select({

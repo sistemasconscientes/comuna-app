@@ -33,7 +33,12 @@ import type { Supplement, StockEntry } from '../types';
 import { filterSupplementsByCurrentTemporada } from '../utils/temporadaFilter';
 import { getLocalTodayISO } from '../utils/dateUtils';
 import { reportErrorToSentry } from '../utils/observability';
-import { FLOATING_TAB_BAR_EXTRA } from '../constants/floatingTabBar';
+import {
+  FLOATING_TAB_BAR_EXTRA,
+  SCREEN_PADDING_TOP_EXTRA,
+  SCREEN_SCROLL_PADDING_BOTTOM_EXTRA,
+} from '../constants/floatingTabBar';
+import { theme } from '../theme/colors';
 
 type User = 'diana' | 'estefania';
 
@@ -264,7 +269,7 @@ export default function Stock({ user }: Props) {
   if ((cacheLoading && !stockBundle) || stockLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#888" />
+        <ActivityIndicator size="large" color={theme.accent} />
       </View>
     );
   }
@@ -287,7 +292,7 @@ export default function Stock({ user }: Props) {
   }).length;
 
   return (
-    <View style={[styles.container, { paddingTop: 12 + insets.top }]}>
+    <View style={[styles.container, { paddingTop: SCREEN_PADDING_TOP_EXTRA + insets.top }]}>
       <Text style={styles.title}>Stock</Text>
 
       <View style={styles.filterRow}>
@@ -325,7 +330,10 @@ export default function Stock({ user }: Props) {
         style={styles.listFlex}
         contentContainerStyle={[
           styles.list,
-          { paddingBottom: 20 + insets.bottom + FLOATING_TAB_BAR_EXTRA },
+          {
+            paddingBottom:
+              SCREEN_SCROLL_PADDING_BOTTOM_EXTRA + insets.bottom + FLOATING_TAB_BAR_EXTRA,
+          },
         ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={refreshStockBundle} />
@@ -451,11 +459,11 @@ export default function Stock({ user }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA' },
+  container: { flex: 1, backgroundColor: theme.bg },
   listFlex: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { color: '#E53935', textAlign: 'center', padding: 20 },
-  title: { fontSize: 24, fontWeight: '700', color: '#222', padding: 20, paddingBottom: 8 },
+  errorText: { color: theme.errorText, textAlign: 'center', padding: 20 },
+  title: { fontSize: 24, fontWeight: '700', color: theme.text, padding: 20, paddingBottom: 8 },
 
   filterRow: {
     flexDirection: 'row',
@@ -468,28 +476,28 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: '#EEE',
+    backgroundColor: theme.bgElevated,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: theme.border,
   },
   filterChipActive: {
-    backgroundColor: '#E8F5E9',
-    borderColor: '#81C784',
+    backgroundColor: theme.successMuted,
+    borderColor: theme.successText,
   },
-  filterChipText: { fontSize: 14, color: '#555', fontWeight: '500' },
-  filterChipTextActive: { color: '#2E7D32' },
-  emptyFilterText: { textAlign: 'center', color: '#888', paddingVertical: 24, paddingHorizontal: 20 },
+  filterChipText: { fontSize: 14, color: theme.textSecondary, fontWeight: '500' },
+  filterChipTextActive: { color: theme.successText },
+  emptyFilterText: { textAlign: 'center', color: theme.textMuted, paddingVertical: 24, paddingHorizontal: 20 },
 
   alertBanner: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: theme.warningBg,
     borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
+    borderLeftColor: theme.accent,
     marginHorizontal: 20,
     marginBottom: 8,
     padding: 10,
     borderRadius: 8,
   },
-  alertText: { color: '#E65100', fontWeight: '500', fontSize: 13 },
+  alertText: { color: theme.warningText, fontWeight: '500', fontSize: 13 },
 
   list: { padding: 20, gap: 10 },
 
@@ -497,59 +505,55 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
     borderRadius: 12,
     padding: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
   rowLow: {
-    backgroundColor: '#FFF5F5',
+    backgroundColor: theme.errorBg,
     borderWidth: 1,
-    borderColor: '#FFCDD2',
+    borderColor: 'rgba(229, 57, 53, 0.35)',
   },
   rowInfo: { flex: 1, marginRight: 12 },
-  rowName: { fontSize: 16, fontWeight: '500', color: '#222' },
-  rowDose: { fontSize: 13, color: '#888', marginTop: 2 },
+  rowName: { fontSize: 16, fontWeight: '500', color: theme.text },
+  rowDose: { fontSize: 13, color: theme.textMuted, marginTop: 2 },
   rowRight: { alignItems: 'flex-end', gap: 2 },
 
   badge: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: theme.successMuted,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
     minWidth: 48,
     alignItems: 'center',
   },
-  badgeLow: { backgroundColor: '#FFEBEE' },
-  badgeText: { fontSize: 16, fontWeight: '700', color: '#388E3C' },
-  badgeTextLow: { color: '#E53935' },
-  badgeLabel: { fontSize: 10, color: '#aaa' },
-  noData: { fontSize: 12, color: '#bbb' },
+  badgeLow: { backgroundColor: theme.errorBg },
+  badgeText: { fontSize: 16, fontWeight: '700', color: theme.successText },
+  badgeTextLow: { color: theme.errorText },
+  badgeLabel: { fontSize: 10, color: theme.textMuted },
+  noData: { fontSize: 12, color: theme.textMuted },
 
-  // Modal
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: theme.overlay,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.bgElevated,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     width: '100%',
     maxHeight: Math.round(Dimensions.get('window').height * 0.88),
     padding: 24,
     paddingBottom: 36,
+    borderTopWidth: 1,
+    borderColor: theme.border,
   },
-  /** Sin flex:1 en el padre, el sheet tenía altura 0. Kav solo envuelve el scroll. */
   sheetKav: {
     width: '100%',
   },
-  /** Altura máxima del viewport scrollable para que el teclado no tape y haya scroll real. */
   sheetScroll: {
     maxHeight: Math.round(Dimensions.get('window').height * 0.62),
   },
@@ -558,38 +562,41 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingBottom: 8,
   },
-  sheetTitle: { fontSize: 18, fontWeight: '700', color: '#222', marginBottom: 8 },
-  label: { fontSize: 13, color: '#666', marginTop: 6 },
+  sheetTitle: { fontSize: 18, fontWeight: '700', color: theme.text, marginBottom: 8 },
+  label: { fontSize: 13, color: theme.textSecondary, marginTop: 6 },
   input: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: theme.border,
     borderRadius: 10,
     padding: 12,
     fontSize: 15,
-    color: '#222',
-    backgroundColor: '#FAFAFA',
+    color: theme.text,
+    backgroundColor: theme.inputBg,
   },
   newBottleBtn: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: 'rgba(100, 181, 246, 0.2)',
     borderRadius: 10,
     padding: 14,
     alignItems: 'center',
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
-  newBottleBtnText: { color: '#1565C0', fontWeight: '600', fontSize: 15 },
+  newBottleBtnText: { color: '#90CAF9', fontWeight: '600', fontSize: 15 },
   sheetActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
   cancelBtn: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: theme.border,
     borderRadius: 10,
     padding: 14,
     alignItems: 'center',
+    backgroundColor: theme.card,
   },
-  cancelBtnText: { color: '#666', fontWeight: '500' },
+  cancelBtnText: { color: theme.textSecondary, fontWeight: '500' },
   saveBtn: {
     flex: 1,
-    backgroundColor: '#222',
+    backgroundColor: theme.accent,
     borderRadius: 10,
     padding: 14,
     alignItems: 'center',
