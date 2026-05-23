@@ -25,7 +25,9 @@ export type NotionBlock = {
 };
 
 /** Usuaria activa para columna de plato en tablas de 3 columnas (Diana / Estefanía). */
-export type MealPrepUser = 'diana' | 'estefania';
+import type { ProfileId } from '../config/profiles';
+
+export type MealPrepUser = ProfileId;
 
 const SPANISH_WEEKDAY: Record<number, string> = {
   0: 'Domingo',
@@ -136,7 +138,7 @@ export async function expandMealPrepNotionBlocks(
 
 export function getTodayMeals(
   blocks: NotionBlock[],
-  user: MealPrepUser = 'diana',
+  user: MealPrepUser = 'profile_1',
 ): {
   dayLabel: string;
   meals: { tipo: string; plato: string }[];

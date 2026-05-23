@@ -50,8 +50,8 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "project": "comunaapp",
-          "organization": "sistemasconscientes"
+          "project": "<YOUR_SENTRY_PROJECT>",
+          "organization": "<YOUR_SENTRY_ORG>"
         }
       ],
       "@sentry/react-native"
@@ -59,12 +59,6 @@
     "android": {
       "package": "com.janee.comunaapp",
       "versionCode": 7
-    },
-    "extra": {
-      "eas": {
-        "projectId": "4c8d61f7-1bc4-439c-8ba8-aefe7803c24e"
-      }
-    },
-    "owner": "labsistemasconscientes"
+    }
   }
 }

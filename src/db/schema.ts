@@ -14,7 +14,7 @@ export const supplements = sqliteTable('supplements', {
 
 export const dailyLogs = sqliteTable('daily_logs', {
   id: int('id').primaryKey({ autoIncrement: true }),
-  user: text('user').notNull().default('diana'), // 'diana' | 'estefania'
+  user: text('user').notNull().default('profile_1'), // ProfileId
   supplementId: int('supplement_id')
     .notNull()
     .references(() => supplements.id, { onDelete: 'cascade' }),
@@ -50,7 +50,7 @@ export const phases = sqliteTable('phases', {
 
 export const cycleStates = sqliteTable('cycle_states', {
   id: int('id').primaryKey({ autoIncrement: true }),
-  user: text('user').notNull().unique(), // 'diana' | 'estefania'
+  user: text('user').notNull().unique(), // ProfileId
   lastPeriodStart: text('last_period_start'), // ISO date string (YYYY-MM-DD) o ISO completo
   updatedAt: text('updated_at').notNull().default(''),
 });

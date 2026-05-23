@@ -36,6 +36,16 @@ yarn-error.*
 
 # Cursor IDE — estado local de hooks (no versionar)
 .cursor/hooks/state/
+.cursor/mcp.json
+.cursor/settings.json
+
+# Config local de despliegue (copiar desde *.example)
+eas.json
+app.config.local.ts
+src/config/profiles.local.ts
+
+# Backend build
+backend/dist/
 
 # typescript
 *.tsbuildinfo

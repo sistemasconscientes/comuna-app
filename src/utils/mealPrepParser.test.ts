@@ -178,7 +178,7 @@ describe('getTodayMeals', () => {
       row3('Comida', 'Diana 🩸', 'Estefanía 🌸'),
       row3('Desayuno', 'Avena D', 'Avena E'),
     ];
-    expect(getTodayMeals(blocks, 'diana')!.meals).toEqual([
+    expect(getTodayMeals(blocks, 'profile_1')!.meals).toEqual([
       { tipo: 'Desayuno', plato: 'Avena D' },
     ]);
     expect(getTodayMeals(blocks, 'estefania')!.meals).toEqual([

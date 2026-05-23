@@ -17,6 +17,7 @@ import {
 } from '../utils/phaseCalculator';
 import type { CycleDataSource, HealthData, HealthKitCycleSignals, HealthKitDiagnostics } from '../types';
 import { NOTION_SKIP_PHASE_WRITE } from '@env';
+import type { User } from '../context/UserContext';
 import { reportErrorToSentry } from '../utils/observability';
 
 /** Solo en __DEV__: si NOTION_SKIP_PHASE_WRITE es truthy, no escribir fase en Notion (QA sin pisar filas reales). */
@@ -47,7 +48,7 @@ export type UseHealthDataOptions = {
 };
 
 async function loadNotionPhaseOnly(
-  user: 'diana' | 'estefania',
+  user: User,
 ): Promise<Pick<HealthData, 'cyclePhase' | 'cycleDay' | 'lastPeriodStart'>> {
   const { phase } = await getCurrentPhase(user);
   const normalized = normalizePhase(phase);
@@ -59,7 +60,7 @@ async function loadNotionPhaseOnly(
 }
 
 export function useHealthData(
-  user: 'diana' | 'estefania',
+  user: User,
   options?: UseHealthDataOptions,
 ): UseHealthDataResult {
   const [state, setState] = useState<HealthData>({

@@ -40,7 +40,7 @@ import {
 } from '../constants/floatingTabBar';
 import { theme } from '../theme/colors';
 
-type User = 'diana' | 'estefania';
+import type { User } from '../context/UserContext';
 
 interface Props {
   user: User;

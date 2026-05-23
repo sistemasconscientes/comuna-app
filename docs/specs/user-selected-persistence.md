@@ -8,7 +8,7 @@
 
 ## Alcance
 
-- Clave AsyncStorage: `selected_user`; valores válidos: `diana` | `estefania`.
+- Clave AsyncStorage: `selected_user`; valores válidos: `profile_1` | `profile_2` (migración automática desde `diana`/`estefania` legacy).
 - Tras migraciones SQLite OK: leer almacenamiento; si hay valor válido, restaurar contexto y mostrar pestañas; si no, pantalla solo selector (sin tab bar).
 - Cualquier cambio de usuario activo (selector en Perfil) persiste en AsyncStorage.
 - Acción «Cambiar usuario» en Perfil: borra la clave y vuelve a la pantalla de selector.
@@ -16,14 +16,14 @@
 ### Persistencia de emoji por usuario (UI)
 
 - Claves AsyncStorage:
-  - `user_emoji_diana`
-  - `user_emoji_estefania`
+  - `user_emoji_profile_1`
+  - `user_emoji_profile_2`
 - Emoji permitido (picker predefinido): `🌿 🌸 🦋 🌙 ✨ 🔮 🌺 🍄 🌊 🦅`
 - Valor por defecto cuando no se elige (o si no hay clave guardada): `🌿`
 - Persistencia: al completar la selección inicial de usuario (pantalla gate de `App.tsx`) se guarda el emoji correspondiente al usuario elegido.
 - Hidratación desde AsyncStorage al abrir el gate no debe **reemplazar** un emoji que la usuaria ya haya tocado en el picker antes de que termine la lectura (evitar condición de carrera).
 - El reset de flags «emoji tocado» y la lectura inicial desde AsyncStorage ocurren **solo en la transición** gate cerrado → abierto; no en cada re-ejecución del efecto (p. ej. si cambia `success` de migraciones mientras el gate sigue abierto), para no perder selecciones en curso.
-- Presentación: en `Home` (header del checklist) se muestra `${emoji} ${nombre}` donde el nombre es `Diana` o `Estefanía`.
+- Presentación: en `Home` (header) se muestra `${emoji} ${label}` donde el label viene de `getProfileLabel()` (`src/config/profiles.ts`; overrides en `profiles.local.ts`).
 
 Fuera de alcance: React Navigation, lógica de hooks (`useHealthData`, etc.), datos Notion.
 
@@ -33,10 +33,10 @@ Fuera de alcance: React Navigation, lógica de hooks (`useHealthData`, etc.), da
 
 | ID | Criterio |
 |----|----------|
-| USP-1 | Sin valor guardado (o valor inválido), tras arranque la app muestra solo el selector Diana/Estefanía (sin pestañas). |
-| USP-2 | Tras elegir usuario en esa pantalla, se intenta guardar `selected_user` (y emoji) en AsyncStorage, se cierra el gate, se muestran las pestañas y la pestaña activa puede volver a Inicio. Si la escritura falla, la app entra igual en pestañas con el usuario elegido en sesión (sin bloquear en el selector); el error se registra en analítica. |
-| USP-3 | Con valor válido guardado, al siguiente cold start la app abre directamente en las pestañas con ese usuario (sin pantalla de selector). |
-| USP-4 | En Perfil, cambiar entre Diana y Estefanía actualiza `selected_user` y tras reinicio persiste el último elegido. |
+| USP-1 | Sin valor guardado (o valor inválido), tras arranque la app muestra solo el selector de perfiles (sin pestañas). |
+| USP-2 | Tras elegir perfil en esa pantalla, se intenta guardar `selected_user` (y emoji) en AsyncStorage, se cierra el gate, se muestran las pestañas y la pestaña activa puede volver a Inicio. Si la escritura falla, la app entra igual en pestañas con el perfil elegido en sesión (sin bloquear en el selector); el error se registra en Sentry. |
+| USP-3 | Con valor válido guardado, al siguiente cold start la app abre directamente en las pestañas con ese perfil (sin pantalla de selector). |
+| USP-4 | En Perfil, cambiar entre perfiles actualiza `selected_user` y tras reinicio persiste el último elegido. |
 | USP-5 | «Cambiar usuario» elimina `selected_user` y muestra de nuevo la pantalla de selector; hasta elegir de nuevo no se reescribe la clave. Si `removeItem` falla, igual se muestra el selector (y se registra el error) para que la usuaria no quede sin respuesta. |
 | USP-6 | Si la app se cierra estando en el selector tras USP-5, el próximo arranque vuelve a mostrar el selector (no hay clave). |
 | USP-7 | `PostHogIdentifyUser` no corre mientras la pantalla de selector está visible (sin identificar con perfil por defecto antes de elegir). |

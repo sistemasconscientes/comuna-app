@@ -14,7 +14,8 @@ import { useHealthData } from '../hooks/useHealthData';
 import { useSupplements } from '../hooks/useSupplements';
 import { useDailyLog } from '../hooks/useDailyLog';
 import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
-import { useUser, type User } from '../context/UserContext';
+import { getProfileLabel } from '../config/profiles';
+import { useUser } from '../context/UserContext';
 import type { Phase } from '../types';
 import { DEFAULT_CYCLE_LENGTH_DAYS } from '../utils/phaseCalculator';
 import {
@@ -89,11 +90,6 @@ const PHASE_CONFIG: Record<
     color: '#534AB7',
     fillColor: '#CECBF6',
   },
-};
-
-const USER_LABELS: Record<User, string> = {
-  diana: 'Diana',
-  estefania: 'Estefanía',
 };
 
 function formatTodayLongEs(): string {
@@ -210,7 +206,7 @@ export default function Home({ onOpenSettings }: HomeProps) {
         <View style={styles.topLeft}>
           <View style={styles.nameRow}>
             <Text style={styles.emojiText}>{userEmoji}</Text>
-            <Text style={styles.userName}>{USER_LABELS[user]}</Text>
+            <Text style={styles.userName}>{getProfileLabel(user)}</Text>
           </View>
           <Text style={styles.dateLine}>{dateLine}</Text>
           <View style={styles.phasePill}>

@@ -4,6 +4,7 @@ import { getSharedStock, type SharedStock } from '../api/sharedStock';
 import { getSupplements } from '../api/notion';
 import type { Supplement } from '../types';
 import { db, supplements as supplementsTable } from '../db';
+import type { User } from '../context/UserContext';
 import { reportErrorToSentry } from '../utils/observability';
 
 export type UseSupplementsOptions = {
@@ -23,7 +24,7 @@ export type SupplementsWithStockPayload = {
  * Notion + sync SQLite (misma lógica que `useSupplements`). No lanza si solo falla el sync local.
  */
 export async function syncSupplementsFromNotion(
-  user: 'diana' | 'estefania',
+  user: User,
   currentPhase: string,
   applyTemporadaFilter: boolean
 ): Promise<{ supplements: Supplement[]; idByNotionId: Record<string, number> }> {
@@ -78,7 +79,7 @@ export async function syncSupplementsFromNotion(
 
 /** Stock: suplementos + mapping local + stock compartido (Persona Ambas). */
 export async function fetchSupplementsWithStock(
-  user: 'diana' | 'estefania',
+  user: User,
   currentPhase: string
 ): Promise<SupplementsWithStockPayload> {
   try {
@@ -103,7 +104,7 @@ export async function fetchSupplementsWithStock(
 }
 
 export function useSupplements(
-  user: 'diana' | 'estefania',
+  user: User,
   currentPhase: string,
   options?: UseSupplementsOptions,
 ) {

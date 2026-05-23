@@ -1,7 +1,6 @@
 {
   "name": "comuna-backend",
   "version": "1.0.0",
-  "private": true,
   "description": "Express + Mongoose API for Comuna stock",
   "main": "dist/server.js",
   "scripts": {

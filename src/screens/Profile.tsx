@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
 import { usePostHog } from 'posthog-react-native';
+import { PROFILES, getProfileLabel, profileIdsRecord } from '../config/profiles';
 import { useUser, type User } from '../context/UserContext';
 import { useHealthData } from '../hooks/useHealthData';
 import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
@@ -47,7 +48,6 @@ const PHASE_COLORS: Record<string, string> = {
   lutea: '#BA68C8',
 };
 
-const DEFAULT_USER_EMOJI = '🌿';
 const USER_EMOJIS = ['🌿', '🌸', '🦋', '🌙', '✨', '🔮', '🌺', '🍄', '🌊', '🦅'] as const;
 const emojiKeyForUser = (u: User) => `user_emoji_${u}`;
 
@@ -62,26 +62,24 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
   const posthog = usePostHog();
   const [dailyLogOpen, setDailyLogOpen] = React.useState(false);
   const { user, setUser, clearStoredUserAndShowPicker } = useUser();
-  const [userEmojiByUser, setUserEmojiByUser] = React.useState<Record<User, string>>({
-    diana: DEFAULT_USER_EMOJI,
-    estefania: DEFAULT_USER_EMOJI,
-  });
+  const [userEmojiByUser, setUserEmojiByUser] = React.useState<Record<User, string>>(() =>
+    profileIdsRecord((id) => PROFILES.find((p) => p.id === id)!.emojiDefault),
+  );
 
   React.useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const [dianaRaw, estefaniaRaw] = await Promise.all([
-          AsyncStorage.getItem(emojiKeyForUser('diana')),
-          AsyncStorage.getItem(emojiKeyForUser('estefania')),
-        ]);
+        const entries = await Promise.all(
+          PROFILES.map(async (p) => [p.id, await AsyncStorage.getItem(emojiKeyForUser(p.id))] as const),
+        );
         if (cancelled) return;
-        setUserEmojiByUser({
-          diana: dianaRaw || DEFAULT_USER_EMOJI,
-          estefania: estefaniaRaw || DEFAULT_USER_EMOJI,
-        });
+        const next = profileIdsRecord(
+          (id) => entries.find(([eid]) => eid === id)?.[1] || PROFILES.find((p) => p.id === id)!.emojiDefault,
+        );
+        setUserEmojiByUser(next);
       } catch {
-        // Fallback silencioso a DEFAULT_USER_EMOJI.
+        // Fallback silencioso a emoji por defecto del perfil.
       }
     })();
     return () => {
@@ -148,57 +146,40 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
       <View style={styles.selectorCard}>
         <Text style={styles.selectorLabel}>Usuario activo</Text>
         <View style={styles.selectorRow}>
-          <View style={styles.selectorUserStack}>
-            <TouchableOpacity
-              style={[styles.selectorBtn, user === 'diana' && styles.selectorBtnActive]}
-              onPress={() => setUser('diana')}
-            >
-              <Text style={[styles.selectorBtnText, user === 'diana' && styles.selectorBtnTextActive]}>
-                Diana
-              </Text>
-            </TouchableOpacity>
-            <View style={styles.emojiPickerRow}>
-              {USER_EMOJIS.map((emoji) => {
-                const active = userEmojiByUser.diana === emoji;
-                return (
-                  <TouchableOpacity
-                    key={`diana-${emoji}`}
-                    onPress={() => persistEmoji('diana', emoji)}
-                    style={[styles.emojiChip, active && styles.emojiChipActive]}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.emojiChipText, active && styles.emojiChipTextActive]}>{emoji}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+          {PROFILES.map((profile) => (
+            <View key={profile.id} style={styles.selectorUserStack}>
+              <TouchableOpacity
+                style={[styles.selectorBtn, user === profile.id && styles.selectorBtnActive]}
+                onPress={() => setUser(profile.id)}
+              >
+                <Text
+                  style={[
+                    styles.selectorBtnText,
+                    user === profile.id && styles.selectorBtnTextActive,
+                  ]}
+                >
+                  {getProfileLabel(profile.id)}
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.emojiPickerRow}>
+                {USER_EMOJIS.map((emoji) => {
+                  const active = userEmojiByUser[profile.id] === emoji;
+                  return (
+                    <TouchableOpacity
+                      key={`${profile.id}-${emoji}`}
+                      onPress={() => persistEmoji(profile.id, emoji)}
+                      style={[styles.emojiChip, active && styles.emojiChipActive]}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.emojiChipText, active && styles.emojiChipTextActive]}>
+                        {emoji}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
-          </View>
-
-          <View style={styles.selectorUserStack}>
-            <TouchableOpacity
-              style={[styles.selectorBtn, user === 'estefania' && styles.selectorBtnActive]}
-              onPress={() => setUser('estefania')}
-            >
-              <Text style={[styles.selectorBtnText, user === 'estefania' && styles.selectorBtnTextActive]}>
-                Estefanía
-              </Text>
-            </TouchableOpacity>
-            <View style={styles.emojiPickerRow}>
-              {USER_EMOJIS.map((emoji) => {
-                const active = userEmojiByUser.estefania === emoji;
-                return (
-                  <TouchableOpacity
-                    key={`estefania-${emoji}`}
-                    onPress={() => persistEmoji('estefania', emoji)}
-                    style={[styles.emojiChip, active && styles.emojiChipActive]}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.emojiChipText, active && styles.emojiChipTextActive]}>{emoji}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+          ))}
         </View>
         <TouchableOpacity
           style={styles.changeUserBtn}

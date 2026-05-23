@@ -14,8 +14,13 @@ import Stock from './src/screens/Stock';
 import MealPrep from './src/screens/MealPrep';
 import HealthKitData from './src/screens/HealthKitData';
 import Profile from './src/screens/Profile';
+import { PROFILES, getProfileLabel, profileIdsRecord, type ProfileId } from './src/config/profiles';
 import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
+import {
+  parseStoredProfile,
+  runProfileStorageMigrationIfNeeded,
+} from './src/utils/profileStorageMigration';
 import { SENTRY_DSN } from '@env';
 import * as Sentry from '@sentry/react-native';
 import {
@@ -43,15 +48,9 @@ if (sentryDsn) {
 }
 
 const SELECTED_USER_KEY = 'selected_user';
-const DEFAULT_USER_EMOJI = '🌿';
 const USER_EMOJIS = ['🌿', '🌸', '🦋', '🌙', '✨', '🔮', '🌺', '🍄', '🌊', '🦅'] as const;
 
 type PickerReason = 'no_stored_value' | 'manual_clear';
-
-function parseStoredUser(raw: string | null): User | null {
-  if (raw === 'diana' || raw === 'estefania') return raw;
-  return null;
-}
 
 function persistenceErrorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -108,7 +107,7 @@ function App() {
   posthogRef.current = posthog;
 
   const [activeTab, setActiveTab] = React.useState<Tab>('home');
-  const [user, setUserState] = React.useState<User>('diana');
+  const [user, setUserState] = React.useState<User>('profile_1');
   const userRef = React.useRef(user);
   userRef.current = user;
 
@@ -120,18 +119,14 @@ function App() {
   const pickerReasonRef = React.useRef<PickerReason>('no_stored_value');
 
   /** Evita que la hidratación desde AsyncStorage pise un emoji ya elegido en el gate. */
-  const emojiTouchedRef = React.useRef<Record<User, boolean>>({
-    diana: false,
-    estefania: false,
-  });
+  const emojiTouchedRef = React.useRef(profileIdsRecord(() => false));
   /** Solo true mientras el picker está visible; al cerrar vuelve a false para detectar la próxima apertura. */
   const showUserPickerWasOpenRef = React.useRef(false);
 
   const emojiKeyForUser = React.useCallback((u: User) => `user_emoji_${u}`, []);
-  const [userEmojiByUser, setUserEmojiByUser] = React.useState<Record<User, string>>({
-    diana: DEFAULT_USER_EMOJI,
-    estefania: DEFAULT_USER_EMOJI,
-  });
+  const [userEmojiByUser, setUserEmojiByUser] = React.useState<Record<User, string>>(() =>
+    profileIdsRecord((id) => PROFILES.find((p) => p.id === id)!.emojiDefault),
+  );
 
   const markEmojiTouched = React.useCallback((u: User, emoji: string) => {
     emojiTouchedRef.current[u] = true;
@@ -151,22 +146,24 @@ function App() {
 
     if (!pickerJustOpened) return;
 
-    emojiTouchedRef.current = { diana: false, estefania: false };
+    emojiTouchedRef.current = profileIdsRecord(() => false);
 
     let cancelled = false;
     void (async () => {
       try {
-        const [dianaRaw, estefaniaRaw] = await Promise.all([
-          AsyncStorage.getItem(emojiKeyForUser('diana')),
-          AsyncStorage.getItem(emojiKeyForUser('estefania')),
-        ]);
+        const entries = await Promise.all(
+          PROFILES.map(async (p) => [p.id, await AsyncStorage.getItem(emojiKeyForUser(p.id))] as const),
+        );
         if (cancelled) return;
-        setUserEmojiByUser((prev) => ({
-          diana: emojiTouchedRef.current.diana ? prev.diana : dianaRaw || DEFAULT_USER_EMOJI,
-          estefania: emojiTouchedRef.current.estefania
-            ? prev.estefania
-            : estefaniaRaw || DEFAULT_USER_EMOJI,
-        }));
+        setUserEmojiByUser((prev) => {
+          const next = { ...prev };
+          for (const [id, raw] of entries) {
+            const profileId = id as ProfileId;
+            if (emojiTouchedRef.current[profileId]) continue;
+            next[profileId] = raw || PROFILES.find((p) => p.id === profileId)!.emojiDefault;
+          }
+          return next;
+        });
       } catch {
         // Fallback silencioso: no pisar filas ya tocadas por la usuaria.
       }
@@ -182,9 +179,10 @@ function App() {
     let cancelled = false;
     void (async () => {
       try {
+        await runProfileStorageMigrationIfNeeded();
         const raw = await AsyncStorage.getItem(SELECTED_USER_KEY);
         if (cancelled) return;
-        const parsed = parseStoredUser(raw);
+        const parsed = parseStoredProfile(raw);
         if (parsed) {
           setUserState(parsed);
           posthogRef.current?.capture('selected_user_restored', { user: parsed });
@@ -269,7 +267,8 @@ function App() {
       const reason = pickerReasonRef.current;
       void (async () => {
         try {
-          const emojiToSave = userEmojiByUser[u] || DEFAULT_USER_EMOJI;
+          const emojiToSave =
+            userEmojiByUser[u] || PROFILES.find((p) => p.id === u)!.emojiDefault;
           await AsyncStorage.setItem(emojiKeyForUser(u), emojiToSave);
           await AsyncStorage.setItem(SELECTED_USER_KEY, u);
           setUserState(u);
@@ -345,55 +344,34 @@ function App() {
             <Text style={styles.gateTitle}>¿Quién usa la app?</Text>
             <Text style={styles.gateSubtitle}>Elige tu perfil para continuar</Text>
             <View style={styles.gateRow}>
-              <View style={styles.gateUserStack}>
-                <TouchableOpacity
-                  style={styles.gateBtn}
-                  onPress={() => completeGateSelection('diana')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.gateBtnText}>Diana</Text>
-                </TouchableOpacity>
-                <View style={styles.emojiPickerRow}>
-                  {USER_EMOJIS.map((emoji) => {
-                    const active = userEmojiByUser.diana === emoji;
-                    return (
-                      <TouchableOpacity
-                        key={`diana-${emoji}`}
-                        onPress={() => markEmojiTouched('diana', emoji)}
-                        style={[styles.emojiChip, active && styles.emojiChipActive]}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[styles.emojiChipText, active && styles.emojiChipTextActive]}>{emoji}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+              {PROFILES.map((profile) => (
+                <View key={profile.id} style={styles.gateUserStack}>
+                  <TouchableOpacity
+                    style={styles.gateBtn}
+                    onPress={() => completeGateSelection(profile.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.gateBtnText}>{getProfileLabel(profile.id)}</Text>
+                  </TouchableOpacity>
+                  <View style={styles.emojiPickerRow}>
+                    {USER_EMOJIS.map((emoji) => {
+                      const active = userEmojiByUser[profile.id] === emoji;
+                      return (
+                        <TouchableOpacity
+                          key={`${profile.id}-${emoji}`}
+                          onPress={() => markEmojiTouched(profile.id, emoji)}
+                          style={[styles.emojiChip, active && styles.emojiChipActive]}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.emojiChipText, active && styles.emojiChipTextActive]}>
+                            {emoji}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
-
-              <View style={styles.gateUserStack}>
-                <TouchableOpacity
-                  style={styles.gateBtn}
-                  onPress={() => completeGateSelection('estefania')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.gateBtnText}>Estefanía</Text>
-                </TouchableOpacity>
-                <View style={styles.emojiPickerRow}>
-                  {USER_EMOJIS.map((emoji) => {
-                    const active = userEmojiByUser.estefania === emoji;
-                    return (
-                      <TouchableOpacity
-                        key={`estefania-${emoji}`}
-                        onPress={() => markEmojiTouched('estefania', emoji)}
-                        style={[styles.emojiChip, active && styles.emojiChipActive]}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[styles.emojiChipText, active && styles.emojiChipTextActive]}>{emoji}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
+              ))}
             </View>
           </View>
         ) : (

@@ -41,7 +41,7 @@ Fuera de alcance explícito: CORS (el cliente es nativo).
 | Variable       | Descripción                          |
 |----------------|--------------------------------------|
 | `MONGODB_URI`  | URI de conexión MongoDB (obligatoria) |
-| `appName`      | Nombre de aplicación para el driver (ej. `sistemasconscientes`) |
+| `appName`      | Nombre de aplicación para el driver (ej. `<YOUR_MONGODB_APP_NAME>`) |
 | `PORT`         | Puerto HTTP (default `3000`)        |
 | `API_KEY`      | Secreto compartido con la app; obligatorio para usar `/stock` en producción |
 

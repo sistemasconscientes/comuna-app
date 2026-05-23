@@ -17,7 +17,7 @@
         "buildConfiguration": "Release"
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://comuna-backend-vbck.onrender.com",
+        "EXPO_PUBLIC_BACKEND_URL": "https://your-backend.example.com",
         "EXPO_PUBLIC_APP_ENV": "preview"
       }
     },

@@ -4,6 +4,8 @@ import {
   NOTION_SUPPLEMENTS_DB_ID,
   NOTION_PHASES_PAGE_ID,
 } from '@env';
+import type { ProfileId } from '../config/profiles';
+import { getNotionPhaseRowLabel, getNotionSupplementPersona } from '../config/profiles';
 import type { Supplement, SupplementPersona } from '../types';
 import { normalizePhase } from '../utils/phaseUtils';
 import { supplementMatchesCurrentTemporada } from '../utils/temporadaFilter';
@@ -275,17 +277,13 @@ function phaseKeyToNotionLabel(phase: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function getSupplements(
-  user: 'diana' | 'estefania',
+  user: ProfileId,
   currentPhase: string,
   applyTemporadaFilter = true,
 ): Promise<Supplement[]> {
   const dbId = requireEnv('NOTION_SUPPLEMENTS_DB_ID', SUPPLEMENTS_DB_ID);
 
-  const PERSONA_VALUES: Record<'diana' | 'estefania', string> = {
-    diana: 'Diana',
-    estefania: 'Estefanía',
-  };
-  const personaValue = PERSONA_VALUES[user];
+  const personaValue = getNotionSupplementPersona(user);
 
   const filter = {
     and: [
@@ -400,12 +398,12 @@ async function findInlineTableInPage(pageId: string): Promise<NotionTableBlock> 
   throw new Error('No inline table block found on phases page');
 }
 
-async function getPhaseRowForUser(pageId: string, user: 'diana' | 'estefania') {
+async function getPhaseRowForUser(pageId: string, user: ProfileId) {
   const table = await findInlineTableInPage(pageId);
   const rows = (await listBlockChildrenAll(table.id)).filter((b) => b.type === 'table_row') as NotionTableRowBlock[];
   if (!rows.length) throw new Error('Inline table has no rows');
 
-  const wanted = normalizePersonName(user);
+  const wanted = normalizePersonName(getNotionPhaseRowLabel(user));
   for (const row of rows) {
     const cells = row.table_row.cells;
     if (cells.length < 3) continue;
@@ -419,9 +417,7 @@ async function getPhaseRowForUser(pageId: string, user: 'diana' | 'estefania') {
   throw new Error(`No row found for user "${user}" in inline table`);
 }
 
-export async function getCurrentPhase(
-  user: 'diana' | 'estefania'
-): Promise<{ phase: string; nextCycle: Date }> {
+export async function getCurrentPhase(user: ProfileId): Promise<{ phase: string; nextCycle: Date }> {
   const pageId = requireEnv('NOTION_PHASES_PAGE_ID', PHASES_PAGE_ID);
   const { row } = await getPhaseRowForUser(pageId, user);
 
@@ -435,15 +431,11 @@ export async function getCurrentPhase(
   };
 }
 
-export async function updatePhase(
-  user: 'diana' | 'estefania',
-  phase: string,
-  nextCycle: Date
-): Promise<void> {
+export async function updatePhase(user: ProfileId, phase: string, nextCycle: Date): Promise<void> {
   const pageId = requireEnv('NOTION_PHASES_PAGE_ID', PHASES_PAGE_ID);
   const { row } = await getPhaseRowForUser(pageId, user);
   const prevPersona = cellToText(row.table_row.cells[0]).trim();
-  const personaToWrite = prevPersona || user;
+  const personaToWrite = prevPersona || getNotionPhaseRowLabel(user);
 
   const phaseLabel = phaseKeyToNotionLabel(phase);
   const cells: NotionCell[] = [
