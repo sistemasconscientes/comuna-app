@@ -1,6 +1,6 @@
 # Spec: Pantalla de splash y barra de estado (tema oscuro)
 
-**Config:** [`app.json`](../../app.json) (`expo.splash`, `userInterfaceStyle`)  
+**Config:** [`app.json`](../../app.json) (`plugins: ["expo-splash-screen", { ... }]`, `userInterfaceStyle`)  
 **Runtime:** [`App.tsx`](../../App.tsx) — `StatusBar` de `expo-status-bar`
 
 ---
@@ -16,9 +16,9 @@ Fuera de alcance: splash de desarrollo de Metro, branding Android específico (`
 
 ## Criterios de aceptación
 
-1. En `app.json`, `expo.splash.image` es `./assets/splash-icon.png`.
-2. En `app.json`, `expo.splash.resizeMode` es `contain`.
-3. En `app.json`, `expo.splash.backgroundColor` es **`#141210`** (alineado con fondo oscuro de la app y splash asset).
+1. En `app.json`, el plugin `expo-splash-screen` está en `expo.plugins` con `image: "./assets/splash-icon.png"`.
+2. En `app.json`, `expo-splash-screen.resizeMode` es `contain`.
+3. En `app.json`, `expo-splash-screen.backgroundColor` es **`#141210`** (alineado con fondo oscuro de la app y splash asset).
 4. En `app.json`, `expo.userInterfaceStyle` es **`dark`** para coherencia con la UI principal.
 5. Tras instalar o sustituir el asset en `assets/splash-icon.png`, la pantalla de arranque muestra la imagen contenida sobre el fondo definido (sin recortes inesperados por `contain`).
 6. En la raíz de la app (`App.tsx`), `StatusBar` usa **`style="light"`** (`expo-status-bar`), de modo que el contenido de la status bar sea claro sobre fondos oscuros (equivalente a *light content* en iOS).
@@ -28,6 +28,10 @@ Fuera de alcance: splash de desarrollo de Metro, branding Android específico (`
 ## Verificación (nativo)
 
 Cambios en imagen o color de splash **no** se reflejan solo con reload de Metro: hace falta **rebuild** del binario nativo (p. ej. `expo run:ios`, EAS build, o prebuild + run).
+
+## Migración SDK 56
+
+En Expo SDK 55 la config vivía en `expo.splash` (top-level). En **SDK 56** esa key se eliminó del schema; la configuración equivalente vive ahora en el plugin `expo-splash-screen` declarado en `expo.plugins`. Ver [`dependency-upgrade-sdk56.md`](./dependency-upgrade-sdk56.md).
 
 ---
 
