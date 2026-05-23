@@ -66,7 +66,11 @@ Ver [`.env.example`](.env.example) y [backend/.env.example`](backend/.env.exampl
 
 ## Capturas
 
-*(Añadir en `docs/assets/` antes del anuncio público — Inicio, Stock, Comidas, sin datos reales.)*
+Capturas del simulador iOS (dev build) con datos de ejemplo del maintainer vía Notion.
+
+| Inicio | Stock | Comidas |
+|--------|-------|---------|
+| ![Inicio](docs/assets/home.png) | ![Stock](docs/assets/stock.png) | ![Comidas](docs/assets/comidas.png) |
 
 ## Scripts
 
