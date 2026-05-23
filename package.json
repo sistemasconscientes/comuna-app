@@ -68,7 +68,7 @@
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
     "drizzle-kit": "^0.31.10",
-    "jest-expo": "~55.0.11",
+    "jest-expo": "~56.0.4",
     "patch-package": "^8.0.1",
     "typescript": "~5.9.2"
   },
