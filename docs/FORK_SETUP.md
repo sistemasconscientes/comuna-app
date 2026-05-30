@@ -4,7 +4,7 @@ Pasos después de hacer fork de [`comuna-app`](https://github.com/labsistemascon
 
 ## Notion
 
-- [ ] Clonar [template Marketplace](NOTION_TEMPLATE_MARKETPLACE_URL) — ver [`NOTION_SETUP.md`](NOTION_SETUP.md)
+- [ ] Clonar [template Marketplace](https://www.notion.com/es/templates/comuna-app) — ver [`NOTION_SETUP.md`](NOTION_SETUP.md)
 - [ ] `.env` con `NOTION_*`
 - [ ] Alinear select **Persona** en la DB con tus perfiles (`profiles.local.ts`)
 

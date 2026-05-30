@@ -4,7 +4,7 @@
 
 Clona el template desde el Notion Marketplace:
 
-**`NOTION_TEMPLATE_MARKETPLACE_URL`** *(sustituir cuando publiques el listing)*
+[Template de La Comuna en Notion Marketplace](https://www.notion.com/es/templates/comuna-app)
 
 El template debe cumplir el contrato en [`../.cursor/rules/notion-api.mdc`](../.cursor/rules/notion-api.mdc) (DB Suplementos, tabla Fases, hub Comidas opcional).
 

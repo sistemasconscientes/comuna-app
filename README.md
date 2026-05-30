@@ -15,7 +15,7 @@ App móvil **iOS** de seguimiento de suplementos basada en fases del ciclo menst
 
 ## Empieza con el template de Notion
 
-1. Clona el [template oficial en Notion Marketplace](NOTION_TEMPLATE_MARKETPLACE_URL) *(URL pendiente de publicación)*.
+1. Clona el [template oficial en Notion Marketplace](https://www.notion.com/es/templates/comuna-app).
 2. Crea una integración en [Notion Developers](https://www.notion.so/my-integrations) e invita el workspace del template.
 3. Copia los IDs a `.env` — detalle en [docs/NOTION_SETUP.md](docs/NOTION_SETUP.md).
 
