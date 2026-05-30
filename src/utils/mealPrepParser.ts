@@ -111,7 +111,7 @@ function findWeeklyPlanAnchorIndex(blocks: NotionBlock[]): number {
 /** Columna del plato: exactamente 2 celdas → 1; 3+ → Diana col 1, Estefanía col 2. */
 function dishColumnIndex(cellCount: number, user: MealPrepUser): number | null {
   if (cellCount === 2) return 1;
-  if (cellCount >= 3) return user === 'estefania' ? 2 : 1;
+  if (cellCount >= 3) return user === 'profile_2' ? 2 : 1;
   return null;
 }
 

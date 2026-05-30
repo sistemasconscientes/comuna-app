@@ -181,7 +181,7 @@ describe('getTodayMeals', () => {
     expect(getTodayMeals(blocks, 'profile_1')!.meals).toEqual([
       { tipo: 'Desayuno', plato: 'Avena D' },
     ]);
-    expect(getTodayMeals(blocks, 'estefania')!.meals).toEqual([
+    expect(getTodayMeals(blocks, 'profile_2')!.meals).toEqual([
       { tipo: 'Desayuno', plato: 'Avena E' },
     ]);
   });
