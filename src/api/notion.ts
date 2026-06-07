@@ -24,16 +24,97 @@ const baseHeaders = {
   'Content-Type': 'application/json',
 };
 
-async function notionFetch<T>(path: string, options?: RequestInit): Promise<T> {
+/** Error de la API de Notion con el status y un extracto (truncado) del cuerpo. */
+export class NotionApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly bodySnippet: string,
+  ) {
+    super(`Notion API error ${status}: ${bodySnippet}`);
+    this.name = 'NotionApiError';
+  }
+}
+
+/** 5xx y 429 se reintentan; 4xx (salvo 429) son del cliente y no tiene sentido reintentar. */
+export function isRetryableStatus(status: number): boolean {
+  return status === 429 || (status >= 500 && status < 600);
+}
+
+/** Parsea el header `Retry-After` (segundos o fecha HTTP) a milisegundos. */
+export function parseRetryAfterMs(header: string | null, now: number = Date.now()): number | null {
+  if (!header) return null;
+  const trimmed = header.trim();
+  const secs = Number(trimmed);
+  if (Number.isFinite(secs)) return Math.max(0, secs * 1000);
+  const when = Date.parse(trimmed);
+  if (!Number.isNaN(when)) return Math.max(0, when - now);
+  return null;
+}
+
+/** Backoff exponencial con jitter, acotado a 10s. */
+export function backoffMs(attempt: number, baseMs: number, rand: number = Math.random()): number {
+  const exp = baseMs * 2 ** attempt;
+  const jitter = exp * 0.5 * rand;
+  return Math.min(exp + jitter, 10_000);
+}
+
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 400;
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+export type RetryConfig = { retries: number; baseDelayMs: number };
+
+/**
+ * Ejecuta `doFetch` con reintentos: red caída y 5xx/429 se reintentan (backoff +
+ * jitter, respetando `Retry-After`); 4xx se devuelven tal cual para que el caller
+ * decida. Independiente de credenciales para poder testearse aislado.
+ */
+export async function fetchWithRetry(
+  doFetch: () => Promise<Response>,
+  retry: RetryConfig = { retries: MAX_RETRIES, baseDelayMs: BASE_DELAY_MS },
+): Promise<Response> {
+  let lastError: Error = new Error('fetch failed');
+  for (let attempt = 0; attempt <= retry.retries; attempt++) {
+    let res: Response;
+    try {
+      res = await doFetch();
+    } catch (networkErr) {
+      // Error de red (sin conexión, timeout): reintentable.
+      lastError = networkErr instanceof Error ? networkErr : new Error(String(networkErr));
+      if (attempt < retry.retries) {
+        await sleep(backoffMs(attempt, retry.baseDelayMs));
+        continue;
+      }
+      throw lastError;
+    }
+
+    if (res.ok || !isRetryableStatus(res.status) || attempt >= retry.retries) return res;
+
+    const retryAfter = parseRetryAfterMs(res.headers.get('retry-after'));
+    await sleep(retryAfter ?? backoffMs(attempt, retry.baseDelayMs));
+  }
+  throw lastError;
+}
+
+export async function notionFetch<T>(
+  path: string,
+  options?: RequestInit,
+  retry: RetryConfig = { retries: MAX_RETRIES, baseDelayMs: BASE_DELAY_MS },
+): Promise<T> {
   if (!API_KEY) throw new Error('Missing NOTION_API_KEY');
   const mergedHeaders: Record<string, string> = {
     ...baseHeaders,
     ...(options?.headers as Record<string, string> | undefined),
   };
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers: mergedHeaders });
+
+  const res = await fetchWithRetry(
+    () => fetch(`${BASE_URL}${path}`, { ...options, headers: mergedHeaders }),
+    retry,
+  );
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Notion API error ${res.status}: ${body}`);
+    const body = await res.text().catch(() => '');
+    throw new NotionApiError(res.status, body.slice(0, 500));
   }
   return res.json() as Promise<T>;
 }
