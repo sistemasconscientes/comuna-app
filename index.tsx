@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import React, { ErrorInfo } from 'react';
 import { registerRootComponent } from 'expo';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PostHogProvider, usePostHog } from 'posthog-react-native';
 import { POSTHOG_API_KEY, POSTHOG_HOST } from '@env';
@@ -12,13 +12,28 @@ import { theme } from './src/theme/colors';
 const hasPostHog = Boolean((POSTHOG_API_KEY ?? '').trim());
 const posthogHost = (POSTHOG_HOST ?? '').trim() || 'https://us.i.posthog.com';
 
-function PostHogErrorFallback({ error }: { error: unknown; componentStack: string }) {
+function PostHogErrorFallback({
+  error,
+  onRetry,
+}: {
+  error: unknown;
+  componentStack: string;
+  onRetry: () => void;
+}) {
   return (
     <View style={fallbackStyles.container}>
       <Text style={fallbackStyles.title}>Algo salió mal</Text>
       <Text style={fallbackStyles.message}>
         {error instanceof Error ? error.message : String(error)}
       </Text>
+      <TouchableOpacity
+        style={fallbackStyles.retryBtn}
+        onPress={onRetry}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+      >
+        <Text style={fallbackStyles.retryBtnText}>Reintentar</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -32,6 +47,15 @@ const fallbackStyles = StyleSheet.create({
   },
   title: { fontSize: 18, fontWeight: '600', marginBottom: 8, color: theme.text },
   message: { fontSize: 15, color: theme.textSecondary },
+  retryBtn: {
+    marginTop: 20,
+    alignSelf: 'flex-start',
+    backgroundColor: theme.accentSoft,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+  },
+  retryBtnText: { color: theme.accent, fontSize: 15, fontWeight: '600' },
 });
 
 type RootBoundaryState = {
@@ -54,10 +78,16 @@ class RootErrorBoundary extends React.Component<{ children: React.ReactNode }, R
     this.setState({ componentStack: info.componentStack ?? '' });
   }
 
+  reset = (): void => {
+    this.setState({ error: null, componentStack: '' });
+  };
+
   render(): React.ReactNode {
     const { error, componentStack } = this.state;
     if (error != null) {
-      return <PostHogErrorFallback error={error} componentStack={componentStack} />;
+      return (
+        <PostHogErrorFallback error={error} componentStack={componentStack} onRetry={this.reset} />
+      );
     }
     return this.props.children;
   }

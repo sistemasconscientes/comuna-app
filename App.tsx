@@ -14,6 +14,7 @@ import Stock from './src/screens/Stock';
 import MealPrep from './src/screens/MealPrep';
 import HealthKitData from './src/screens/HealthKitData';
 import Profile from './src/screens/Profile';
+import { OfflineBanner } from './src/components/OfflineBanner';
 import { PROFILES, getProfileLabel, profileIdsRecord, type ProfileId } from './src/config/profiles';
 import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
@@ -333,6 +334,7 @@ function App() {
       {!showUserPicker && <PostHogIdentifyUser user={user} />}
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <StatusBar style="light" />
+        <OfflineBanner />
 
         {showUserPicker ? (
           <View
