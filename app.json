@@ -2,7 +2,7 @@
   "expo": {
     "name": "La Comuna App",
     "slug": "comuna-app",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",

@@ -23,6 +23,14 @@ export interface Supplement {
   persona: SupplementPersona;
 }
 
+/** Té recomendado por fase del ciclo (BD de Tés en Notion; sin caché local). */
+export interface Tea {
+  notion_id: string;
+  name: string;
+  comprovable_benefits: string[];
+  holistic_benefits: string[];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Local DB types (kept for existing app screens/hooks)
 // ─────────────────────────────────────────────────────────────────────────────

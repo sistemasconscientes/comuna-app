@@ -6,7 +6,7 @@ import {
 } from '@env';
 import type { ProfileId } from '../config/profiles';
 import { getNotionPhaseRowLabel, getNotionSupplementPersona } from '../config/profiles';
-import type { Supplement, SupplementPersona } from '../types';
+import type { Phase, Supplement, SupplementPersona, Tea } from '../types';
 import { normalizePhase } from '../utils/phaseUtils';
 import { supplementMatchesCurrentTemporada } from '../utils/temporadaFilter';
 
@@ -429,6 +429,55 @@ export async function getCurrentPhase(user: ProfileId): Promise<{ phase: string;
     phase: phaseText,
     nextCycle: parseDateLoose(nextText),
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tés (BD de Notion: té recomendado por fase del ciclo)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** ID público de la BD de Tés en Notion (accesible vía la integración con `NOTION_API_KEY`). */
+const TEAS_DB_ID = '235d8880-2045-81af-93a9-c0b96040f14d';
+
+/** Etiquetas de "Fase del ciclo recomendada" en la BD de Tés (emojis propios de esa BD). */
+const TEA_PHASE_TO_LABELS: Record<Phase, string[]> = {
+  menstrual: ['Menstruación 🩸'],
+  folicular: ['Folicular 🏃🏻‍♀️'],
+  ovulatoria: ['Ovulación 🍑'],
+  lutea: ['Lútea 🧘🏻‍♀️', 'Premenstrual 😾'],
+};
+
+const TEA_IN_HOUSE_PROPS = ['¿Tengo en casa?', 'Tengo en casa?', 'Tengo en casa', '¿Tengo en casa'];
+const TEA_PHASE_PROPS = ['Fase del ciclo recomendada', 'Fase del ciclo', 'Fase recomendada', 'Fase'];
+const TEA_COMPROBABLE_PROPS = [
+  'Beneficios comprobables',
+  'Beneficios Comprobables',
+  'Beneficios comprovables',
+  'beneficios_comprobables',
+];
+const TEA_HOLISTIC_PROPS = [
+  'Beneficios holísticos',
+  'Beneficios Holísticos',
+  'Beneficios holisticos',
+  'beneficios_holisticos',
+];
+
+export async function getTeasForPhase(phase: Phase): Promise<Tea[]> {
+  const wantedLabels = TEA_PHASE_TO_LABELS[phase] ?? [];
+  const pages = await queryDatabaseAll(TEAS_DB_ID, {});
+
+  return pages
+    .filter((p) => {
+      const inHouse = propCheckbox(p.properties, TEA_IN_HOUSE_PROPS, false);
+      if (!inHouse) return false;
+      const phaseLabels = propMultiSelect(p.properties, TEA_PHASE_PROPS);
+      return phaseLabels.some((label) => wantedLabels.includes(label));
+    })
+    .map((p) => ({
+      notion_id: p.id,
+      name: propText(p.properties, ['Name', 'Nombre']).trim(),
+      comprovable_benefits: propMultiSelect(p.properties, TEA_COMPROBABLE_PROPS),
+      holistic_benefits: propMultiSelect(p.properties, TEA_HOLISTIC_PROPS),
+    }));
 }
 
 export async function updatePhase(user: ProfileId, phase: string, nextCycle: Date): Promise<void> {

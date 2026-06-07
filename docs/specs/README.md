@@ -11,6 +11,7 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 | [stock-restock-notion.md](./stock-restock-notion.md) | Bajo stock: `markForRestock`, `restock_flagged`, UI |
 | [notion-supplements-temporada.md](./notion-supplements-temporada.md) | `getSupplements`: filtro cliente por Temporada (año, Q1–Q4, fases) |
 | [notion-meal-prep.md](./notion-meal-prep.md) | `getMealPrep`: plan activo, hijos directos de la página (`listBlockChildrenAll`) |
+| [tea-of-the-day.md](./tea-of-the-day.md) | Té del día en Inicio: `getTeasForPhase`, `useTeas`, `TeaCard`, filtro cliente por fase + "tengo en casa" |
 | [meal-prep-screen.md](./meal-prep-screen.md) | Pantalla Comidas, `mealPrepParser`, tab en `App` |
 | [swr-local-cache.md](./swr-local-cache.md) | Caché AsyncStorage SWR: `useCache`, Stock y Comidas, TTL, pull-to-refresh |
 | [user-selected-persistence.md](./user-selected-persistence.md) | Usuario activo persistido en AsyncStorage, picker inicial, «Cambiar usuario» |

@@ -13,6 +13,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useHealthData } from '../hooks/useHealthData';
 import { useSupplements } from '../hooks/useSupplements';
 import { useDailyLog } from '../hooks/useDailyLog';
+import { useTeas } from '../hooks/useTeas';
+import TeaCard from '../components/TeaCard';
 import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
 import { getProfileLabel } from '../config/profiles';
 import { useUser } from '../context/UserContext';
@@ -151,6 +153,8 @@ export default function Home({ onOpenSettings }: HomeProps) {
         ? cyclePhase
         : 'menstrual';
 
+  const { teas, currentIndex, nextTea } = useTeas(currentPhase);
+
   const config = PHASE_CONFIG[currentPhase];
   const trackPercent =
     cycleDay !== null
@@ -259,6 +263,8 @@ export default function Home({ onOpenSettings }: HomeProps) {
           <Text style={[styles.phaseMessage, { color: config.color }]}>{config.message}</Text>
         </View>
       </View>
+
+      <TeaCard tea={teas[currentIndex] ?? null} onNext={nextTea} canCycle={teas.length > 1} />
 
       <View style={styles.todayHeaderBlock}>
         <View style={styles.todayHeaderRow}>
