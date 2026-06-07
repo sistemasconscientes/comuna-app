@@ -7,6 +7,7 @@ import m0002 from './0002_sad_mysterio.sql';
 import m0003 from './0003_friendly_bastion.sql';
 import m0004 from './0004_bitter_cyclops.sql';
 import m0005 from './0005_profile_ids.sql';
+import m0006 from './0006_fuzzy_sprite.sql';
 
   export default {
     journal,
@@ -16,7 +17,8 @@ m0001,
 m0002,
 m0003,
 m0004,
-m0005
+m0005,
+m0006
     }
   }
   
