@@ -93,10 +93,7 @@ export function useSelectableLogDate() {
     setDateISO(localTodayISO());
   }, []);
 
-  const isAtToday = useMemo(
-    () => compareISODates(dateISO, localTodayISO()) === 0,
-    [dateISO],
-  );
+  const isAtToday = useMemo(() => compareISODates(dateISO, localTodayISO()) === 0, [dateISO]);
 
   const formattedLabel = useMemo(() => formatDateLabelES(dateISO), [dateISO]);
 

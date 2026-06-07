@@ -30,15 +30,15 @@ flowchart TB
 
 ## Capas (app)
 
-| Capa | Ubicación | Rol |
-|------|-----------|-----|
-| API Notion | `src/api/notion.ts` | Suplementos, fases, meal prep, restock |
-| API HealthKit | `src/api/healthkit.ts` | Señales de ciclo (solo iOS) |
-| API stock compartido | `src/api/sharedStock.ts` | Suplementos Persona **Ambas** |
-| DB local | `src/db/schema.ts` | `supplements`, `daily_logs`, `stock`, `phases`, `cycle_states` |
-| Hooks | `src/hooks/` | Un dominio por hook (`useSupplements`, `useHealthData`, …) |
-| Perfiles | `src/config/profiles.ts` | Máx. 2 perfiles (`profile_1`, `profile_2`); overrides en `profiles.local.ts` |
-| Observabilidad | `src/utils/observability.ts` | Sentry (errores); PostHog (producto) |
+| Capa                 | Ubicación                    | Rol                                                                          |
+| -------------------- | ---------------------------- | ---------------------------------------------------------------------------- |
+| API Notion           | `src/api/notion.ts`          | Suplementos, fases, meal prep, restock                                       |
+| API HealthKit        | `src/api/healthkit.ts`       | Señales de ciclo (solo iOS)                                                  |
+| API stock compartido | `src/api/sharedStock.ts`     | Suplementos Persona **Ambas**                                                |
+| DB local             | `src/db/schema.ts`           | `supplements`, `daily_logs`, `stock`, `phases`, `cycle_states`               |
+| Hooks                | `src/hooks/`                 | Un dominio por hook (`useSupplements`, `useHealthData`, …)                   |
+| Perfiles             | `src/config/profiles.ts`     | Máx. 2 perfiles (`profile_1`, `profile_2`); overrides en `profiles.local.ts` |
+| Observabilidad       | `src/utils/observability.ts` | Sentry (errores); PostHog (producto)                                         |
 
 ## Navegación
 

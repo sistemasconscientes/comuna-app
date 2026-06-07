@@ -6,8 +6,8 @@
 
 ## Variable de entorno
 
-| Variable | Descripción |
-|----------|-------------|
+| Variable                       | Descripción                                                                                                                                                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `NOTION_MEAL_PREP_HUB_PAGE_ID` | **Opcional.** ID de la página de Notion que contiene el bloque `heading_2` con título **Comidas Activas** (p. ej. página “Cocina y Comida”). Si está vacío o ausente, `getMealPrep` devuelve **`null`** (la pestaña Comidas muestra “Sin plan…” sin lanzar). |
 
 No se hardcodean IDs de páginas en código.
@@ -22,14 +22,14 @@ No se hardcodean IDs de páginas en código.
 
 ## Criterios de aceptación
 
-| # | Criterio |
-|---|----------|
-| 1 | Solo coincide el heading si `type === 'heading_2'` y el texto es exactamente `Comidas Activas` (tras trim). |
-| 2 | El plan activo es el **primer** `child_page` que aparece **después** de ese heading en la lista de hijos del hub (se ignoran bloques intermedios que no sean `child_page`). |
-| 3 | `blocks` incluye **todos** los hijos directos de la página del plan (sin `table_row` anidadas bajo cada `table`). |
-| 4 | Si no existe el heading o no hay ningún `child_page` después, la función devuelve **`null`** (no lanza). |
-| 5 | Falta `NOTION_API_KEY`: se lanza al llamar a la API. Falta o está vacío `NOTION_MEAL_PREP_HUB_PAGE_ID`: `getMealPrep` devuelve **`null`** (no `requireEnv`). |
-| 6 | Errores de red o respuestas HTTP de error de Notion se propagan como en el resto del cliente. |
+| #   | Criterio                                                                                                                                                                    |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Solo coincide el heading si `type === 'heading_2'` y el texto es exactamente `Comidas Activas` (tras trim).                                                                 |
+| 2   | El plan activo es el **primer** `child_page` que aparece **después** de ese heading en la lista de hijos del hub (se ignoran bloques intermedios que no sean `child_page`). |
+| 3   | `blocks` incluye **todos** los hijos directos de la página del plan (sin `table_row` anidadas bajo cada `table`).                                                           |
+| 4   | Si no existe el heading o no hay ningún `child_page` después, la función devuelve **`null`** (no lanza).                                                                    |
+| 5   | Falta `NOTION_API_KEY`: se lanza al llamar a la API. Falta o está vacío `NOTION_MEAL_PREP_HUB_PAGE_ID`: `getMealPrep` devuelve **`null`** (no `requireEnv`).                |
+| 6   | Errores de red o respuestas HTTP de error de Notion se propagan como en el resto del cliente.                                                                               |
 
 ## Firma
 

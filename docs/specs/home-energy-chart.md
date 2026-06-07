@@ -17,13 +17,13 @@ En la pantalla Inicio, entre la cabecera (pastilla de fase) y el bloque «Para h
 
 ## Criterios de aceptación
 
-| # | Criterio |
-|---|----------|
-| 1 | `PHASE_CONFIG` define por fase: `emoji`, `message`, `fillPercent` (respaldo), `color`, `fillColor`. |
-| 2 | Si `cycleDay !== null`, el ancho del relleno de la pista y la posición horizontal del emoji usan `min(100, (cycleDay / DEFAULT_CYCLE_LENGTH_DAYS) * 100)` con `DEFAULT_CYCLE_LENGTH_DAYS` desde `phaseCalculator.ts`. |
-| 3 | Si `cycleDay === null` (solo Notion sin día), el ancho y el marcador usan `fillPercent` de la fase actual. |
-| 4 | El pie de la tarjeta muestra únicamente `message` con `color` de la fase; no se muestra “Día X de 28” ni texto numérico equivalente en esta versión. |
-| 5 | La pista es claramente legible (altura ~11, bordes redondeados), fondo `#f0ece6`, `overflow: 'visible'` para el emoji del marcador (~24 px). El mensaje de fase usa tipografía de cuerpo (~15 px), no microtexto. |
+| #   | Criterio                                                                                                                                                                                                              |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `PHASE_CONFIG` define por fase: `emoji`, `message`, `fillPercent` (respaldo), `color`, `fillColor`.                                                                                                                   |
+| 2   | Si `cycleDay !== null`, el ancho del relleno de la pista y la posición horizontal del emoji usan `min(100, (cycleDay / DEFAULT_CYCLE_LENGTH_DAYS) * 100)` con `DEFAULT_CYCLE_LENGTH_DAYS` desde `phaseCalculator.ts`. |
+| 3   | Si `cycleDay === null` (solo Notion sin día), el ancho y el marcador usan `fillPercent` de la fase actual.                                                                                                            |
+| 4   | El pie de la tarjeta muestra únicamente `message` con `color` de la fase; no se muestra “Día X de 28” ni texto numérico equivalente en esta versión.                                                                  |
+| 5   | La pista es claramente legible (altura ~11, bordes redondeados), fondo `#f0ece6`, `overflow: 'visible'` para el emoji del marcador (~24 px). El mensaje de fase usa tipografía de cuerpo (~15 px), no microtexto.     |
 
 ## Implementación
 

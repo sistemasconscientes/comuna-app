@@ -25,13 +25,13 @@ Fuera de alcance de este spec: validación de negocio de `updateBottle`, sincron
 
 ## Criterios de aceptación
 
-| ID | Criterio | Plataforma |
-|----|----------|------------|
-| AC1 | Con el teclado visible, el contenido del modal puede desplazarse verticalmente hasta que el campo enfocado y los botones sean alcanzables. | iOS |
-| AC2 | Con el teclado visible, al tocar el área oscura (backdrop) **no** se cierra el modal; el teclado se oculta y el modal permanece abierto. | iOS |
-| AC3 | Con el teclado **no** visible, al tocar el backdrop se cierra el modal (mismo efecto que salir de la edición). | iOS |
-| AC4 | Los taps en botones y `TextInput` dentro del sheet funcionan con teclado abierto (no se pierden taps por el scroll). | iOS |
-| AC5 | Cancelar y Guardar cierran el modal según reglas ya existentes (Guardar tras persistir válido). | iOS |
+| ID  | Criterio                                                                                                                                   | Plataforma |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
+| AC1 | Con el teclado visible, el contenido del modal puede desplazarse verticalmente hasta que el campo enfocado y los botones sean alcanzables. | iOS        |
+| AC2 | Con el teclado visible, al tocar el área oscura (backdrop) **no** se cierra el modal; el teclado se oculta y el modal permanece abierto.   | iOS        |
+| AC3 | Con el teclado **no** visible, al tocar el backdrop se cierra el modal (mismo efecto que salir de la edición).                             | iOS        |
+| AC4 | Los taps en botones y `TextInput` dentro del sheet funcionan con teclado abierto (no se pierden taps por el scroll).                       | iOS        |
+| AC5 | Cancelar y Guardar cierran el modal según reglas ya existentes (Guardar tras persistir válido).                                            | iOS        |
 
 ---
 

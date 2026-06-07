@@ -38,12 +38,12 @@ Fuera de alcance explícito: CORS (el cliente es nativo).
 
 ## Variables de entorno
 
-| Variable       | Descripción                          |
-|----------------|--------------------------------------|
-| `MONGODB_URI`  | URI de conexión MongoDB (obligatoria) |
-| `appName`      | Nombre de aplicación para el driver (ej. `<YOUR_MONGODB_APP_NAME>`) |
-| `PORT`         | Puerto HTTP (default `3000`)        |
-| `API_KEY`      | Secreto compartido con la app; obligatorio para usar `/stock` en producción |
+| Variable      | Descripción                                                                 |
+| ------------- | --------------------------------------------------------------------------- |
+| `MONGODB_URI` | URI de conexión MongoDB (obligatoria)                                       |
+| `appName`     | Nombre de aplicación para el driver (ej. `<YOUR_MONGODB_APP_NAME>`)         |
+| `PORT`        | Puerto HTTP (default `3000`)                                                |
+| `API_KEY`     | Secreto compartido con la app; obligatorio para usar `/stock` en producción |
 
 Carga (`backend/src/loadEnv.ts`): solo `backend/.env` (resuelto con `path.resolve(__dirname, '../.env')` desde `src/`).
 
@@ -76,14 +76,14 @@ eas secret:create --scope project --name BACKEND_API_KEY --value "<mismo valor q
 
 ## Modelo `Stock`
 
-| Campo            | Tipo     | Notas                          |
-|------------------|----------|--------------------------------|
-| `notionId`       | string   | Único (índice `unique: true`)  |
-| `bottleOpenedAt` | Date     | Fecha de apertura del frasco   |
-| `totalPills`     | number   | Total de pastillas al abrir    |
-| `pillsPerDay`    | number   | Pastillas por día              |
-| `restockFlagged` | boolean  | Ya se marcó recompra en Notion |
-| `updatedAt`      | Date     | Última actualización           |
+| Campo            | Tipo    | Notas                          |
+| ---------------- | ------- | ------------------------------ |
+| `notionId`       | string  | Único (índice `unique: true`)  |
+| `bottleOpenedAt` | Date    | Fecha de apertura del frasco   |
+| `totalPills`     | number  | Total de pastillas al abrir    |
+| `pillsPerDay`    | number  | Pastillas por día              |
+| `restockFlagged` | boolean | Ya se marcó recompra en Notion |
+| `updatedAt`      | Date    | Última actualización           |
 
 ---
 
@@ -111,14 +111,14 @@ eas secret:create --scope project --name BACKEND_API_KEY --value "<mismo valor q
 
 ## Criterios de aceptación
 
-| ID | Criterio |
-|----|----------|
-| BS1 | `notionId` es único en la colección; violación de unicidad manejada de forma razonable (no crashea el proceso). |
-| BS2 | `GET` devuelve 404 + `{ error: "not found" }` cuando no hay documento. |
-| BS3 | `PUT` hace upsert y devuelve el documento actualizado con `updatedAt` reciente. |
-| BS4 | Conexión a MongoDB loguea éxito (`MongoDB connected`) o error en fallo. |
-| BS5 | Servidor escucha en `PORT` o 3000 por defecto; arranque solo tras conectar a la base. |
-| BS6 | Sin `x-api-key` correcto, `GET`/`PUT` bajo `/stock` responden 401 + `{ error: "Unauthorized" }`. |
+| ID  | Criterio                                                                                                                                                                     |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| BS1 | `notionId` es único en la colección; violación de unicidad manejada de forma razonable (no crashea el proceso).                                                              |
+| BS2 | `GET` devuelve 404 + `{ error: "not found" }` cuando no hay documento.                                                                                                       |
+| BS3 | `PUT` hace upsert y devuelve el documento actualizado con `updatedAt` reciente.                                                                                              |
+| BS4 | Conexión a MongoDB loguea éxito (`MongoDB connected`) o error en fallo.                                                                                                      |
+| BS5 | Servidor escucha en `PORT` o 3000 por defecto; arranque solo tras conectar a la base.                                                                                        |
+| BS6 | Sin `x-api-key` correcto, `GET`/`PUT` bajo `/stock` responden 401 + `{ error: "Unauthorized" }`.                                                                             |
 | BS7 | Con `EXPO_PUBLIC_BACKEND_URL` vacío en el cliente, no se hacen peticiones de stock compartido con URL inválida (`getSharedStock` null, `updateSharedStock` error explícito). |
 
 ---

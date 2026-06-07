@@ -22,29 +22,29 @@ No toca la lógica de suplementos ni `daily_logs`, y no agrega tablas a SQLite.
 
 ## Mapeo de fase → etiquetas Notion
 
-| `Phase` | Etiquetas en "Fase del ciclo recomendada" |
-|---------|--------------------------------------------|
-| `menstrual` | `Menstruación 🩸` |
-| `folicular` | `Folicular 🏃🏻‍♀️` |
-| `ovulatoria` | `Ovulación 🍑` |
-| `lutea` | `Lútea 🧘🏻‍♀️`, `Premenstrual 😾` |
+| `Phase`      | Etiquetas en "Fase del ciclo recomendada" |
+| ------------ | ----------------------------------------- |
+| `menstrual`  | `Menstruación 🩸`                         |
+| `folicular`  | `Folicular 🏃🏻‍♀️`                            |
+| `ovulatoria` | `Ovulación 🍑`                            |
+| `lutea`      | `Lútea 🧘🏻‍♀️`, `Premenstrual 😾`             |
 
 Nota: estos emojis son los de la BD de Tés y difieren de `PHASE_TO_LABEL` (tabla de fases por usuario).
 
 ## Criterios de aceptación
 
-| # | Criterio |
-|---|----------|
-| 1 | `getTeasForPhase` consulta toda la BD de Tés (paginado `queryDatabaseAll`) y **filtra en cliente**: no se envían filtros de propiedad a la API (matching resiliente de nombres). |
-| 2 | Un té se incluye solo si "¿Tengo en casa?" es `true`. |
-| 3 | Un té se incluye solo si **alguna** etiqueta de su "Fase del ciclo recomendada" coincide con **alguna** etiqueta mapeada para `phase`. Para `lutea` basta `Lútea 🧘🏻‍♀️` **o** `Premenstrual 😾`. |
-| 4 | Cada `Tea` expone `notion_id`, `name`, `comprovable_benefits[]`, `holistic_benefits[]`. |
-| 5 | `useTeas(phase)` maneja `loading` y `error` (reporta a Sentry con `domain: 'notion'`), y al cambiar `phase` refetch + resetea `currentIndex` a 0. |
-| 6 | `nextTea()` rota al siguiente índice de forma circular; es no-op si hay 1 o 0 tés. |
-| 7 | `TeaCard` muestra el nombre del té y **el primer** beneficio comprobable (`comprovable_benefits[0]`; oculto si vacío). |
-| 8 | El botón "quiero otro" solo es visible cuando hay más de un té (`canCycle` / `teas.length > 1`) y llama a `nextTea()`. |
-| 9 | Si no hay tés en casa para la fase, `TeaCard` muestra el texto `ningún té en casa para esta fase`. |
-| 10 | El card se renderiza en Inicio **después** del indicador de fase y antes de la sección "Para hoy", usando `currentPhase` ya calculado en `Home`. |
+| #   | Criterio                                                                                                                                                                                      |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `getTeasForPhase` consulta toda la BD de Tés (paginado `queryDatabaseAll`) y **filtra en cliente**: no se envían filtros de propiedad a la API (matching resiliente de nombres).              |
+| 2   | Un té se incluye solo si "¿Tengo en casa?" es `true`.                                                                                                                                         |
+| 3   | Un té se incluye solo si **alguna** etiqueta de su "Fase del ciclo recomendada" coincide con **alguna** etiqueta mapeada para `phase`. Para `lutea` basta `Lútea 🧘🏻‍♀️` **o** `Premenstrual 😾`. |
+| 4   | Cada `Tea` expone `notion_id`, `name`, `comprovable_benefits[]`, `holistic_benefits[]`.                                                                                                       |
+| 5   | `useTeas(phase)` maneja `loading` y `error` (reporta a Sentry con `domain: 'notion'`), y al cambiar `phase` refetch + resetea `currentIndex` a 0.                                             |
+| 6   | `nextTea()` rota al siguiente índice de forma circular; es no-op si hay 1 o 0 tés.                                                                                                            |
+| 7   | `TeaCard` muestra el nombre del té y **el primer** beneficio comprobable (`comprovable_benefits[0]`; oculto si vacío).                                                                        |
+| 8   | El botón "quiero otro" solo es visible cuando hay más de un té (`canCycle` / `teas.length > 1`) y llama a `nextTea()`.                                                                        |
+| 9   | Si no hay tés en casa para la fase, `TeaCard` muestra el texto `ningún té en casa para esta fase`.                                                                                            |
+| 10  | El card se renderiza en Inicio **después** del indicador de fase y antes de la sección "Para hoy", usando `currentPhase` ya calculado en `Home`.                                              |
 
 ## Notas de implementación
 

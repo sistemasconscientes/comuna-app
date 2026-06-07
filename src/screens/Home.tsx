@@ -130,7 +130,12 @@ export default function Home({ onOpenSettings }: HomeProps) {
     };
   }, [user]);
 
-  const { cyclePhase, cycleDay, loading: healthLoading, error: healthError } = useHealthData(user, {
+  const {
+    cyclePhase,
+    cycleDay,
+    loading: healthLoading,
+    error: healthError,
+  } = useHealthData(user, {
     calendarDayKey,
   });
   const {
@@ -139,7 +144,12 @@ export default function Home({ onOpenSettings }: HomeProps) {
     loading: supplementsLoading,
     error: supplementsError,
   } = useSupplements(user, cyclePhase ?? '', { calendarDayKey });
-  const { isTaken, markTaken, loading: logLoading, error: logError } = useDailyLog(user, calendarDayKey);
+  const {
+    isTaken,
+    markTaken,
+    loading: logLoading,
+    error: logError,
+  } = useDailyLog(user, calendarDayKey);
 
   const dataLoading = healthLoading || supplementsLoading || logLoading;
   const fetchError = healthError ?? supplementsError ?? logError;
@@ -169,10 +179,7 @@ export default function Home({ onOpenSettings }: HomeProps) {
 
   const dateLine = formatTodayLongEs();
 
-  const showEmptySupplements =
-    !dataLoading &&
-    !fetchError &&
-    supplements.length === 0;
+  const showEmptySupplements = !dataLoading && !fetchError && supplements.length === 0;
 
   return (
     <ScrollView
@@ -185,9 +192,7 @@ export default function Home({ onOpenSettings }: HomeProps) {
             SCREEN_SCROLL_PADDING_BOTTOM_EXTRA + insets.bottom + FLOATING_TAB_BAR_EXTRA,
         },
       ]}
-      {...(Platform.OS === 'ios'
-        ? ({ contentInsetAdjustmentBehavior: 'never' } as const)
-        : {})}
+      {...(Platform.OS === 'ios' ? ({ contentInsetAdjustmentBehavior: 'never' } as const) : {})}
     >
       {fetchError && (
         <View style={styles.errorBanner}>
@@ -269,7 +274,10 @@ export default function Home({ onOpenSettings }: HomeProps) {
       <View style={styles.todayHeaderBlock}>
         <View style={styles.todayHeaderRow}>
           <Text style={styles.sectionLabel}>Para hoy</Text>
-          <Text style={styles.supCountInline} accessibilityLabel={`${takenCount} de ${supplements.length} suplementos tomados`}>
+          <Text
+            style={styles.supCountInline}
+            accessibilityLabel={`${takenCount} de ${supplements.length} suplementos tomados`}
+          >
             {takenCount}/{supplements.length}
           </Text>
         </View>

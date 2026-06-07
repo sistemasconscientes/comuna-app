@@ -8,13 +8,13 @@ Incluye: pasos para reproducir, impacto, versión afectada. **No adjuntes** `.en
 
 ## Datos que maneja la app
 
-| Dato | Dónde | Notas |
-|------|-------|-------|
-| Ciclo menstrual | HealthKit (dispositivo) | Opcional; solo iOS |
-| Fase / próximo ciclo | Notion (si configuras sync) | Escritura vía `updatePhase` |
-| Tomas de suplementos | SQLite local | Por perfil |
-| Eventos de producto | PostHog (opcional) | Sin PII por defecto en eventos críticos |
-| Errores | Sentry (opcional) | Stack traces; configurar DSN en fork |
+| Dato                 | Dónde                       | Notas                                   |
+| -------------------- | --------------------------- | --------------------------------------- |
+| Ciclo menstrual      | HealthKit (dispositivo)     | Opcional; solo iOS                      |
+| Fase / próximo ciclo | Notion (si configuras sync) | Escritura vía `updatePhase`             |
+| Tomas de suplementos | SQLite local                | Por perfil                              |
+| Eventos de producto  | PostHog (opcional)          | Sin PII por defecto en eventos críticos |
+| Errores              | Sentry (opcional)           | Stack traces; configurar DSN en fork    |
 
 ## Disclaimer de salud
 

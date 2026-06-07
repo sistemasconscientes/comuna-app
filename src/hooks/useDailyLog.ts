@@ -65,8 +65,8 @@ export function useDailyLog(user: User, date: string) {
             and(
               eq(dailyLogs.supplementId, supplementId),
               eq(dailyLogs.date, date),
-              eq(dailyLogs.user, user)
-            )
+              eq(dailyLogs.user, user),
+            ),
           );
       } else {
         await db.insert(dailyLogs).values({
@@ -80,13 +80,12 @@ export function useDailyLog(user: User, date: string) {
       }
       await load();
     },
-    [data, date, load, user]
+    [data, date, load, user],
   );
 
   const isTaken = useCallback(
-    (supplementId: number) =>
-      data.find((l) => l.supplementId === supplementId)?.taken ?? false,
-    [data]
+    (supplementId: number) => data.find((l) => l.supplementId === supplementId)?.taken ?? false,
+    [data],
   );
 
   return { data, loading, error, markTaken, isTaken, refetch: load };

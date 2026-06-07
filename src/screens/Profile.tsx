@@ -71,11 +71,15 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
     void (async () => {
       try {
         const entries = await Promise.all(
-          PROFILES.map(async (p) => [p.id, await AsyncStorage.getItem(emojiKeyForUser(p.id))] as const),
+          PROFILES.map(
+            async (p) => [p.id, await AsyncStorage.getItem(emojiKeyForUser(p.id))] as const,
+          ),
         );
         if (cancelled) return;
         const next = profileIdsRecord(
-          (id) => entries.find(([eid]) => eid === id)?.[1] || PROFILES.find((p) => p.id === id)!.emojiDefault,
+          (id) =>
+            entries.find(([eid]) => eid === id)?.[1] ||
+            PROFILES.find((p) => p.id === id)!.emojiDefault,
         );
         setUserEmojiByUser(next);
       } catch {
@@ -196,7 +200,9 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
         activeOpacity={0.7}
       >
         <Text style={styles.linkCardTitle}>Mis tomas por día</Text>
-        <Text style={styles.linkCardSubtitle}>Ver o corregir suplementos tomados en cualquier fecha</Text>
+        <Text style={styles.linkCardSubtitle}>
+          Ver o corregir suplementos tomados en cualquier fecha
+        </Text>
       </TouchableOpacity>
 
       <View style={[styles.phaseCard, { borderColor: phaseColor }]}>
@@ -208,9 +214,7 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
         ) : (
           <>
             <Text style={[styles.phaseValue, { color: phaseColor }]}>{phaseLabel}</Text>
-            {cycleDay !== null && (
-              <Text style={styles.cycleDay}>Día {cycleDay} del ciclo</Text>
-            )}
+            {cycleDay !== null && <Text style={styles.cycleDay}>Día {cycleDay} del ciclo</Text>}
           </>
         )}
       </View>
@@ -226,19 +230,20 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
             )}
             {healthKitLifecycleContext === 'pregnancy' && (
               <Text style={styles.healthContextText}>
-                Hay un test de embarazo positivo reciente en Salud; no sincronizamos la fase automáticamente
-                con Notion.
+                Hay un test de embarazo positivo reciente en Salud; no sincronizamos la fase
+                automáticamente con Notion.
               </Text>
             )}
             {healthKitLifecycleContext === 'lactation' && (
               <Text style={styles.healthContextText}>
-                Hay datos de lactancia recientes en Salud; no sincronizamos la fase automáticamente con
-                Notion.
+                Hay datos de lactancia recientes en Salud; no sincronizamos la fase automáticamente
+                con Notion.
               </Text>
             )}
             {healthKitLifecycleContext === 'contraceptive' && (
               <Text style={styles.healthContextText}>
-                Hay registro de anticonceptivo reciente en Salud; la fase calculada es solo orientativa.
+                Hay registro de anticonceptivo reciente en Salud; la fase calculada es solo
+                orientativa.
               </Text>
             )}
           </View>
@@ -305,12 +310,36 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: theme.bg },
   scrollContent: { padding: 20, paddingBottom: SCREEN_SCROLL_PADDING_BOTTOM_EXTRA, gap: 16 },
-  backRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 2, marginBottom: 4 },
-  backChevron: { fontSize: 28, fontWeight: '300', color: theme.text, lineHeight: 32, marginTop: -2 },
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 2,
+    marginBottom: 4,
+  },
+  backChevron: {
+    fontSize: 28,
+    fontWeight: '300',
+    color: theme.text,
+    lineHeight: 32,
+    marginTop: -2,
+  },
   backLabel: { fontSize: 17, fontWeight: '600', color: theme.text },
   title: { fontSize: 24, fontWeight: '700', color: theme.text },
-  selectorCard: { backgroundColor: theme.card, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: theme.border },
-  selectorLabel: { fontSize: 12, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
+  selectorCard: {
+    backgroundColor: theme.card,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  selectorLabel: {
+    fontSize: 12,
+    color: theme.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
   selectorRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   selectorUserStack: { flex: 1 },
   selectorBtn: {
@@ -325,7 +354,13 @@ const styles = StyleSheet.create({
   selectorBtnActive: { borderColor: theme.accent, backgroundColor: theme.accentSoft },
   selectorBtnText: { fontSize: 16, fontWeight: '600', color: theme.textMuted },
   selectorBtnTextActive: { color: theme.text },
-  emojiPickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 10 },
+  emojiPickerRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
+    marginTop: 10,
+  },
   emojiChip: {
     paddingVertical: 6,
     paddingHorizontal: 8,
@@ -363,7 +398,12 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
     alignItems: 'center',
   },
-  phaseLabelSmall: { fontSize: 12, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: 1 },
+  phaseLabelSmall: {
+    fontSize: 12,
+    color: theme.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
   phaseValue: { fontSize: 28, fontWeight: '700', marginTop: 4 },
   cycleDay: { fontSize: 14, color: theme.textSecondary, marginTop: 4 },
   healthContextCard: {

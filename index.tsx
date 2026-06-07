@@ -12,12 +12,7 @@ import { theme } from './src/theme/colors';
 const hasPostHog = Boolean((POSTHOG_API_KEY ?? '').trim());
 const posthogHost = (POSTHOG_HOST ?? '').trim() || 'https://us.i.posthog.com';
 
-function PostHogErrorFallback({
-  error,
-}: {
-  error: unknown;
-  componentStack: string;
-}) {
+function PostHogErrorFallback({ error }: { error: unknown; componentStack: string }) {
   return (
     <View style={fallbackStyles.container}>
       <Text style={fallbackStyles.title}>Algo salió mal</Text>
@@ -44,10 +39,7 @@ type RootBoundaryState = {
   componentStack: string;
 };
 
-class RootErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  RootBoundaryState
-> {
+class RootErrorBoundary extends React.Component<{ children: React.ReactNode }, RootBoundaryState> {
   state: RootBoundaryState = { error: null, componentStack: '' };
 
   static getDerivedStateFromError(error: unknown): Partial<RootBoundaryState> {

@@ -18,7 +18,7 @@ if (typeof v !== 'string' || !v) {
 const m = /^(\d+)\.(\d+)\.(\d+)$/.exec(v.trim());
 if (!m) {
   throw new Error(
-    `version "${v}" no coincide con X.Y.Z (solo números). Editá a mano major/minor o usá formato 1.2.3.`
+    `version "${v}" no coincide con X.Y.Z (solo números). Editá a mano major/minor o usá formato 1.2.3.`,
   );
 }
 

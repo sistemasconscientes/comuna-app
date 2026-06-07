@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 ## [1.1.5] — 2026
 
 ### Añadido
+
 - Pestañas Comidas (Notion meal prep) y Salud (HealthKit snapshot).
 - Backend Express + MongoDB para stock compartido.
 - Sentry + PostHog (opcionales).
@@ -13,6 +14,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - Versionado `nativeBuild` + EAS preview.
 
 ### Cambiado
+
 - Tema oscuro; icono y splash actualizados.
 - Errores de dominio migrados a Sentry (PostHog solo producto).
 

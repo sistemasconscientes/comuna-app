@@ -16,33 +16,33 @@
 
 ## Cuándo subir qué
 
-| Acción | Cuándo |
-|--------|--------|
+| Acción                             | Cuándo                                                                                                                            |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | **`npm run version:bump:feature`** | Nueva feature publicable: sube solo **Z** (`1.2.5` → `1.2.6`). **X** e **Y**: editarlos a mano cuando cambie release o milestone. |
-| **`npm run version:bump:native`** | Antes de un preview local o para alinear el repo tras un build en la nube (ver Preview). |
-| Editar **`nativeBuild`** a mano | Alternativa al comando anterior; luego `npm run version:sync`. |
+| **`npm run version:bump:native`**  | Antes de un preview local o para alinear el repo tras un build en la nube (ver Preview).                                          |
+| Editar **`nativeBuild`** a mano    | Alternativa al comando anterior; luego `npm run version:sync`.                                                                    |
 
 No es obligatorio subir **Z** en cada PR interno: sí cuando el cambio forma parte de un **release** que se va a construir y distribuir (TestFlight, etc.).
 
 ## Checklist antes de merge (release)
 
-| # | Criterio |
-|---|----------|
-| R1 | `package.json` → `version` (`X.Y.Z`) y `nativeBuild` (entero ≥ 1) actualizados según el release. |
-| R2 | Ejecutar `npm run version:sync` para propagar a `app.json`: `expo.version`, `ios.buildNumber`, `android.versionCode`. |
-| R3 | **`npm run version:check`** debe pasar (o **`npm test`**, que lo ejecuta antes de Jest). |
-| R4 | `package.json` y `expo.version` iguales; `nativeBuild` coincide con `ios.buildNumber` (string) y `android.versionCode` (número). |
-| R5 | Tras `eas build`, verificar en el binario / TestFlight que versión de marketing y build nativo coinciden con lo esperado. |
+| #   | Criterio                                                                                                                         |
+| --- | -------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | `package.json` → `version` (`X.Y.Z`) y `nativeBuild` (entero ≥ 1) actualizados según el release.                                 |
+| R2  | Ejecutar `npm run version:sync` para propagar a `app.json`: `expo.version`, `ios.buildNumber`, `android.versionCode`.            |
+| R3  | **`npm run version:check`** debe pasar (o **`npm test`**, que lo ejecuta antes de Jest).                                         |
+| R4  | `package.json` y `expo.version` iguales; `nativeBuild` coincide con `ios.buildNumber` (string) y `android.versionCode` (número). |
+| R5  | Tras `eas build`, verificar en el binario / TestFlight que versión de marketing y build nativo coinciden con lo esperado.        |
 
 ## Comandos
 
-| Comando | Descripción |
-|---------|-------------|
-| **`npm run version:sync`** | Escribe `app.json` desde `package.json`. |
-| **`npm run version:check`** | Valida alineación (CI / inicio de `npm test`). |
-| **`npm run version:bump:feature`** | `Z` + 1 y sync. Requiere `version` en forma `X.Y.Z` numérica. |
-| **`npm run version:bump:native`** | `nativeBuild` + 1 y sync. |
-| **`npm run eas:build:preview`** | `version:bump:native` y luego `eas build --profile preview` (deja el bump en el commit si corrés esto antes de push). |
+| Comando                            | Descripción                                                                                                           |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **`npm run version:sync`**         | Escribe `app.json` desde `package.json`.                                                                              |
+| **`npm run version:check`**        | Valida alineación (CI / inicio de `npm test`).                                                                        |
+| **`npm run version:bump:feature`** | `Z` + 1 y sync. Requiere `version` en forma `X.Y.Z` numérica.                                                         |
+| **`npm run version:bump:native`**  | `nativeBuild` + 1 y sync.                                                                                             |
+| **`npm run eas:build:preview`**    | `version:bump:native` y luego `eas build --profile preview` (deja el bump en el commit si corrés esto antes de push). |
 
 ### Automático (EAS)
 
@@ -74,13 +74,13 @@ Si el PR incluye bump de app: seguir este documento y el checklist R1–R4 (incl
 
 **Distribución real:** el equipo valida en **iPhone / TestFlight**; no hay checklist Android (el bloque `android` en Expo se mantiene solo por alineación de `version:sync` / `version:check`).
 
-| # | Paso |
-|---|------|
-| S1 | **Gate / perfil:** si probás «Cambiar usuario», completar picker y llegar a pestañas. |
-| S2 | **Inicio:** marcar/desmarcar al menos un suplemento del día; abrir **⚙️** → Perfil. |
-| S3 | **Stock:** chips «Todas» / «Temporada actual»; abrir edición de un ítem (modal + teclado si aplica). |
-| S4 | **Comidas:** pull-to-refresh; con y sin plan en Notion según entorno. |
-| S5 | **Salud:** lista carga o mensajes esperables (sin datos / permisos). |
-| S6 | **Perfil → Mis tomas:** volver; cambiar usuaria una vez y confirmar datos distintos. |
-| S7 | **Versión en binario:** Ajustes del sistema → app → versión y build coinciden con `package.json` / TestFlight. |
-| S8 | **Sentry (opcional):** si `SENTRY_DSN` está en el build **no**-`__DEV__`, verificar que un error de prueba llega al proyecto (y que el job EAS no falla por `SENTRY_AUTH_TOKEN` si subís source maps; válvulas en [`posthog-analytics.md`](./posthog-analytics.md)). |
+| #   | Paso                                                                                                                                                                                                                                                                 |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S1  | **Gate / perfil:** si probás «Cambiar usuario», completar picker y llegar a pestañas.                                                                                                                                                                                |
+| S2  | **Inicio:** marcar/desmarcar al menos un suplemento del día; abrir **⚙️** → Perfil.                                                                                                                                                                                  |
+| S3  | **Stock:** chips «Todas» / «Temporada actual»; abrir edición de un ítem (modal + teclado si aplica).                                                                                                                                                                 |
+| S4  | **Comidas:** pull-to-refresh; con y sin plan en Notion según entorno.                                                                                                                                                                                                |
+| S5  | **Salud:** lista carga o mensajes esperables (sin datos / permisos).                                                                                                                                                                                                 |
+| S6  | **Perfil → Mis tomas:** volver; cambiar usuaria una vez y confirmar datos distintos.                                                                                                                                                                                 |
+| S7  | **Versión en binario:** Ajustes del sistema → app → versión y build coinciden con `package.json` / TestFlight.                                                                                                                                                       |
+| S8  | **Sentry (opcional):** si `SENTRY_DSN` está en el build **no**-`__DEV__`, verificar que un error de prueba llega al proyecto (y que el job EAS no falla por `SENTRY_AUTH_TOKEN` si subís source maps; válvulas en [`posthog-analytics.md`](./posthog-analytics.md)). |

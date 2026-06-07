@@ -22,14 +22,14 @@ Mostrar datos persistidos en AsyncStorage al abrir la pantalla (sin spinner si h
 
 ## Comportamiento (`useCache`)
 
-| Situación | UI `loading` | Acción |
-|-----------|----------------|--------|
-| Sin entrada o JSON inválido | `true` hasta primer fetch OK | Fetch inicial; persiste al éxito |
-| Entrada válida | `false` de inmediato tras leer storage | Muestra `value` |
-| TTL expirado (`now - fetchedAt > ttlMs`) | Sigue `false` si ya hay datos | Revalidación en background; al éxito actualiza estado y storage |
-| TTL no expirado | `false` | Sin refetch al montar |
-| Fetch falla sin datos en memoria | `false` | `error` rellenado; `data` null |
-| Fetch falla con datos (stale o refresh) | `false` | Se mantiene `data`; `error` actualizado |
+| Situación                                | UI `loading`                           | Acción                                                          |
+| ---------------------------------------- | -------------------------------------- | --------------------------------------------------------------- |
+| Sin entrada o JSON inválido              | `true` hasta primer fetch OK           | Fetch inicial; persiste al éxito                                |
+| Entrada válida                           | `false` de inmediato tras leer storage | Muestra `value`                                                 |
+| TTL expirado (`now - fetchedAt > ttlMs`) | Sigue `false` si ya hay datos          | Revalidación en background; al éxito actualiza estado y storage |
+| TTL no expirado                          | `false`                                | Sin refetch al montar                                           |
+| Fetch falla sin datos en memoria         | `false`                                | `error` rellenado; `data` null                                  |
+| Fetch falla con datos (stale o refresh)  | `false`                                | Se mantiene `data`; `error` actualizado                         |
 
 - **`refresh()`:** fuerza fetch, `refreshing === true` mientras dura (para `RefreshControl`); devuelve `Promise<void>` que resuelve al terminar (útil tras mutaciones, p. ej. stock compartido).
 - **`fetcher`:** el hook mantiene la última referencia en `useRef` para no re-ejecutar el efecto de hidratación por identidad del closure.
@@ -38,10 +38,10 @@ Mostrar datos persistidos en AsyncStorage al abrir la pantalla (sin spinner si h
 
 ## Integraciones y TTL
 
-| Pantalla | Key | TTL | Lista / scroll |
-|----------|-----|-----|----------------|
-| Stock | `stock_${user}` | 5 min | `FlatList` + `RefreshControl` |
-| Comidas | `meal_prep_${user}` | 30 min | `ScrollView` + `RefreshControl` |
+| Pantalla | Key                 | TTL    | Lista / scroll                  |
+| -------- | ------------------- | ------ | ------------------------------- |
+| Stock    | `stock_${user}`     | 5 min  | `FlatList` + `RefreshControl`   |
+| Comidas  | `meal_prep_${user}` | 30 min | `ScrollView` + `RefreshControl` |
 
 Stock: el bundle cacheado incluye suplementos Notion + sync SQLite (`idByNotionId`) + `sharedByNotionId` (backend). La tabla `stock` local sigue cargándose con `useStock()` (sin caché en este hook).
 
@@ -51,12 +51,12 @@ MealPrep: el fetcher equivale al pipeline previo (`getMealPrep` → expandir tab
 
 ## Criterios de aceptación
 
-| ID | Criterio |
-|----|----------|
-| SWR-C1 | Con caché válida para la key, la pantalla no muestra el spinner de carga inicial (solo contenido o estado vacío coherente). |
-| SWR-C2 | Si el TTL expiró y hay datos mostrados, la revalidación no vuelve a poner `loading` en `true`. |
-| SWR-C3 | Pull-to-refresh llama a `refresh` y muestra el indicador nativo mientras `refreshing` es `true`. |
-| SWR-C4 | Tras éxito de fetch, se actualiza AsyncStorage con el nuevo `value` y `fetchedAt`. |
+| ID     | Criterio                                                                                                                                                                      |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SWR-C1 | Con caché válida para la key, la pantalla no muestra el spinner de carga inicial (solo contenido o estado vacío coherente).                                                   |
+| SWR-C2 | Si el TTL expiró y hay datos mostrados, la revalidación no vuelve a poner `loading` en `true`.                                                                                |
+| SWR-C3 | Pull-to-refresh llama a `refresh` y muestra el indicador nativo mientras `refreshing` es `true`.                                                                              |
+| SWR-C4 | Tras éxito de fetch, se actualiza AsyncStorage con el nuevo `value` y `fetchedAt`.                                                                                            |
 | SWR-C5 | Comidas: la key de caché incluye el usuario activo; al cambiar de perfil no se reutiliza el plan/comidas del otro usuario hasta que corresponda su propia entrada en storage. |
 
 ---

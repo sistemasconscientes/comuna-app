@@ -82,7 +82,10 @@ interface NotionTableBlock extends NotionBlockBase {
   table: { table_width: number; has_column_header: boolean; has_row_header: boolean };
 }
 
-type NotionBlock = NotionTableBlock | NotionTableRowBlock | (NotionBlockBase & Record<string, unknown>);
+type NotionBlock =
+  | NotionTableBlock
+  | NotionTableRowBlock
+  | (NotionBlockBase & Record<string, unknown>);
 
 interface NotionListResponse<T> {
   results: T[];
@@ -157,7 +160,7 @@ function toDeviceCalendarISODate(date: Date): string {
 
 function pickProp(
   props: Record<string, NotionPropertyValue>,
-  names: string[]
+  names: string[],
 ): NotionPropertyValue | undefined {
   for (const name of names) {
     const v = props[name];
@@ -185,7 +188,11 @@ function propMultiSelect(props: Record<string, NotionPropertyValue>, names: stri
   return [];
 }
 
-function propCheckbox(props: Record<string, NotionPropertyValue>, names: string[], fallback: boolean): boolean {
+function propCheckbox(
+  props: Record<string, NotionPropertyValue>,
+  names: string[],
+  fallback: boolean,
+): boolean {
   const prop = pickProp(props, names);
   if (!prop) return fallback;
   if (prop.type === 'checkbox') return prop.checkbox ?? fallback;
@@ -195,7 +202,11 @@ function propCheckbox(props: Record<string, NotionPropertyValue>, names: string[
 /** Etiquetas de Temporada: misma prioridad que `seasonRaw` (texto si existe; si no, multi-select). */
 function temporadaLabelsFromProps(props: Record<string, NotionPropertyValue>): string[] {
   const text = propText(props, ['Temporada', 'Season']).trim();
-  if (text) return text.split(',').map((s) => s.trim()).filter(Boolean);
+  if (text)
+    return text
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
   return propMultiSelect(props, ['Temporada', 'Season'])
     .map((s) => s.trim())
     .filter(Boolean);
@@ -205,13 +216,10 @@ async function queryDatabaseAll(databaseId: string, body: Record<string, unknown
   const results: NotionDatabaseQueryResponse['results'] = [];
   let cursor: string | null | undefined = undefined;
   while (true) {
-    const page: NotionDatabaseQueryResponse = await notionFetch(
-      `/databases/${databaseId}/query`,
-      {
+    const page: NotionDatabaseQueryResponse = await notionFetch(`/databases/${databaseId}/query`, {
       method: 'POST',
       body: JSON.stringify({ ...body, ...(cursor ? { start_cursor: cursor } : {}) }),
-      }
-    );
+    });
     results.push(...page.results);
     if (!page.has_more) break;
     cursor = page.next_cursor;
@@ -225,7 +233,7 @@ async function listBlockChildrenAll(blockId: string): Promise<NotionBlock[]> {
   let cursor: string | null | undefined = undefined;
   while (true) {
     const resp: NotionListResponse<NotionBlock> = await notionFetch(
-      `/blocks/${blockId}/children${cursor ? `?start_cursor=${encodeURIComponent(cursor)}` : ''}`
+      `/blocks/${blockId}/children${cursor ? `?start_cursor=${encodeURIComponent(cursor)}` : ''}`,
     );
     out.push(...resp.results);
     if (!resp.has_more) break;
@@ -239,7 +247,7 @@ async function listBlockChildrenAll(blockId: string): Promise<NotionBlock[]> {
 async function listBlockChildrenPage(blockId: string, pageSize: number): Promise<NotionBlock[]> {
   const q = new URLSearchParams({ page_size: String(pageSize) });
   const resp: NotionListResponse<NotionBlock> = await notionFetch(
-    `/blocks/${encodeURIComponent(blockId)}/children?${q.toString()}`
+    `/blocks/${encodeURIComponent(blockId)}/children?${q.toString()}`,
   );
   return resp.results;
 }
@@ -301,7 +309,11 @@ export async function getSupplements(
   const month = new Date().getMonth() + 1;
   const sourcePages = applyTemporadaFilter
     ? pages.filter((p) =>
-        supplementMatchesCurrentTemporada(temporadaLabelsFromProps(p.properties), month, currentPhase),
+        supplementMatchesCurrentTemporada(
+          temporadaLabelsFromProps(p.properties),
+          month,
+          currentPhase,
+        ),
       )
     : pages;
 
@@ -369,7 +381,10 @@ export async function getMealPrep(): Promise<{
 }
 
 /** Listado paginado de hijos de un bloque (`page_size`); usa el mismo `notionFetch` que el resto del cliente. */
-export async function listNotionBlockChildrenPage(blockId: string, pageSize: number): Promise<any[]> {
+export async function listNotionBlockChildrenPage(
+  blockId: string,
+  pageSize: number,
+): Promise<any[]> {
   return listBlockChildrenPage(blockId, pageSize) as Promise<any[]>;
 }
 
@@ -400,7 +415,9 @@ async function findInlineTableInPage(pageId: string): Promise<NotionTableBlock> 
 
 async function getPhaseRowForUser(pageId: string, user: ProfileId) {
   const table = await findInlineTableInPage(pageId);
-  const rows = (await listBlockChildrenAll(table.id)).filter((b) => b.type === 'table_row') as NotionTableRowBlock[];
+  const rows = (await listBlockChildrenAll(table.id)).filter(
+    (b) => b.type === 'table_row',
+  ) as NotionTableRowBlock[];
   if (!rows.length) throw new Error('Inline table has no rows');
 
   const wanted = normalizePersonName(getNotionPhaseRowLabel(user));
@@ -417,7 +434,9 @@ async function getPhaseRowForUser(pageId: string, user: ProfileId) {
   throw new Error(`No row found for user "${user}" in inline table`);
 }
 
-export async function getCurrentPhase(user: ProfileId): Promise<{ phase: string; nextCycle: Date }> {
+export async function getCurrentPhase(
+  user: ProfileId,
+): Promise<{ phase: string; nextCycle: Date }> {
   const pageId = requireEnv('NOTION_PHASES_PAGE_ID', PHASES_PAGE_ID);
   const { row } = await getPhaseRowForUser(pageId, user);
 
@@ -447,7 +466,12 @@ const TEA_PHASE_TO_LABELS: Record<Phase, string[]> = {
 };
 
 const TEA_IN_HOUSE_PROPS = ['¿Tengo en casa?', 'Tengo en casa?', 'Tengo en casa', '¿Tengo en casa'];
-const TEA_PHASE_PROPS = ['Fase del ciclo recomendada', 'Fase del ciclo', 'Fase recomendada', 'Fase'];
+const TEA_PHASE_PROPS = [
+  'Fase del ciclo recomendada',
+  'Fase del ciclo',
+  'Fase recomendada',
+  'Fase',
+];
 const TEA_COMPROBABLE_PROPS = [
   'Beneficios comprobables',
   'Beneficios Comprobables',

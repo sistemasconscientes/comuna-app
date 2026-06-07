@@ -17,7 +17,8 @@ export function normalizePhase(input: string): Phase | 'all' | null {
   if (v === 'all' || v === 'todas' || v === 'ambas' || v === 'siempre') return 'all';
   if (v === 'menstrual' || v === 'menstruación' || v === 'menstruation') return 'menstrual';
   if (v === 'folicular' || v === 'follicular') return 'folicular';
-  if (v === 'ovulatoria' || v === 'ovulacion' || v === 'ovulación' || v === 'ovulacion/ovulacion') return 'ovulatoria';
+  if (v === 'ovulatoria' || v === 'ovulacion' || v === 'ovulación' || v === 'ovulacion/ovulacion')
+    return 'ovulatoria';
   if (v === 'lutea' || v === 'lútea' || v === 'luteal') return 'lutea';
   return null;
 }

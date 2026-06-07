@@ -28,7 +28,9 @@ export function useStock() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const updateQuantity = useCallback(
     async (supplementId: number, quantity: number) => {
@@ -51,7 +53,7 @@ export function useStock() {
       }
       await load();
     },
-    [data, load]
+    [data, load],
   );
 
   const decrementStock = useCallback(
@@ -60,12 +62,12 @@ export function useStock() {
       if (!entry) return;
       await updateQuantity(supplementId, Math.max(0, entry.quantity - amount));
     },
-    [data, updateQuantity]
+    [data, updateQuantity],
   );
 
   const getLowStock = useCallback(
     (threshold = 7) => data.filter((s) => s.quantity <= threshold),
-    [data]
+    [data],
   );
 
   const updateBottle = useCallback(
@@ -74,7 +76,7 @@ export function useStock() {
       bottleOpenedAt: string,
       totalPills: number,
       pillsPerDay: number,
-      opts?: { resetRestockFlag?: boolean }
+      opts?: { resetRestockFlag?: boolean },
     ) => {
       const existing = data.find((s) => s.supplementId === supplementId);
       const now = new Date().toISOString();
@@ -104,7 +106,7 @@ export function useStock() {
       }
       await load();
     },
-    [data, load]
+    [data, load],
   );
 
   const setRestockFlagged = useCallback(
@@ -115,7 +117,7 @@ export function useStock() {
         .where(eq(stock.supplementId, supplementId));
       await load();
     },
-    [load]
+    [load],
   );
 
   return {
@@ -143,13 +145,11 @@ export function useSharedStockMap(supplements: Supplement[]) {
         .map((s) => s.notion_id)
         .sort()
         .join('|'),
-    [supplements]
+    [supplements],
   );
 
   useEffect(() => {
-    const ids = ambasKey
-      ? ambasKey.split('|').filter(Boolean)
-      : [];
+    const ids = ambasKey ? ambasKey.split('|').filter(Boolean) : [];
     if (ids.length === 0) {
       setSharedByNotionId({});
       setLoading(false);
@@ -159,7 +159,7 @@ export function useSharedStockMap(supplements: Supplement[]) {
     (async () => {
       setLoading(true);
       const pairs = await Promise.all(
-        ids.map(async (id) => [id, await getSharedStock(id)] as const)
+        ids.map(async (id) => [id, await getSharedStock(id)] as const),
       );
       if (!cancelled) {
         setSharedByNotionId(Object.fromEntries(pairs));
@@ -177,9 +177,7 @@ export function useSharedStockMap(supplements: Supplement[]) {
       setSharedByNotionId({});
       return;
     }
-    const pairs = await Promise.all(
-      ids.map(async (id) => [id, await getSharedStock(id)] as const)
-    );
+    const pairs = await Promise.all(ids.map(async (id) => [id, await getSharedStock(id)] as const));
     setSharedByNotionId(Object.fromEntries(pairs));
   }, [supplements]);
 

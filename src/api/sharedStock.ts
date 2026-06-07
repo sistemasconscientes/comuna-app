@@ -26,7 +26,7 @@ function headers(): Record<string, string> {
 
 /** Normaliza `SharedStock` tras `JSON.parse` (AsyncStorage) o datos ya en memoria. */
 export function reviveSharedStockMapFromCache(
-  raw: Record<string, SharedStock | null>
+  raw: Record<string, SharedStock | null>,
 ): Record<string, SharedStock | null> {
   const out: Record<string, SharedStock | null> = {};
   for (const [k, v] of Object.entries(raw)) {
@@ -150,10 +150,7 @@ function serializeBottleOpenedAt(value: Date | null | undefined): unknown {
   return value.toISOString();
 }
 
-export async function updateSharedStock(
-  notionId: string,
-  data: SharedStockUpdate
-): Promise<void> {
+export async function updateSharedStock(notionId: string, data: SharedStockUpdate): Promise<void> {
   const key = BACKEND_API_KEY?.trim();
   if (!key) {
     throw new Error('Missing BACKEND_API_KEY');

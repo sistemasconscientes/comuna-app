@@ -18,22 +18,22 @@ Fuera de alcance en PostHog: autocapture de UI (toques/pantallas), session repla
 
 ## Configuración y entorno
 
-| Variable        | Obligatoria | Descripción                                      |
-|-----------------|-------------|--------------------------------------------------|
-| `POSTHOG_API_KEY` | No        | Si falta o está vacía, el SDK va con `disabled: true` (cero envíos). |
-| `POSTHOG_HOST`    | No        | Host del proyecto; por defecto `https://us.i.posthog.com`. |
-| `EXPO_PUBLIC_APP_ENV` | No    | En release (`__DEV__` falso): `preview` \| `production` (típico vía [`eas.json`](../../eas.json)). En Metro/dev, `getAppEnvironment()` usa `development` por `__DEV__`. |
+| Variable              | Obligatoria | Descripción                                                                                                                                                             |
+| --------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POSTHOG_API_KEY`     | No          | Si falta o está vacía, el SDK va con `disabled: true` (cero envíos).                                                                                                    |
+| `POSTHOG_HOST`        | No          | Host del proyecto; por defecto `https://us.i.posthog.com`.                                                                                                              |
+| `EXPO_PUBLIC_APP_ENV` | No          | En release (`__DEV__` falso): `preview` \| `production` (típico vía [`eas.json`](../../eas.json)). En Metro/dev, `getAppEnvironment()` usa `development` por `__DEV__`. |
 
 - Declaración TypeScript: [`src/types/env.d.ts`](../../src/types/env.d.ts) (`ProcessEnv`).
 - **No** commitear API keys. Rotar clave si se expuso en chat o repo.
 
 ### Criterios de aceptación (config)
 
-| ID   | Criterio |
-|------|----------|
+| ID    | Criterio                                                                                                       |
+| ----- | -------------------------------------------------------------------------------------------------------------- |
 | PH-C1 | Con `POSTHOG_API_KEY` definida y no vacía, el cliente no está `disabled` y usa `POSTHOG_HOST` o el default US. |
-| PH-C2 | Sin API key, la app arranca sin crash y PostHog no envía eventos. |
-| PH-C3 | Ninguna clave PostHog aparece en código fuente versionado. |
+| PH-C2 | Sin API key, la app arranca sin crash y PostHog no envía eventos.                                              |
+| PH-C3 | Ninguna clave PostHog aparece en código fuente versionado.                                                     |
 
 ---
 
@@ -50,8 +50,8 @@ Fuera de alcance en PostHog: autocapture de UI (toques/pantallas), session repla
 - Fallback en español: título “Algo salió mal” + mensaje del error.
 - El boundary reporta a Sentry con `domain: react_render`.
 
-| ID   | Criterio |
-|------|----------|
+| ID    | Criterio                                                                                         |
+| ----- | ------------------------------------------------------------------------------------------------ |
 | PH-E1 | Un throw en render bajo el boundary muestra el fallback y no deja pantalla en blanco sin manejo. |
 
 ---
@@ -62,8 +62,8 @@ Fuera de alcance en PostHog: autocapture de UI (toques/pantallas), session repla
 - Al cambiar de perfil, se vuelve a llamar `identify` con el nuevo `user`.
 - En arranque (si PostHog activo): `posthog.register({ app_environment })` alineado con [`getAppEnvironment()`](../../src/utils/observability.ts).
 
-| ID   | Criterio |
-|------|----------|
+| ID    | Criterio                                                                 |
+| ----- | ------------------------------------------------------------------------ |
 | PH-I1 | Eventos posteriores quedan asociados al `distinct_id` del perfil activo. |
 
 ---
@@ -72,39 +72,39 @@ Fuera de alcance en PostHog: autocapture de UI (toques/pantallas), session repla
 
 Solo eventos de **producto / flujo**. Los `capture` son no-op si PostHog está deshabilitado (`posthog?.capture`).
 
-| Evento | Disparador | Propiedades mínimas |
-|--------|------------|---------------------|
-| `meal_prep_loaded` | Carga completa de la pestaña Comidas (éxito o sin plan en Notion) | `user`, `has_week_plan`, `has_today_meals`, `meals_count`; si hay plan: `top_level_block_count`, `expanded_block_count` |
-| `selected_user_restored` | Hidratación en arranque: hay `selected_user` válido en AsyncStorage | `user` |
-| `user_picker_shown` | Se muestra la pantalla de selector de perfil (sin pestañas) | `reason`: `no_stored_value` \| `manual_clear` |
-| `user_picker_completed` | Elección de perfil en la pantalla de selector de `App` | `user`, `reason` (mismo valor que `user_picker_shown`), `persisted`: `true` si AsyncStorage guardó OK; `false` si hubo error de persistencia pero la app abrió pestañas igual |
-| `user_switched_in_profile` | Cambio Diana/Estefanía en Perfil (solo si el perfil cambia) | `previous_user`, `user` |
-| `stored_user_cleared` | Pulsar «Cambiar usuario» en Perfil (tras borrar clave) | `previous_user` |
-| `daily_log_history_opened` | Abrir «Mis tomas por día» desde Perfil (montaje de `DailyLogByDate`) | `user` |
-| `healthkit_sync_retried` | Pulsar «Reintentar sincronización con Salud» en Perfil (iOS) | `user` |
-| `healthkit_data_screen_viewed` | Primer montaje de la pestaña Salud (`HealthKitData`) | `user` |
-| `calendar_day_tick` | El día civil local cambió al volver la app a primer plano (`AppState` → `active`) o al sincronizar (`useCalendarDayLocal`) | `previous_calendar_day`, `calendar_day` (YYYY-MM-DD), `reason`: `app_active` — una emisión por día aunque varios componentes monten el hook |
+| Evento                         | Disparador                                                                                                                 | Propiedades mínimas                                                                                                                                                           |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `meal_prep_loaded`             | Carga completa de la pestaña Comidas (éxito o sin plan en Notion)                                                          | `user`, `has_week_plan`, `has_today_meals`, `meals_count`; si hay plan: `top_level_block_count`, `expanded_block_count`                                                       |
+| `selected_user_restored`       | Hidratación en arranque: hay `selected_user` válido en AsyncStorage                                                        | `user`                                                                                                                                                                        |
+| `user_picker_shown`            | Se muestra la pantalla de selector de perfil (sin pestañas)                                                                | `reason`: `no_stored_value` \| `manual_clear`                                                                                                                                 |
+| `user_picker_completed`        | Elección de perfil en la pantalla de selector de `App`                                                                     | `user`, `reason` (mismo valor que `user_picker_shown`), `persisted`: `true` si AsyncStorage guardó OK; `false` si hubo error de persistencia pero la app abrió pestañas igual |
+| `user_switched_in_profile`     | Cambio Diana/Estefanía en Perfil (solo si el perfil cambia)                                                                | `previous_user`, `user`                                                                                                                                                       |
+| `stored_user_cleared`          | Pulsar «Cambiar usuario» en Perfil (tras borrar clave)                                                                     | `previous_user`                                                                                                                                                               |
+| `daily_log_history_opened`     | Abrir «Mis tomas por día» desde Perfil (montaje de `DailyLogByDate`)                                                       | `user`                                                                                                                                                                        |
+| `healthkit_sync_retried`       | Pulsar «Reintentar sincronización con Salud» en Perfil (iOS)                                                               | `user`                                                                                                                                                                        |
+| `healthkit_data_screen_viewed` | Primer montaje de la pestaña Salud (`HealthKitData`)                                                                       | `user`                                                                                                                                                                        |
+| `calendar_day_tick`            | El día civil local cambió al volver la app a primer plano (`AppState` → `active`) o al sincronizar (`useCalendarDayLocal`) | `previous_calendar_day`, `calendar_day` (YYYY-MM-DD), `reason`: `app_active` — una emisión por día aunque varios componentes monten el hook                                   |
 
 ### Eventos retirados de PostHog (ahora solo Sentry)
 
-| Antiguo evento PostHog | Destino Sentry |
-|------------------------|----------------|
-| `migration_failed` | `domain: drizzle_migrations` |
-| `notion_supplements_sync_failed` | `domain: notion` |
-| `notion_supplements_local_sync_failed` | `domain: sqlite` |
-| `health_data_load_failed` | `domain: health_data` |
-| `health_data_notion_sync_failed` | `domain: health_data` |
-| `healthkit_last_menstruation_failed` | `domain: healthkit` |
-| `stock_load_failed` | `domain: sqlite` |
-| `daily_log_load_failed` | `domain: sqlite` |
-| `notion_meal_prep_load_failed` | `domain: notion` |
-| `user_persistence_failed` | `domain: async_storage` + `operation` |
+| Antiguo evento PostHog                 | Destino Sentry                        |
+| -------------------------------------- | ------------------------------------- |
+| `migration_failed`                     | `domain: drizzle_migrations`          |
+| `notion_supplements_sync_failed`       | `domain: notion`                      |
+| `notion_supplements_local_sync_failed` | `domain: sqlite`                      |
+| `health_data_load_failed`              | `domain: health_data`                 |
+| `health_data_notion_sync_failed`       | `domain: health_data`                 |
+| `healthkit_last_menstruation_failed`   | `domain: healthkit`                   |
+| `stock_load_failed`                    | `domain: sqlite`                      |
+| `daily_log_load_failed`                | `domain: sqlite`                      |
+| `notion_meal_prep_load_failed`         | `domain: notion`                      |
+| `user_persistence_failed`              | `domain: async_storage` + `operation` |
 
 ### Verificación de integración (no productivos)
 
-| Evento | Disparador |
-|--------|------------|
-| `posthog_integration_verify` | Cold start en **`__DEV__`** si PostHog está activo (`index.tsx`). |
+| Evento                              | Disparador                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `posthog_integration_verify`        | Cold start en **`__DEV__`** si PostHog está activo (`index.tsx`).                                            |
 | `posthog_integration_verify_manual` | ~~Botón en Perfil~~ retirado de la UI; el evento puede seguir documentado por si se vuelve a exponer en dev. |
 
 ### Reglas
@@ -113,10 +113,10 @@ Solo eventos de **producto / flujo**. Los `capture` son no-op si PostHog está d
 - Nuevos eventos de producto: **actualizar este spec** antes o en el mismo PR que el código.
 - **PostHog** queda reservado para experimentos / flags cuando un spec futuro lo defina.
 
-| ID   | Criterio |
-|------|----------|
+| ID    | Criterio                                                                                                                   |
+| ----- | -------------------------------------------------------------------------------------------------------------------------- |
 | PH-V1 | Cada evento de la tabla de producto se emite según el disparador descrito (p. ej. `user_picker_shown` al mostrar el gate). |
-| PH-V2 | Nombres de eventos solo `snake_case` y prefijados por dominio cuando aplique (`notion_`, `healthkit_`, etc.). |
+| PH-V2 | Nombres de eventos solo `snake_case` y prefijados por dominio cuando aplique (`notion_`, `healthkit_`, etc.).              |
 
 **Nota:** `healthkit_sync_retried` puede dispararse varias veces por sesión (cada tap); no es un error, es acción explícita de QA/usuaria.
 
@@ -137,10 +137,10 @@ Solo eventos de **producto / flujo**. Los `capture` son no-op si PostHog está d
 
 Con `@sentry/react-native` y el plugin de Expo, el paso de bundle en **Release** invoca `sentry-cli` para subir source maps. El **DSN no autentica esa subida**: hace falta un token en el entorno del job de build.
 
-| Variable | Dónde | Rol |
-|----------|--------|-----|
+| Variable            | Dónde                                                          | Rol                                                                                                                      |
+| ------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `SENTRY_AUTH_TOKEN` | **EAS Secret** (recomendado) o env del perfil en dashboard EAS | Autenticación de `sentry-cli` ante la API de Sentry al subir releases/source maps. **No** empaquetar en la app; solo CI. |
-| `SENTRY_DSN` | EAS env / secret (además de `.env` local) | Runtime del SDK (eventos); independiente del token. |
+| `SENTRY_DSN`        | EAS env / secret (además de `.env` local)                      | Runtime del SDK (eventos); independiente del token.                                                                      |
 
 **Crear el token (documentación actual de Sentry):** Sentry recomienda [Organization Tokens](https://docs.sentry.io/account/auth-tokens/) para CI: en la org → **Settings → Developer Settings → Organization Tokens**. Los permisos vienen fijados para tareas típicas de CI (incl. source maps). Alternativas: [Internal Integrations](https://docs.sentry.io/organization/integrations/integration-platform/) o [Personal Tokens](https://docs.sentry.io/account/auth-tokens/) si hiciera falta otro alcance (ver [cuándo usar cada tipo](https://docs.sentry.io/account/auth-tokens/#when-should-i-use-which)). El token solo se muestra completo una vez al crearlo.
 
@@ -159,9 +159,9 @@ Tras definir la variable, un `eas build` iOS en Release no debe fallar con `Auth
 
 **Válvulas de escape** (solo si se acepta perder subida fiable o maps en Sentry):
 
-| Variable | Efecto |
-|----------|--------|
-| `SENTRY_ALLOW_FAILURE=true` | Si la subida falla, el build **no** falla por ello (mensaje lo indica el propio `sentry-cli`). |
+| Variable                          | Efecto                                                                                                                                          |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SENTRY_ALLOW_FAILURE=true`       | Si la subida falla, el build **no** falla por ello (mensaje lo indica el propio `sentry-cli`).                                                  |
 | `SENTRY_DISABLE_AUTO_UPLOAD=true` | No intenta subir maps; el archive suele pasar, pero los stack traces JS en Sentry pueden quedar sin simbolizar hasta subir maps por otro medio. |
 
 Se pueden fijar en [`eas.json`](../../eas.json) bajo `build.<perfil>.env` si el equipo elige explícitamente ese trade-off.
@@ -171,14 +171,14 @@ Se pueden fijar en [`eas.json`](../../eas.json) bajo `build.<perfil>.env` si el 
 1. Logs del job: sin `error: Auth token is required for this request` y sin fallo en `Processing react-native sourcemaps for Sentry upload`.
 2. En Sentry, release alineada con `getSentryRelease()` / `getSentryDist()`: artifacts (source maps) asociados a la release.
 
-| ID   | Criterio |
-|------|----------|
-| SE-C1 | Con `SENTRY_DSN` no vacío, el SDK se inicializa con `environment`/`release` acordes y el export default usa `Sentry.wrap(App)`. |
-| SE-C2 | Sin DSN, la app arranca sin inicializar Sentry. |
-| SE-C3 | Ningún DSN aparece hardcodeado en código fuente versionado. |
-| SE-C4 | Errores de render del boundary llegan a Sentry con `domain: react_render`. |
+| ID      | Criterio                                                                                                                                                                       |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SE-C1   | Con `SENTRY_DSN` no vacío, el SDK se inicializa con `environment`/`release` acordes y el export default usa `Sentry.wrap(App)`.                                                |
+| SE-C2   | Sin DSN, la app arranca sin inicializar Sentry.                                                                                                                                |
+| SE-C3   | Ningún DSN aparece hardcodeado en código fuente versionado.                                                                                                                    |
+| SE-C4   | Errores de render del boundary llegan a Sentry con `domain: react_render`.                                                                                                     |
 | SE-EAS1 | Build iOS Release en EAS con plugin Sentry: con `SENTRY_AUTH_TOKEN` como secret del proyecto, la subida de source maps por `sentry-cli` completa sin `Auth token is required`. |
-| SE-EAS2 | Sin token, el equipo puede documentar y usar `SENTRY_ALLOW_FAILURE` o `SENTRY_DISABLE_AUTO_UPLOAD` en el perfil EAS si acepta el trade-off (maps no garantizados). |
+| SE-EAS2 | Sin token, el equipo puede documentar y usar `SENTRY_ALLOW_FAILURE` o `SENTRY_DISABLE_AUTO_UPLOAD` en el perfil EAS si acepta el trade-off (maps no garantizados).             |
 
 ---
 

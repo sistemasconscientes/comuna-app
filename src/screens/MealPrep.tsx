@@ -51,7 +51,7 @@ export default function MealPrep() {
 
       const expanded = await expandMealPrepNotionBlocks(
         prep.blocks as NotionBlock[],
-        (blockId, pageSize) => listNotionBlockChildrenPage(blockId, pageSize)
+        (blockId, pageSize) => listNotionBlockChildrenPage(blockId, pageSize),
       );
 
       const todayMeals = getTodayMeals(expanded, user);
@@ -78,7 +78,7 @@ export default function MealPrep() {
   const { data, loading, error, refreshing, refresh } = useCache(
     `meal_prep_${user}`,
     loadMealPrep,
-    30 * 60 * 1000
+    30 * 60 * 1000,
   );
 
   const weekTitle = data?.weekTitle ?? null;

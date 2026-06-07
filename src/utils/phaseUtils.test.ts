@@ -20,7 +20,8 @@ describe('normalizePhase', () => {
     it('reconoce "ovulatoria"', () => expect(normalizePhase('ovulatoria')).toBe('ovulatoria'));
     it('reconoce "ovulacion"', () => expect(normalizePhase('ovulacion')).toBe('ovulatoria'));
     it('reconoce "ovulación"', () => expect(normalizePhase('ovulación')).toBe('ovulatoria'));
-    it('reconoce "ovulatoria 🌸"', () => expect(normalizePhase('ovulatoria 🌸')).toBe('ovulatoria'));
+    it('reconoce "ovulatoria 🌸"', () =>
+      expect(normalizePhase('ovulatoria 🌸')).toBe('ovulatoria'));
   });
 
   describe('🍂 lutea', () => {

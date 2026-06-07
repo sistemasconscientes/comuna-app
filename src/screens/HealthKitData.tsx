@@ -87,8 +87,8 @@ export default function HealthKitData() {
       <Text style={styles.title}>Salud (HealthKit)</Text>
       <Text style={styles.subtitle}>
         Valores leídos en el dispositivo. «Sin datos en Salud» no es un fallo: indica que no hay
-        muestras. Los errores de lectura se envían a Sentry cuando no son esperables (p. ej. permisos
-        pendientes no cuentan).
+        muestras. Los errores de lectura se envían a Sentry cuando no son esperables (p. ej.
+        permisos pendientes no cuentan).
       </Text>
 
       {loading && !data ? (

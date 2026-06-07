@@ -38,29 +38,29 @@ cd backend && npm install && npm run dev
 
 ## Documentación
 
-| Doc | Contenido |
-|-----|-----------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Capas, flujos, specs |
-| [docs/FORK_SETUP.md](docs/FORK_SETUP.md) | Checklist post-fork |
-| [docs/NOTION_SETUP.md](docs/NOTION_SETUP.md) | Template + variables |
+| Doc                                                          | Contenido              |
+| ------------------------------------------------------------ | ---------------------- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                 | Capas, flujos, specs   |
+| [docs/FORK_SETUP.md](docs/FORK_SETUP.md)                     | Checklist post-fork    |
+| [docs/NOTION_SETUP.md](docs/NOTION_SETUP.md)                 | Template + variables   |
 | [docs/ANDROID_CONTRIBUTING.md](docs/ANDROID_CONTRIBUTING.md) | Contribuciones Android |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Cómo contribuir |
-| [SECURITY.md](SECURITY.md) | Privacidad y reportes |
-| [TRADEMARK.md](TRADEMARK.md) | Marca vs código GPL |
-| [CHANGELOG.md](CHANGELOG.md) | Historial de versiones |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                           | Cómo contribuir        |
+| [SECURITY.md](SECURITY.md)                                   | Privacidad y reportes  |
+| [TRADEMARK.md](TRADEMARK.md)                                 | Marca vs código GPL    |
+| [CHANGELOG.md](CHANGELOG.md)                                 | Historial de versiones |
 
 ## Variables de entorno (app)
 
-| Variable | Requerida | Descripción |
-|----------|-----------|-------------|
-| `NOTION_API_KEY` | Sí | Token de integración |
-| `NOTION_SUPPLEMENTS_DB_ID` | Sí | DB de suplementos |
-| `NOTION_PHASES_PAGE_ID` | Sí | Página con tabla de fases |
-| `NOTION_MEAL_PREP_HUB_PAGE_ID` | No | Hub **Comidas Activas** |
-| `EXPO_PUBLIC_BACKEND_URL` | No | API stock compartido |
-| `BACKEND_API_KEY` | No | Mismo valor que `API_KEY` del backend |
-| `SENTRY_DSN` | No | Errores en release |
-| `POSTHOG_*` | No | Analítica de producto |
+| Variable                       | Requerida | Descripción                           |
+| ------------------------------ | --------- | ------------------------------------- |
+| `NOTION_API_KEY`               | Sí        | Token de integración                  |
+| `NOTION_SUPPLEMENTS_DB_ID`     | Sí        | DB de suplementos                     |
+| `NOTION_PHASES_PAGE_ID`        | Sí        | Página con tabla de fases             |
+| `NOTION_MEAL_PREP_HUB_PAGE_ID` | No        | Hub **Comidas Activas**               |
+| `EXPO_PUBLIC_BACKEND_URL`      | No        | API stock compartido                  |
+| `BACKEND_API_KEY`              | No        | Mismo valor que `API_KEY` del backend |
+| `SENTRY_DSN`                   | No        | Errores en release                    |
+| `POSTHOG_*`                    | No        | Analítica de producto                 |
 
 Ver [`.env.example`](.env.example) y [backend/.env.example`](backend/.env.example).
 
@@ -68,8 +68,8 @@ Ver [`.env.example`](.env.example) y [backend/.env.example`](backend/.env.exampl
 
 Capturas del simulador iOS (dev build) con datos de ejemplo del maintainer vía Notion.
 
-| Inicio | Stock | Comidas |
-|--------|-------|---------|
+| Inicio                          | Stock                           | Comidas                             |
+| ------------------------------- | ------------------------------- | ----------------------------------- |
 | ![Inicio](docs/assets/home.png) | ![Stock](docs/assets/stock.png) | ![Comidas](docs/assets/comidas.png) |
 
 ## Scripts

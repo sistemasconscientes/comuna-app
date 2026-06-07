@@ -12,7 +12,7 @@ module.exports = function (api) {
           allowUndefined: true,
         },
       ],
-      ["inline-import", { "extensions": [".sql"] }],
+      ['inline-import', { extensions: ['.sql'] }],
       'react-native-reanimated/plugin',
     ],
   };

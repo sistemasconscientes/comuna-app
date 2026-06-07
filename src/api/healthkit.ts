@@ -85,7 +85,9 @@ async function ensureHealthKit(): Promise<HealthKitAPI | null> {
             (c) =>
               typeof c?.getMostRecentCategorySample === 'function' ||
               typeof c?.isHealthDataAvailableAsync === 'function',
-          ) ?? mm?.default ?? mm;
+          ) ??
+          mm?.default ??
+          mm;
 
         hkModule = pick;
         return hkModule;
@@ -295,7 +297,10 @@ async function queryFlowSampleStarts(hk: HealthKitAPI, identifier: string): Prom
     .filter((d): d is Date => d != null && !Number.isNaN(d.getTime()));
 }
 
-async function tryMostRecentCategoryStart(hk: HealthKitAPI, identifier: string): Promise<Date | null> {
+async function tryMostRecentCategoryStart(
+  hk: HealthKitAPI,
+  identifier: string,
+): Promise<Date | null> {
   const getMostRecentCategorySample = (hk as any)?.getMostRecentCategorySample;
   if (typeof getMostRecentCategorySample !== 'function') {
     return null;
@@ -328,10 +333,7 @@ async function computeLastPeriodStart(hk: HealthKitAPI): Promise<Date | null> {
   );
   if (fromInference) return fromInference;
 
-  const mergedStarts = [
-    ...(await queryFlowSampleStarts(hk, HK_MENSTRUAL_FLOW)),
-    ...vaginalStarts,
-  ];
+  const mergedStarts = [...(await queryFlowSampleStarts(hk, HK_MENSTRUAL_FLOW)), ...vaginalStarts];
   const inferred = derivePeriodStartFromFlowSampleDates(mergedStarts);
   if (inferred) return inferred;
 
@@ -661,14 +663,16 @@ export async function getHealthKitDataScreenSnapshot(): Promise<HealthKitDataScr
       'Módulo nativo HealthKit',
       diagnostics.nativeModuleLoaded ? 'value' : 'error',
       diagnostics.nativeModuleLoaded ? 'Cargado' : 'No disponible',
-      diagnostics.nativeModuleLoaded
-        ? undefined
-        : 'Usa un dev build con el módulo (no Expo Go).',
+      diagnostics.nativeModuleLoaded ? undefined : 'Usa un dev build con el módulo (no Expo Go).',
     ),
     hkDataRow(
       'health_store',
       'Repositorio de Salud',
-      diagnostics.healthStoreAvailable ? 'value' : diagnostics.nativeModuleLoaded ? 'no_data' : 'unavailable',
+      diagnostics.healthStoreAvailable
+        ? 'value'
+        : diagnostics.nativeModuleLoaded
+          ? 'no_data'
+          : 'unavailable',
       diagnostics.healthStoreAvailable
         ? 'Disponible en el dispositivo'
         : diagnostics.nativeModuleLoaded
@@ -794,7 +798,13 @@ export async function getHealthKitDataScreenSnapshot(): Promise<HealthKitDataScr
   const ovAuth = await readAuthorizationStatusSafe(hk, HK_OVULATION_TEST, 'auth_ovulation');
   rows.push(
     !ovAuth.ok
-      ? hkDataRow('auth_ovulation', 'Permiso: test de ovulación', 'error', 'No se pudo leer el permiso', undefined)
+      ? hkDataRow(
+          'auth_ovulation',
+          'Permiso: test de ovulación',
+          'error',
+          'No se pudo leer el permiso',
+          undefined,
+        )
       : hkDataRow(
           'auth_ovulation',
           'Permiso: test de ovulación',
@@ -862,7 +872,13 @@ export async function getHealthKitDataScreenSnapshot(): Promise<HealthKitDataScr
   const mucAuth = await readAuthorizationStatusSafe(hk, HK_CERVICAL_MUCUS, 'auth_mucus');
   rows.push(
     !mucAuth.ok
-      ? hkDataRow('auth_mucus', 'Permiso: moco cervical', 'error', 'No se pudo leer el permiso', undefined)
+      ? hkDataRow(
+          'auth_mucus',
+          'Permiso: moco cervical',
+          'error',
+          'No se pudo leer el permiso',
+          undefined,
+        )
       : hkDataRow(
           'auth_mucus',
           'Permiso: moco cervical',
@@ -930,7 +946,13 @@ export async function getHealthKitDataScreenSnapshot(): Promise<HealthKitDataScr
   const bbtAuth = await readAuthorizationStatusSafe(hk, HK_BBT, 'auth_bbt');
   rows.push(
     !bbtAuth.ok
-      ? hkDataRow('auth_bbt', 'Permiso: temperatura basal', 'error', 'No se pudo leer el permiso', undefined)
+      ? hkDataRow(
+          'auth_bbt',
+          'Permiso: temperatura basal',
+          'error',
+          'No se pudo leer el permiso',
+          undefined,
+        )
       : hkDataRow(
           'auth_bbt',
           'Permiso: temperatura basal',

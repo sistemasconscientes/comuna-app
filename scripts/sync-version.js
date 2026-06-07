@@ -27,7 +27,7 @@ if (typeof pkg.version !== 'string' || !pkg.version) {
 const nb = Number.parseInt(String(pkg.nativeBuild), 10);
 if (!Number.isFinite(nb) || nb < 1) {
   throw new Error(
-    'package.json debe tener "nativeBuild": <entero> (>= 1) para iOS buildNumber y Android versionCode.'
+    'package.json debe tener "nativeBuild": <entero> (>= 1) para iOS buildNumber y Android versionCode.',
   );
 }
 
@@ -40,17 +40,17 @@ if (checkOnly) {
   const errs = [];
   if (actualVersion !== pkg.version) {
     errs.push(
-      `expo.version es "${actualVersion}" pero package.json "version" es "${pkg.version}". Ejecuta: npm run version:sync`
+      `expo.version es "${actualVersion}" pero package.json "version" es "${pkg.version}". Ejecuta: npm run version:sync`,
     );
   }
   if (String(actualIos) !== String(nb)) {
     errs.push(
-      `ios.buildNumber es "${actualIos}" pero package.json "nativeBuild" es ${nb}. Ejecuta: npm run version:sync`
+      `ios.buildNumber es "${actualIos}" pero package.json "nativeBuild" es ${nb}. Ejecuta: npm run version:sync`,
     );
   }
   if (Number(actualAndroid) !== nb) {
     errs.push(
-      `android.versionCode es ${actualAndroid} pero package.json "nativeBuild" es ${nb}. Ejecuta: npm run version:sync`
+      `android.versionCode es ${actualAndroid} pero package.json "nativeBuild" es ${nb}. Ejecuta: npm run version:sync`,
     );
   }
   if (errs.length) {

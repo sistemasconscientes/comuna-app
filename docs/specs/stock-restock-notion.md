@@ -18,11 +18,11 @@ Fuera de alcance: botón para desmarcar recompra (v2).
 
 ## Criterios de aceptación
 
-| ID | Criterio |
-|----|----------|
-| SR1 | Columna `restock_flagged` en tabla `stock` (boolean, default false). |
+| ID  | Criterio                                                                                                                 |
+| --- | ------------------------------------------------------------------------------------------------------------------------ |
+| SR1 | Columna `restock_flagged` en tabla `stock` (boolean, default false).                                                     |
 | SR2 | Con `daysRemaining < 7` y `restock_flagged` false, se llama a `markForRestock` y luego se guarda `restock_flagged` true. |
-| SR3 | Con `restock_flagged` true, no se llama de nuevo a `markForRestock` en cargas posteriores. |
-| SR4 | “Abrí frasco nuevo” pone `restock_flagged` false para permitir un nuevo aviso si vuelve a bajar el stock. |
-| SR5 | Si `markForRestock` falla, no se marca `restock_flagged` (reintento en la próxima carga). |
-| SR6 | Filas con menos de 7 días se distinguen visualmente (fondo o texto rojo suave). |
+| SR3 | Con `restock_flagged` true, no se llama de nuevo a `markForRestock` en cargas posteriores.                               |
+| SR4 | “Abrí frasco nuevo” pone `restock_flagged` false para permitir un nuevo aviso si vuelve a bajar el stock.                |
+| SR5 | Si `markForRestock` falla, no se marca `restock_flagged` (reintento en la próxima carga).                                |
+| SR6 | Filas con menos de 7 días se distinguen visualmente (fondo o texto rojo suave).                                          |

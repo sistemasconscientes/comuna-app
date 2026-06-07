@@ -39,7 +39,11 @@ export default function DailyLogByDate({ onBack }: Props) {
   const calendarDayKey = useCalendarDayLocal();
   const { dateISO, formattedLabel, goPrevDay, goNextDay, setToday, isAtToday } =
     useSelectableLogDate();
-  const { cyclePhase, loading: healthLoading, error: healthError } = useHealthData(user, {
+  const {
+    cyclePhase,
+    loading: healthLoading,
+    error: healthError,
+  } = useHealthData(user, {
     calendarDayKey,
   });
   const {
@@ -64,8 +68,7 @@ export default function DailyLogByDate({ onBack }: Props) {
 
   const dataLoading = healthLoading || supplementsLoading || logLoading;
   const fetchError = healthError ?? supplementsError ?? logError;
-  const showEmptySupplements =
-    !dataLoading && !fetchError && supplements.length === 0;
+  const showEmptySupplements = !dataLoading && !fetchError && supplements.length === 0;
 
   return (
     <View style={styles.wrapper}>
@@ -260,7 +263,13 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
   },
   todayBtnText: { fontSize: 14, fontWeight: '600', color: theme.text },
-  progressCard: { backgroundColor: theme.card, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: theme.border },
+  progressCard: {
+    backgroundColor: theme.card,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
   progressText: { fontSize: 14, color: theme.textSecondary, marginBottom: 8 },
   progressBar: { height: 8, backgroundColor: theme.trackBg, borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },

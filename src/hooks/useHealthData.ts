@@ -15,7 +15,12 @@ import {
   DEFAULT_CYCLE_LENGTH_DAYS,
   getCurrentCycleInfoWithHealthKitRefinements,
 } from '../utils/phaseCalculator';
-import type { CycleDataSource, HealthData, HealthKitCycleSignals, HealthKitDiagnostics } from '../types';
+import type {
+  CycleDataSource,
+  HealthData,
+  HealthKitCycleSignals,
+  HealthKitDiagnostics,
+} from '../types';
 import { NOTION_SKIP_PHASE_WRITE } from '@env';
 import type { User } from '../context/UserContext';
 import { reportErrorToSentry } from '../utils/observability';
@@ -59,10 +64,7 @@ async function loadNotionPhaseOnly(
   };
 }
 
-export function useHealthData(
-  user: User,
-  options?: UseHealthDataOptions,
-): UseHealthDataResult {
+export function useHealthData(user: User, options?: UseHealthDataOptions): UseHealthDataResult {
   const [state, setState] = useState<HealthData>({
     cyclePhase: null,
     cycleDay: null,
@@ -73,7 +75,9 @@ export function useHealthData(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [cycleDataSource, setCycleDataSource] = useState<CycleDataSource>('notion');
-  const [healthKitDiagnostics, setHealthKitDiagnostics] = useState<HealthKitDiagnostics | null>(null);
+  const [healthKitDiagnostics, setHealthKitDiagnostics] = useState<HealthKitDiagnostics | null>(
+    null,
+  );
   const [refreshToken, setRefreshToken] = useState(0);
 
   const refetch = useCallback(() => {
@@ -88,7 +92,11 @@ export function useHealthData(
       const now = new Date().toISOString();
       const iso = start.toISOString();
 
-      const existing = await db.select().from(cycleStates).where(eq(cycleStates.user, user)).limit(1);
+      const existing = await db
+        .select()
+        .from(cycleStates)
+        .where(eq(cycleStates.user, user))
+        .limit(1);
 
       if (existing.length) {
         await db
@@ -161,7 +169,10 @@ export function useHealthData(
         }
 
         if (lastPeriod) {
-          const { phase, day } = getCurrentCycleInfoWithHealthKitRefinements(lastPeriod, refinements);
+          const { phase, day } = getCurrentCycleInfoWithHealthKitRefinements(
+            lastPeriod,
+            refinements,
+          );
           if (!cancelled) {
             setState({
               cyclePhase: phase,
@@ -185,10 +196,7 @@ export function useHealthData(
                 const notionNorm = normalizePhase(notionRow.phase);
                 const hkNorm = normalizePhase(cyclePhaseToPhase(phase));
                 const comparable =
-                  notionNorm != null &&
-                  notionNorm !== 'all' &&
-                  hkNorm != null &&
-                  hkNorm !== 'all';
+                  notionNorm != null && notionNorm !== 'all' && hkNorm != null && hkNorm !== 'all';
                 if (comparable && notionNorm !== hkNorm) {
                   if (!isDevSkipNotionPhaseWrite()) {
                     await updatePhase(notionUser, phase, nextCycleDate);

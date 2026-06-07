@@ -24,13 +24,13 @@ Fuera de alcance: escritura en Salud, background delivery, UI nativa de permisos
 
 ## Requisitos de entorno (QA)
 
-| Requisito | Descripción |
-|-----------|-------------|
-| Dev build | Instalar con `npx expo run:ios`. **No** Expo Go. |
-| Salud | Dispositivo físico recomendado; datos de menstruación/sangrado en la app Salud. |
-| Permisos | Si iOS no muestra de nuevo el sheet: **Ajustes → Salud → Acceso a datos y apps → La Comuna**. |
+| Requisito | Descripción                                                                                   |
+| --------- | --------------------------------------------------------------------------------------------- |
+| Dev build | Instalar con `npx expo run:ios`. **No** Expo Go.                                              |
+| Salud     | Dispositivo físico recomendado; datos de menstruación/sangrado en la app Salud.               |
+| Permisos  | Si iOS no muestra de nuevo el sheet: **Ajustes → Salud → Acceso a datos y apps → La Comuna**. |
 
-**Permisos y consola (dev):** iOS suele agrupar datos de **ciclo menstrual** en un solo ámbito en Ajustes; no es obligatorio ver un interruptor distinto por cada tipo HK. Mientras un tipo concreto siga en estado *not determined* o sin lectura concedida, `queryCategorySamples` puede devolver `Authorization not determined` (code 5): es **esperable** hasta que la usuaria conceda acceso o active lecturas detalladas para la app. En `__DEV__` la app **no** registra en consola esos errores benignos de permiso (sí los errores inesperados).
+**Permisos y consola (dev):** iOS suele agrupar datos de **ciclo menstrual** en un solo ámbito en Ajustes; no es obligatorio ver un interruptor distinto por cada tipo HK. Mientras un tipo concreto siga en estado _not determined_ o sin lectura concedida, `queryCategorySamples` puede devolver `Authorization not determined` (code 5): es **esperable** hasta que la usuaria conceda acceso o active lecturas detalladas para la app. En `__DEV__` la app **no** registra en consola esos errores benignos de permiso (sí los errores inesperados).
 
 ### Variable opcional: `NOTION_SKIP_PHASE_WRITE` (solo desarrollo)
 
@@ -43,11 +43,11 @@ Fuera de alcance: escritura en Salud, background delivery, UI nativa de permisos
 
 ## Origen de datos (`cycleDataSource`)
 
-| Valor | Significado |
-|-------|-------------|
-| `healthkit` | Se obtuvo `lastPeriodStart` desde Salud en la última carga exitosa. |
-| `sqlite` | Fase/día desde `cycle_states` local; Salud no aportó muestra en esta carga (o aún no se ha sincronizado). |
-| `notion` | Sin `lastPeriodStart` local; fase solo desde Notion (`cycleDay` null). |
+| Valor       | Significado                                                                                               |
+| ----------- | --------------------------------------------------------------------------------------------------------- |
+| `healthkit` | Se obtuvo `lastPeriodStart` desde Salud en la última carga exitosa.                                       |
+| `sqlite`    | Fase/día desde `cycle_states` local; Salud no aportó muestra en esta carga (o aún no se ha sincronizado). |
+| `notion`    | Sin `lastPeriodStart` local; fase solo desde Notion (`cycleDay` null).                                    |
 
 ---
 
@@ -64,15 +64,15 @@ En la **primera instalación** sin SQLite, en iOS Salud sigue teniendo prioridad
 
 ## Criterios de aceptación
 
-| ID | Criterio | Plataforma |
-|----|----------|------------|
-| HK1 | Tras permitir lectura en Salud y con datos de ciclo, Perfil e Inicio muestran fase coherente y **día del ciclo** cuando aplica. | iOS dev |
-| HK2 | Sin permiso o sin datos en Salud, la app no crashea; fase puede venir de Notion o de SQLite previo. | iOS dev |
-| HK3 | En Expo Go o sin módulo Nitro/HealthKit, la app arranca; origen no es `healthkit`. | iOS |
-| HK4 | Perfil en iOS muestra **origen del ciclo** y estado **HealthKit** (módulo / tienda de salud) para QA. | iOS |
-| HK5 | Botón **Reintentar sincronización con Salud** resetea la petición de autorización y vuelve a cargar datos (útil tras cambiar Ajustes). | iOS dev |
-| HK6 | Con origen `healthkit` y fecha válida de Salud, la app lee la fila de **ese mismo usuario** en Notion; si la fase en Notion (normalizada) y la fase derivada de HK (normalizada) son fases de ciclo comparables y **difieren**, actualiza vía `updatePhase` **excepto** en `__DEV__` con `NOTION_SKIP_PHASE_WRITE` activo (no escribe, `console.warn`). Si coinciden, si Notion es `null`/`all` tras normalizar, o si no hay muestra de HK, **no** escribe. La fecha de próximo ciclo no dispara la escritura por sí sola. No se dispara en cada render, solo en el flujo de carga del hook. | iOS dev |
-| HK7 | Si `healthKitLifecycleContext` es `pregnancy` o `lactation`, **no** se llama a `updatePhase` en ese flujo aunque el origen sea `healthkit`. Perfil puede mostrar aviso (irregular / embarazo / lactancia / anticonceptivo). | iOS dev |
+| ID  | Criterio                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Plataforma |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| HK1 | Tras permitir lectura en Salud y con datos de ciclo, Perfil e Inicio muestran fase coherente y **día del ciclo** cuando aplica.                                                                                                                                                                                                                                                                                                                                                                                                                                                              | iOS dev    |
+| HK2 | Sin permiso o sin datos en Salud, la app no crashea; fase puede venir de Notion o de SQLite previo.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | iOS dev    |
+| HK3 | En Expo Go o sin módulo Nitro/HealthKit, la app arranca; origen no es `healthkit`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | iOS        |
+| HK4 | Perfil en iOS muestra **origen del ciclo** y estado **HealthKit** (módulo / tienda de salud) para QA.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | iOS        |
+| HK5 | Botón **Reintentar sincronización con Salud** resetea la petición de autorización y vuelve a cargar datos (útil tras cambiar Ajustes).                                                                                                                                                                                                                                                                                                                                                                                                                                                       | iOS dev    |
+| HK6 | Con origen `healthkit` y fecha válida de Salud, la app lee la fila de **ese mismo usuario** en Notion; si la fase en Notion (normalizada) y la fase derivada de HK (normalizada) son fases de ciclo comparables y **difieren**, actualiza vía `updatePhase` **excepto** en `__DEV__` con `NOTION_SKIP_PHASE_WRITE` activo (no escribe, `console.warn`). Si coinciden, si Notion es `null`/`all` tras normalizar, o si no hay muestra de HK, **no** escribe. La fecha de próximo ciclo no dispara la escritura por sí sola. No se dispara en cada render, solo en el flujo de carga del hook. | iOS dev    |
+| HK7 | Si `healthKitLifecycleContext` es `pregnancy` o `lactation`, **no** se llama a `updatePhase` en ese flujo aunque el origen sea `healthkit`. Perfil puede mostrar aviso (irregular / embarazo / lactancia / anticonceptivo).                                                                                                                                                                                                                                                                                                                                                                  | iOS dev    |
 
 ---
 

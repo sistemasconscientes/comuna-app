@@ -31,23 +31,23 @@ Fuera de alcance: React Navigation, lógica de hooks (`useHealthData`, etc.), da
 
 ## Criterios de aceptación
 
-| ID | Criterio |
-|----|----------|
-| USP-1 | Sin valor guardado (o valor inválido), tras arranque la app muestra solo el selector de perfiles (sin pestañas). |
-| USP-2 | Tras elegir perfil en esa pantalla, se intenta guardar `selected_user` (y emoji) en AsyncStorage, se cierra el gate, se muestran las pestañas y la pestaña activa puede volver a Inicio. Si la escritura falla, la app entra igual en pestañas con el perfil elegido en sesión (sin bloquear en el selector); el error se registra en Sentry. |
-| USP-3 | Con valor válido guardado, al siguiente cold start la app abre directamente en las pestañas con ese perfil (sin pantalla de selector). |
-| USP-4 | En Perfil, cambiar entre perfiles actualiza `selected_user` y tras reinicio persiste el último elegido. |
-| USP-5 | «Cambiar usuario» elimina `selected_user` y muestra de nuevo la pantalla de selector; hasta elegir de nuevo no se reescribe la clave. Si `removeItem` falla, igual se muestra el selector (y se registra el error) para que la usuaria no quede sin respuesta. |
-| USP-6 | Si la app se cierra estando en el selector tras USP-5, el próximo arranque vuelve a mostrar el selector (no hay clave). |
-| USP-7 | `PostHogIdentifyUser` no corre mientras la pantalla de selector está visible (sin identificar con perfil por defecto antes de elegir). |
-| USP-8 | En la pantalla de selector (gate), debajo de cada botón se muestra un picker de emojis predefinidos; la selección por defecto es `🌿`. |
-| USP-9 | Al completar la selección inicial de usuario `u`, se persiste `user_emoji_u` con el emoji seleccionado para ese `u` (si no se eligió, se persiste `🌿`). |
-| USP-10 | En `Home`, el header del checklist muestra el emoji leído desde `AsyncStorage.getItem(user_emoji_${user})` y si falta/está vacío muestra `🌿` en vez de romper la UI. |
-| USP-11 | En `Perfil`, desde el selector de usuario se puede cambiar el emoji de cada perfil; al cambiar se persiste en su clave `user_emoji_u` sin necesidad de volver al gate inicial. |
-| USP-12 | Si la usuaria elige un emoji en el gate antes de que termine `AsyncStorage.getItem` para los emojis guardados, esa elección se conserva (no la pisa la hidratación tardía). |
-| USP-12b | Con el gate abierto, una nueva ejecución del efecto de hidratación de emojis (p. ej. por cambio de `success` en migraciones) **no** resetea los emojis ya elegidos en pantalla ni vuelve a disparar la lectura como si el gate acabara de abrirse. |
-| USP-13 | Cambios rápidos de usuario en Perfil: el usuario activo en UI se actualiza de forma **síncrona**; las escrituras a `AsyncStorage` no pueden dejar un perfil antiguo en pantalla por completarse fuera de orden. Si falla la persistencia del último cambio intentado, se revierte al valor anterior solo si la UI sigue mostrando ese intento. |
-| USP-14 | Tras «Cambiar usuario», si falla `AsyncStorage.removeItem`, la app muestra igual el gate (selector); no solo PostHog — coherente con el arranque cuando falla la lectura de `selected_user`. |
+| ID      | Criterio                                                                                                                                                                                                                                                                                                                                       |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| USP-1   | Sin valor guardado (o valor inválido), tras arranque la app muestra solo el selector de perfiles (sin pestañas).                                                                                                                                                                                                                               |
+| USP-2   | Tras elegir perfil en esa pantalla, se intenta guardar `selected_user` (y emoji) en AsyncStorage, se cierra el gate, se muestran las pestañas y la pestaña activa puede volver a Inicio. Si la escritura falla, la app entra igual en pestañas con el perfil elegido en sesión (sin bloquear en el selector); el error se registra en Sentry.  |
+| USP-3   | Con valor válido guardado, al siguiente cold start la app abre directamente en las pestañas con ese perfil (sin pantalla de selector).                                                                                                                                                                                                         |
+| USP-4   | En Perfil, cambiar entre perfiles actualiza `selected_user` y tras reinicio persiste el último elegido.                                                                                                                                                                                                                                        |
+| USP-5   | «Cambiar usuario» elimina `selected_user` y muestra de nuevo la pantalla de selector; hasta elegir de nuevo no se reescribe la clave. Si `removeItem` falla, igual se muestra el selector (y se registra el error) para que la usuaria no quede sin respuesta.                                                                                 |
+| USP-6   | Si la app se cierra estando en el selector tras USP-5, el próximo arranque vuelve a mostrar el selector (no hay clave).                                                                                                                                                                                                                        |
+| USP-7   | `PostHogIdentifyUser` no corre mientras la pantalla de selector está visible (sin identificar con perfil por defecto antes de elegir).                                                                                                                                                                                                         |
+| USP-8   | En la pantalla de selector (gate), debajo de cada botón se muestra un picker de emojis predefinidos; la selección por defecto es `🌿`.                                                                                                                                                                                                         |
+| USP-9   | Al completar la selección inicial de usuario `u`, se persiste `user_emoji_u` con el emoji seleccionado para ese `u` (si no se eligió, se persiste `🌿`).                                                                                                                                                                                       |
+| USP-10  | En `Home`, el header del checklist muestra el emoji leído desde `AsyncStorage.getItem(user_emoji_${user})` y si falta/está vacío muestra `🌿` en vez de romper la UI.                                                                                                                                                                          |
+| USP-11  | En `Perfil`, desde el selector de usuario se puede cambiar el emoji de cada perfil; al cambiar se persiste en su clave `user_emoji_u` sin necesidad de volver al gate inicial.                                                                                                                                                                 |
+| USP-12  | Si la usuaria elige un emoji en el gate antes de que termine `AsyncStorage.getItem` para los emojis guardados, esa elección se conserva (no la pisa la hidratación tardía).                                                                                                                                                                    |
+| USP-12b | Con el gate abierto, una nueva ejecución del efecto de hidratación de emojis (p. ej. por cambio de `success` en migraciones) **no** resetea los emojis ya elegidos en pantalla ni vuelve a disparar la lectura como si el gate acabara de abrirse.                                                                                             |
+| USP-13  | Cambios rápidos de usuario en Perfil: el usuario activo en UI se actualiza de forma **síncrona**; las escrituras a `AsyncStorage` no pueden dejar un perfil antiguo en pantalla por completarse fuera de orden. Si falla la persistencia del último cambio intentado, se revierte al valor anterior solo si la UI sigue mostrando ese intento. |
+| USP-14  | Tras «Cambiar usuario», si falla `AsyncStorage.removeItem`, la app muestra igual el gate (selector); no solo PostHog — coherente con el arranque cuando falla la lectura de `selected_user`.                                                                                                                                                   |
 
 ---
 
@@ -99,14 +99,14 @@ Feature: Usuario persistido
 
 Los nombres y propiedades están definidos en la tabla de eventos explícitos en [`posthog-analytics.md`](posthog-analytics.md). Resumen:
 
-| Evento | Uso en este feature |
-|--------|---------------------|
-| `selected_user_restored` | Hidratación cold start con valor válido |
-| `user_picker_shown` | Se muestra el selector (`reason`: `no_stored_value` \| `manual_clear`) |
-| `user_picker_completed` | Elección en la pantalla de selector de `App` |
-| `user_switched_in_profile` | Cambio Diana/Estefanía en Perfil (solo si el perfil cambia) |
-| `stored_user_cleared` | Tras borrar almacenamiento al pulsar «Cambiar usuario» |
-| `user_persistence_failed` | Error en lectura/escritura/borrado de AsyncStorage |
+| Evento                     | Uso en este feature                                                    |
+| -------------------------- | ---------------------------------------------------------------------- |
+| `selected_user_restored`   | Hidratación cold start con valor válido                                |
+| `user_picker_shown`        | Se muestra el selector (`reason`: `no_stored_value` \| `manual_clear`) |
+| `user_picker_completed`    | Elección en la pantalla de selector de `App`                           |
+| `user_switched_in_profile` | Cambio Diana/Estefanía en Perfil (solo si el perfil cambia)            |
+| `stored_user_cleared`      | Tras borrar almacenamiento al pulsar «Cambiar usuario»                 |
+| `user_persistence_failed`  | Error en lectura/escritura/borrado de AsyncStorage                     |
 
 ---
 

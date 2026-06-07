@@ -57,7 +57,7 @@ function calcDays(entry: StockEntry): DaysInfo {
   }
   const bottleOpenedAt = new Date(entry.bottleOpenedAt);
   const daysSinceOpened = Math.floor(
-    (Date.now() - bottleOpenedAt.getTime()) / (1000 * 60 * 60 * 24)
+    (Date.now() - bottleOpenedAt.getTime()) / (1000 * 60 * 60 * 24),
   );
   const pillsRemaining = entry.totalPills - daysSinceOpened * entry.pillsPerDay;
   const daysRemaining = Math.floor(pillsRemaining / entry.pillsPerDay);
@@ -76,7 +76,7 @@ function resolveStockEntry(
   sup: Supplement,
   localId: number | undefined,
   stockData: StockEntry[],
-  sharedByNotionId: Record<string, SharedStock | null>
+  sharedByNotionId: Record<string, SharedStock | null>,
 ): StockEntry | undefined {
   if (sup.persona === 'Ambas') {
     const sh = sharedByNotionId[sup.notion_id];
@@ -101,7 +101,7 @@ export default function Stock({ user }: Props) {
   const { cyclePhase } = useHealthData(user, { calendarDayKey });
   const fetchStockBundle = useCallback(
     () => fetchSupplementsWithStock(user, cyclePhase ?? ''),
-    [user, cyclePhase, calendarDayKey]
+    [user, cyclePhase, calendarDayKey],
   );
   const {
     data: stockBundle,
@@ -118,7 +118,7 @@ export default function Stock({ user }: Props) {
       stockBundle?.sharedByNotionId
         ? reviveSharedStockMapFromCache(stockBundle.sharedByNotionId)
         : {},
-    [stockBundle]
+    [stockBundle],
   );
 
   const { data: stockData, loading: stockLoading, updateBottle, setRestockFlagged } = useStock();
@@ -143,7 +143,7 @@ export default function Stock({ user }: Props) {
   const getEntry = useCallback(
     (sup: Supplement, localId: number | undefined) =>
       resolveStockEntry(sup, localId, stockData, sharedByNotionId),
-    [stockData, sharedByNotionId]
+    [stockData, sharedByNotionId],
   );
 
   // Mark low-stock in Notion once per fila (persistido en SQLite o backend como restock_flagged)
@@ -233,7 +233,10 @@ export default function Stock({ user }: Props) {
       setEditState(null);
     } catch (e) {
       reportErrorToSentry(e, { domain: 'stock_save', user });
-      Alert.alert('Error', 'No se pudo guardar el stock. Revisá la conexión o la clave del backend.');
+      Alert.alert(
+        'Error',
+        'No se pudo guardar el stock. Revisá la conexión o la clave del backend.',
+      );
     }
   };
 
@@ -262,7 +265,10 @@ export default function Stock({ user }: Props) {
       setEditState(null);
     } catch (e) {
       reportErrorToSentry(e, { domain: 'stock_new_bottle', user });
-      Alert.alert('Error', 'No se pudo guardar el stock. Revisá la conexión o la clave del backend.');
+      Alert.alert(
+        'Error',
+        'No se pudo guardar el stock. Revisá la conexión o la clave del backend.',
+      );
     }
   };
 
@@ -300,7 +306,9 @@ export default function Stock({ user }: Props) {
           style={[styles.filterChip, temporadaView === 'all' && styles.filterChipActive]}
           onPress={() => setTemporadaView('all')}
         >
-          <Text style={[styles.filterChipText, temporadaView === 'all' && styles.filterChipTextActive]}>
+          <Text
+            style={[styles.filterChipText, temporadaView === 'all' && styles.filterChipTextActive]}
+          >
             Todas
           </Text>
         </TouchableOpacity>
@@ -309,7 +317,10 @@ export default function Stock({ user }: Props) {
           onPress={() => setTemporadaView('current')}
         >
           <Text
-            style={[styles.filterChipText, temporadaView === 'current' && styles.filterChipTextActive]}
+            style={[
+              styles.filterChipText,
+              temporadaView === 'current' && styles.filterChipTextActive,
+            ]}
           >
             Temporada actual
           </Text>
@@ -335,9 +346,7 @@ export default function Stock({ user }: Props) {
               SCREEN_SCROLL_PADDING_BOTTOM_EXTRA + insets.bottom + FLOATING_TAB_BAR_EXTRA,
           },
         ]}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={refreshStockBundle} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshStockBundle} />}
         ListEmptyComponent={
           temporadaView === 'current' ? (
             <Text style={styles.emptyFilterText}>
@@ -398,7 +407,11 @@ export default function Stock({ user }: Props) {
           }}
         >
           <View style={styles.sheet}>
-            <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={8} style={styles.sheetKav}>
+            <KeyboardAvoidingView
+              behavior="padding"
+              keyboardVerticalOffset={8}
+              style={styles.sheetKav}
+            >
               <ScrollView
                 style={styles.sheetScroll}
                 contentContainerStyle={styles.sheetScrollContent}
@@ -486,7 +499,12 @@ const styles = StyleSheet.create({
   },
   filterChipText: { fontSize: 14, color: theme.textSecondary, fontWeight: '500' },
   filterChipTextActive: { color: theme.successText },
-  emptyFilterText: { textAlign: 'center', color: theme.textMuted, paddingVertical: 24, paddingHorizontal: 20 },
+  emptyFilterText: {
+    textAlign: 'center',
+    color: theme.textMuted,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+  },
 
   alertBanner: {
     backgroundColor: theme.warningBg,

@@ -41,7 +41,11 @@ describe('getTodayMeals', () => {
     const blocks: NotionBlock[] = [
       h2('📅 Plan semanal'),
       { id: 'h', type: 'heading_3', heading_3: { rich_text: rt('Lunes 23 mar — Lútea 🦥') } },
-      { id: 't', type: 'table', table: { table_width: 2, has_column_header: true, has_row_header: false } },
+      {
+        id: 't',
+        type: 'table',
+        table: { table_width: 2, has_column_header: true, has_row_header: false },
+      },
       row('Comida', 'Plato'),
       row('Desayuno', 'Avena'),
       row('Comida', 'Pollo'),

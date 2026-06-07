@@ -26,7 +26,7 @@ export type SupplementsWithStockPayload = {
 export async function syncSupplementsFromNotion(
   user: User,
   currentPhase: string,
-  applyTemporadaFilter: boolean
+  applyTemporadaFilter: boolean,
 ): Promise<{ supplements: Supplement[]; idByNotionId: Record<string, number> }> {
   const data = await getSupplements(user, currentPhase, applyTemporadaFilter);
 
@@ -53,7 +53,7 @@ export async function syncSupplementsFromNotion(
             notionId: s.notion_id,
             createdAt: now,
             updatedAt: now,
-          }))
+          })),
         );
       }
 
@@ -62,7 +62,7 @@ export async function syncSupplementsFromNotion(
         .from(supplementsTable)
         .where(inArray(supplementsTable.notionId, notionIds));
       mapping = Object.fromEntries(
-        allRows.filter((r) => r.notionId).map((r) => [r.notionId as string, r.id])
+        allRows.filter((r) => r.notionId).map((r) => [r.notionId as string, r.id]),
       );
     }
   } catch (err) {
@@ -80,16 +80,18 @@ export async function syncSupplementsFromNotion(
 /** Stock: suplementos + mapping local + stock compartido (Persona Ambas). */
 export async function fetchSupplementsWithStock(
   user: User,
-  currentPhase: string
+  currentPhase: string,
 ): Promise<SupplementsWithStockPayload> {
   try {
     const { supplements, idByNotionId } = await syncSupplementsFromNotion(
       user,
       currentPhase,
-      false
+      false,
     );
     const ambasIds = supplements.filter((s) => s.persona === 'Ambas').map((s) => s.notion_id);
-    const pairs = await Promise.all(ambasIds.map(async (id) => [id, await getSharedStock(id)] as const));
+    const pairs = await Promise.all(
+      ambasIds.map(async (id) => [id, await getSharedStock(id)] as const),
+    );
     const sharedByNotionId = Object.fromEntries(pairs);
     return { supplements, idByNotionId, sharedByNotionId };
   } catch (e) {
@@ -103,11 +105,7 @@ export async function fetchSupplementsWithStock(
   }
 }
 
-export function useSupplements(
-  user: User,
-  currentPhase: string,
-  options?: UseSupplementsOptions,
-) {
+export function useSupplements(user: User, currentPhase: string, options?: UseSupplementsOptions) {
   const applyTemporadaFilter = options?.applyTemporadaFilter !== false;
   const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,7 +124,7 @@ export function useSupplements(
         const { supplements: data, idByNotionId: mapping } = await syncSupplementsFromNotion(
           user,
           currentPhase,
-          applyTemporadaFilter
+          applyTemporadaFilter,
         );
 
         if (!cancelled) {

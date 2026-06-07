@@ -15,7 +15,11 @@ function monthToQuarter(month: number): 1 | 2 | 3 | 4 {
   return 4;
 }
 
-function temporadaLabelMatchesInclusion(label: string, month: number, currentPhase: string): boolean {
+function temporadaLabelMatchesInclusion(
+  label: string,
+  month: number,
+  currentPhase: string,
+): boolean {
   const n = normalizeAccentLower(label);
   if (n === 'todo el año' || n === 'todo el ano') return true;
 
@@ -44,5 +48,7 @@ export function filterSupplementsByCurrentTemporada<T extends { temporadaLabels:
   currentPhase: string,
 ): T[] {
   const month = new Date().getMonth() + 1;
-  return items.filter((s) => supplementMatchesCurrentTemporada(s.temporadaLabels, month, currentPhase));
+  return items.filter((s) =>
+    supplementMatchesCurrentTemporada(s.temporadaLabels, month, currentPhase),
+  );
 }

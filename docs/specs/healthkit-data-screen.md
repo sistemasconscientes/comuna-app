@@ -34,14 +34,14 @@ Una fila indica que HealthKit no está disponible (sin Sentry salvo fallo inespe
 
 ## Criterios de aceptación
 
-| ID | Criterio |
-|----|----------|
-| HK-DS-1 | La barra inferior incluye la pestaña **Salud** y monta `HealthKitData`. |
-| HK-DS-2 | Cada fila muestra etiqueta + texto principal; opcionalmente `hint` para aclarar «sin datos» vs permisos. |
-| HK-DS-3 | Texto explícito **«Sin datos en Salud»** (o equivalente) cuando no hay muestras pero la lectura técnica fue válida. |
+| ID      | Criterio                                                                                                                                                                                                                                                       |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HK-DS-1 | La barra inferior incluye la pestaña **Salud** y monta `HealthKitData`.                                                                                                                                                                                        |
+| HK-DS-2 | Cada fila muestra etiqueta + texto principal; opcionalmente `hint` para aclarar «sin datos» vs permisos.                                                                                                                                                       |
+| HK-DS-3 | Texto explícito **«Sin datos en Salud»** (o equivalente) cuando no hay muestras pero la lectura técnica fue válida.                                                                                                                                            |
 | HK-DS-4 | Errores no benignos en `authorizationStatusFor`, `queryCategorySamples` o `queryQuantitySamples` (BBT) disparan `reportErrorToSentry` con `domain: healthkit_data_screen` y la fila correspondiente muestra mensaje de error (no se confunde con «sin datos»). |
-| HK-DS-5 | Pull-to-refresh recarga el snapshot (TTL corto vía `useCache`). |
-| HK-DS-6 | PostHog: al primer montaje de la pantalla se emite `healthkit_data_screen_viewed` con `user`. |
+| HK-DS-5 | Pull-to-refresh recarga el snapshot (TTL corto vía `useCache`).                                                                                                                                                                                                |
+| HK-DS-6 | PostHog: al primer montaje de la pantalla se emite `healthkit_data_screen_viewed` con `user`.                                                                                                                                                                  |
 
 ---
 

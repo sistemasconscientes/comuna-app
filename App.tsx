@@ -152,7 +152,9 @@ function App() {
     void (async () => {
       try {
         const entries = await Promise.all(
-          PROFILES.map(async (p) => [p.id, await AsyncStorage.getItem(emojiKeyForUser(p.id))] as const),
+          PROFILES.map(
+            async (p) => [p.id, await AsyncStorage.getItem(emojiKeyForUser(p.id))] as const,
+          ),
         );
         if (cancelled) return;
         setUserEmojiByUser((prev) => {
@@ -232,49 +234,49 @@ function App() {
     })();
   }, []);
 
-  const persistSetUser = React.useCallback(
-    (u: User) => {
-      const prev = userRef.current;
-      if (prev === u) return;
+  const persistSetUser = React.useCallback((u: User) => {
+    const prev = userRef.current;
+    if (prev === u) return;
 
-      // Actualización optimista: evita que escrituras async desordenadas dejen un usuario viejo en pantalla.
-      setUserState(u);
+    // Actualización optimista: evita que escrituras async desordenadas dejen un usuario viejo en pantalla.
+    setUserState(u);
 
-      void (async () => {
-        try {
-          await AsyncStorage.setItem(SELECTED_USER_KEY, u);
-          if (userRef.current !== u) return;
-          if (!showPickerRef.current) {
-            posthogRef.current?.capture('user_switched_in_profile', { previous_user: prev, user: u });
-          }
-        } catch (e) {
-          reportErrorToSentry(e, {
-            domain: 'async_storage',
-            operation: 'write',
-            message: persistenceErrorMessage(e),
-          });
-          if (userRef.current === u) {
-            setUserState(prev);
-          }
+    void (async () => {
+      try {
+        await AsyncStorage.setItem(SELECTED_USER_KEY, u);
+        if (userRef.current !== u) return;
+        if (!showPickerRef.current) {
+          posthogRef.current?.capture('user_switched_in_profile', { previous_user: prev, user: u });
         }
-      })();
-    },
-    [],
-  );
+      } catch (e) {
+        reportErrorToSentry(e, {
+          domain: 'async_storage',
+          operation: 'write',
+          message: persistenceErrorMessage(e),
+        });
+        if (userRef.current === u) {
+          setUserState(prev);
+        }
+      }
+    })();
+  }, []);
 
   const completeGateSelection = React.useCallback(
     (u: User) => {
       const reason = pickerReasonRef.current;
       void (async () => {
         try {
-          const emojiToSave =
-            userEmojiByUser[u] || PROFILES.find((p) => p.id === u)!.emojiDefault;
+          const emojiToSave = userEmojiByUser[u] || PROFILES.find((p) => p.id === u)!.emojiDefault;
           await AsyncStorage.setItem(emojiKeyForUser(u), emojiToSave);
           await AsyncStorage.setItem(SELECTED_USER_KEY, u);
           setUserState(u);
           setShowUserPicker(false);
           setActiveTab('home');
-          posthogRef.current?.capture('user_picker_completed', { user: u, reason, persisted: true });
+          posthogRef.current?.capture('user_picker_completed', {
+            user: u,
+            reason,
+            persisted: true,
+          });
         } catch (e) {
           reportErrorToSentry(e, {
             domain: 'async_storage',
@@ -284,7 +286,11 @@ function App() {
           setUserState(u);
           setShowUserPicker(false);
           setActiveTab('home');
-          posthogRef.current?.capture('user_picker_completed', { user: u, reason, persisted: false });
+          posthogRef.current?.capture('user_picker_completed', {
+            user: u,
+            reason,
+            persisted: false,
+          });
         }
       })();
     },
@@ -323,9 +329,7 @@ function App() {
   }
 
   return (
-    <UserContext.Provider
-      value={{ user, setUser: persistSetUser, clearStoredUserAndShowPicker }}
-    >
+    <UserContext.Provider value={{ user, setUser: persistSetUser, clearStoredUserAndShowPicker }}>
       {!showUserPicker && <PostHogIdentifyUser user={user} />}
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <StatusBar style="light" />
@@ -363,7 +367,9 @@ function App() {
                           style={[styles.emojiChip, active && styles.emojiChipActive]}
                           activeOpacity={0.8}
                         >
-                          <Text style={[styles.emojiChipText, active && styles.emojiChipTextActive]}>
+                          <Text
+                            style={[styles.emojiChipText, active && styles.emojiChipTextActive]}
+                          >
                             {emoji}
                           </Text>
                         </TouchableOpacity>
@@ -381,17 +387,12 @@ function App() {
               {activeTab === 'stock' && <Stock user={user} />}
               {activeTab === 'comidas' && <MealPrep />}
               {activeTab === 'salud' && <HealthKitData />}
-              {activeTab === 'perfil' && (
-                <Profile onBackToTabs={() => setActiveTab('home')} />
-              )}
+              {activeTab === 'perfil' && <Profile onBackToTabs={() => setActiveTab('home')} />}
             </View>
 
             <View
               pointerEvents="box-none"
-              style={[
-                styles.tabBarFloatOuter,
-                { bottom: tabBarInsets.bottom + TAB_FLOAT_MARGIN },
-              ]}
+              style={[styles.tabBarFloatOuter, { bottom: tabBarInsets.bottom + TAB_FLOAT_MARGIN }]}
             >
               <View style={styles.tabBarPill}>
                 {TABS.map((tab) => {
@@ -407,11 +408,7 @@ function App() {
                       accessibilityState={{ selected: active }}
                       accessibilityLabel={tab.label}
                     >
-                      <Ionicons
-                        name={active ? tab.iconActive : tab.icon}
-                        size={22}
-                        color={color}
-                      />
+                      <Ionicons name={active ? tab.iconActive : tab.icon} size={22} color={color} />
                       <Text
                         style={[styles.tabLabelFloat, active && styles.tabLabelFloatActive]}
                         numberOfLines={1}
@@ -449,7 +446,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   gateBtnText: { fontSize: 17, fontWeight: '600', color: theme.text },
-  emojiPickerRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 10 },
+  emojiPickerRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
   emojiChip: {
     paddingVertical: 6,
     paddingHorizontal: 8,

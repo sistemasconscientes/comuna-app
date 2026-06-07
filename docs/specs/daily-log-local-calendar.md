@@ -15,10 +15,10 @@
 
 ## Regla anti-regresión (fechas)
 
-| Prohibido para `daily_logs.date` y “hoy” de producto | Usar en su lugar |
-|------------------------------------------------------|------------------|
-| `new Date().toISOString().split('T')[0]` o slice equivalente | `getLocalTodayISO()` desde [`dateUtils.ts`](../../src/utils/dateUtils.ts) |
-| Cualquier derivación UTC del “día” | Calendario local del teléfono (misma semántica que `Date#getFullYear` / `getMonth` / `getDate`) |
+| Prohibido para `daily_logs.date` y “hoy” de producto         | Usar en su lugar                                                                                |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `new Date().toISOString().split('T')[0]` o slice equivalente | `getLocalTodayISO()` desde [`dateUtils.ts`](../../src/utils/dateUtils.ts)                       |
+| Cualquier derivación UTC del “día”                           | Calendario local del teléfono (misma semántica que `Date#getFullYear` / `getMonth` / `getDate`) |
 
 Los timestamps de instante (`createdAt`, `updatedAt` en SQLite) pueden seguir en ISO UTC.
 
@@ -26,26 +26,26 @@ Los timestamps de instante (`createdAt`, `updatedAt` en SQLite) pueden seguir en
 
 ## Comportamiento
 
-| Aspecto | Regla |
-|---------|--------|
-| Clave de día | `useCalendarDayLocal()` mantiene `todayKey`; se recalcula al montar y en `AppState` → `active` con `getLocalTodayISO()`. |
-| Inicio | `useDailyLog(user, todayKey)`; `useSupplements` y `useHealthData` reciben `calendarDayKey: todayKey` para invalidar fetch al cambiar día. |
-| Tras lectura SQLite | Si alguna fila devuelta tuviera `date !== logDate` esperado, no usar filas inconsistentes (defensa) y reportar a Sentry. |
-| Notion | Sin caché persistente nueva; basta dependencia de `calendarDayKey` en los efectos de fetch. |
-| Errores | Si falla Notion (o carga inicial), banner o mensaje explícito; no confundir con “0 suplementos” en silencio. |
-| Safe area | `App.tsx`: `SafeAreaView` solo laterales; pestañas aplican `insets.top`; scroll con `insets.bottom + FLOATING_TAB_BAR_EXTRA` por tab bar flotante (ver [`app-tab-bar.md`](./app-tab-bar.md) TAB-6). |
+| Aspecto             | Regla                                                                                                                                                                                               |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Clave de día        | `useCalendarDayLocal()` mantiene `todayKey`; se recalcula al montar y en `AppState` → `active` con `getLocalTodayISO()`.                                                                            |
+| Inicio              | `useDailyLog(user, todayKey)`; `useSupplements` y `useHealthData` reciben `calendarDayKey: todayKey` para invalidar fetch al cambiar día.                                                           |
+| Tras lectura SQLite | Si alguna fila devuelta tuviera `date !== logDate` esperado, no usar filas inconsistentes (defensa) y reportar a Sentry.                                                                            |
+| Notion              | Sin caché persistente nueva; basta dependencia de `calendarDayKey` en los efectos de fetch.                                                                                                         |
+| Errores             | Si falla Notion (o carga inicial), banner o mensaje explícito; no confundir con “0 suplementos” en silencio.                                                                                        |
+| Safe area           | `App.tsx`: `SafeAreaView` solo laterales; pestañas aplican `insets.top`; scroll con `insets.bottom + FLOATING_TAB_BAR_EXTRA` por tab bar flotante (ver [`app-tab-bar.md`](./app-tab-bar.md) TAB-6). |
 
 ---
 
 ## Criterios de aceptación
 
-| ID | Criterio |
-|----|----------|
+| ID   | Criterio                                                                                                                                                        |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | LC-1 | `daily_logs` para “hoy” en Inicio usa la misma fecha civil que el reloj local del dispositivo (no adelanta el día por UTC por la tarde en zonas detrás de UTC). |
-| LC-2 | Al pasar de día (o reabrir la app ya en día nuevo), la lista de suplementos y la fase se vuelven a pedir a Notion / flujo actual. |
-| LC-3 | Con red fallida o error de API, la usuaria ve error visible en Inicio e historial de tomas, no solo lista vacía. |
-| LC-4 | Cabecera de Inicio y últimos ítems de listas no quedan tapados por Dynamic Island / home indicator en dispositivos con notch o isla (p. ej. iPhone 16 Pro). |
-| LC-5 | Diana y Estefanía tienen logs independientes; cambiar perfil no mezcla tomas. |
+| LC-2 | Al pasar de día (o reabrir la app ya en día nuevo), la lista de suplementos y la fase se vuelven a pedir a Notion / flujo actual.                               |
+| LC-3 | Con red fallida o error de API, la usuaria ve error visible en Inicio e historial de tomas, no solo lista vacía.                                                |
+| LC-4 | Cabecera de Inicio y últimos ítems de listas no quedan tapados por Dynamic Island / home indicator en dispositivos con notch o isla (p. ej. iPhone 16 Pro).     |
+| LC-5 | Diana y Estefanía tienen logs independientes; cambiar perfil no mezcla tomas.                                                                                   |
 
 ---
 

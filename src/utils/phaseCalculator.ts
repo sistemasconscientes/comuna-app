@@ -77,10 +77,7 @@ interface CycleConfig {
  *   Ovulación:  días 14–16
  *   Lútea:      días 17–28
  */
-export function getPhaseFromCycleDay(
-  cycleDay: number,
-  config: CycleConfig = {}
-): CyclePhase {
+export function getPhaseFromCycleDay(cycleDay: number, config: CycleConfig = {}): CyclePhase {
   const { cycleLength = DEFAULT_CYCLE_LENGTH_DAYS, lutealLength = 14 } = config;
   const ovulationDay = cycleLength - lutealLength;
 

@@ -8,12 +8,12 @@ Actualizado para Expo **SDK 56** (ver [`dependency-upgrade-sdk56.md`](./dependen
 
 ## Criterios de aceptación
 
-| # | Criterio |
-|---|----------|
-| 1 | Tras `rm -rf node_modules && npm install`, no debe aparecer el aviso de `rimraf@3` ni el de `glob@10.5.x` arrastrado por la cadena `chromium-edge-launcher` → `rimraf` (resuelto con `overrides` en [`package.json`](../../package.json)). |
-| 2 | Las dependencias alineadas con Expo SDK 55 deben coincidir con lo que valida `npx expo-doctor` (salvo exclusiones explícitas en `expo.install.exclude`). |
-| 3 | `npm test` debe seguir pasando al completo. |
-| 4 | Los avisos que sigan saliendo por `glob@7` + `inflight` (Jest 29, React Native codegen) o por drizzle-kit / stack de tests están **documentados** como dependencia de versiones futuras de esas herramientas. |
+| #   | Criterio                                                                                                                                                                                                                                   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Tras `rm -rf node_modules && npm install`, no debe aparecer el aviso de `rimraf@3` ni el de `glob@10.5.x` arrastrado por la cadena `chromium-edge-launcher` → `rimraf` (resuelto con `overrides` en [`package.json`](../../package.json)). |
+| 2   | Las dependencias alineadas con Expo SDK 55 deben coincidir con lo que valida `npx expo-doctor` (salvo exclusiones explícitas en `expo.install.exclude`).                                                                                   |
+| 3   | `npm test` debe seguir pasando al completo.                                                                                                                                                                                                |
+| 4   | Los avisos que sigan saliendo por `glob@7` + `inflight` (Jest 29, React Native codegen) o por drizzle-kit / stack de tests están **documentados** como dependencia de versiones futuras de esas herramientas.                              |
 
 ## Diagnóstico (`npm ls` / `npm why`)
 
@@ -46,9 +46,9 @@ Resumen del árbol relevante:
 
 Post-SDK 56 quedan **16 moderate** en raíz, **0** en backend. Todas transitivas y de dev/CLI:
 
-| Cadena | Causa | Espera fix de |
-|--------|-------|---------------|
-| `drizzle-kit` → `@esbuild-kit/esm-loader` → `esbuild ≤0.24.2` | GHSA-67mh-4wv8-2f99 | Drizzle migre a `tsx` o suba `esbuild`. |
+| Cadena                                                                                                   | Causa               | Espera fix de                                  |
+| -------------------------------------------------------------------------------------------------------- | ------------------- | ---------------------------------------------- |
+| `drizzle-kit` → `@esbuild-kit/esm-loader` → `esbuild ≤0.24.2`                                            | GHSA-67mh-4wv8-2f99 | Drizzle migre a `tsx` o suba `esbuild`.        |
 | `expo`, `expo-splash-screen`, `@sentry/react-native` → `@expo/config-plugins` → `xcode` → `uuid <11.1.1` | GHSA-w5hq-g745-h8pq | Expo bumpee `xcode` en `@expo/config-plugins`. |
 
 **No** se aplica `npm audit fix --force`: bajaría `drizzle-kit` a `0.18.1` y `expo` a `46.x` (breaking). Ninguna es `high`/`critical`, así que el criterio de aceptación del upgrade (no `high`/`critical`) sigue verde.

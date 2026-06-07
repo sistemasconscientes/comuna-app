@@ -38,8 +38,10 @@ describe('📅 getPhaseFromCycleDay', () => {
     // folicular: 6 to <17 (days 6-16)
     // ovulacion: 17-19
     // lutea: 20+
-    it('día 16 → folicular (boundary)', () => expect(getPhaseFromCycleDay(16, config)).toBe('folicular'));
-    it('día 17 → ovulacion (boundary)', () => expect(getPhaseFromCycleDay(17, config)).toBe('ovulacion'));
+    it('día 16 → folicular (boundary)', () =>
+      expect(getPhaseFromCycleDay(16, config)).toBe('folicular'));
+    it('día 17 → ovulacion (boundary)', () =>
+      expect(getPhaseFromCycleDay(17, config)).toBe('ovulacion'));
     it('día 19 → ovulacion', () => expect(getPhaseFromCycleDay(19, config)).toBe('ovulacion'));
     it('día 20 → lutea', () => expect(getPhaseFromCycleDay(20, config)).toBe('lutea'));
   });

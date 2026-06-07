@@ -36,7 +36,7 @@ async function persist<T>(key: string, value: T): Promise<void> {
 export function useCache<T>(
   key: string,
   fetcher: () => Promise<T>,
-  ttlMs: number = 5 * 60 * 1000
+  ttlMs: number = 5 * 60 * 1000,
 ): {
   data: T | null;
   loading: boolean;

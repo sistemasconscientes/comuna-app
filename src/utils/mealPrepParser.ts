@@ -8,6 +8,9 @@
  * sin ancla no se parsea (evita Chef Prep tipo "Prep del viernes pasado").
  */
 
+/** Usuaria activa para columna de plato en tablas de 3 columnas (Diana / Estefanía). */
+import type { ProfileId } from '../config/profiles';
+
 export interface NotionRichText {
   plain_text?: string;
   type?: string;
@@ -23,9 +26,6 @@ export type NotionBlock = {
   table?: { table_width?: number; has_column_header?: boolean; has_row_header?: boolean };
   table_row?: { cells: NotionRichText[][] };
 };
-
-/** Usuaria activa para columna de plato en tablas de 3 columnas (Diana / Estefanía). */
-import type { ProfileId } from '../config/profiles';
 
 export type MealPrepUser = ProfileId;
 

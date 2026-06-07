@@ -1,4 +1,7 @@
-import { filterSupplementsByCurrentTemporada, supplementMatchesCurrentTemporada } from './temporadaFilter';
+import {
+  filterSupplementsByCurrentTemporada,
+  supplementMatchesCurrentTemporada,
+} from './temporadaFilter';
 
 describe('supplementMatchesCurrentTemporada', () => {
   it('incluye Todo el año', () => {
