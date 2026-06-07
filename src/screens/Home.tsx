@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useHealthData } from '../hooks/useHealthData';
@@ -20,6 +12,10 @@ import { getProfileLabel } from '../config/profiles';
 import { useUser } from '../context/UserContext';
 import type { Phase } from '../types';
 import { DEFAULT_CYCLE_LENGTH_DAYS } from '../utils/phaseCalculator';
+import { cyclePhaseToPhase } from '../utils/phaseUtils';
+import { ErrorBanner } from '../components/ErrorBanner';
+import { LoadingRow } from '../components/LoadingRow';
+import { EmptyState } from '../components/EmptyState';
 import {
   FLOATING_TAB_BAR_EXTRA,
   SCREEN_PADDING_TOP_EXTRA,
@@ -156,12 +152,7 @@ export default function Home({ onOpenSettings }: HomeProps) {
 
   const phaseLabel = cyclePhase ? PHASE_PILL_LABELS[cyclePhase] : '—';
 
-  const currentPhase: Phase =
-    cyclePhase === 'ovulacion'
-      ? 'ovulatoria'
-      : cyclePhase === 'menstrual' || cyclePhase === 'folicular' || cyclePhase === 'lutea'
-        ? cyclePhase
-        : 'menstrual';
+  const currentPhase: Phase = cyclePhase ? cyclePhaseToPhase(cyclePhase) : 'menstrual';
 
   const { teas, currentIndex, nextTea } = useTeas(currentPhase);
 
@@ -194,21 +185,9 @@ export default function Home({ onOpenSettings }: HomeProps) {
       ]}
       {...(Platform.OS === 'ios' ? ({ contentInsetAdjustmentBehavior: 'never' } as const) : {})}
     >
-      {fetchError && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>
-            Error al cargar datos:{'\n'}
-            {fetchError.message}
-          </Text>
-        </View>
-      )}
+      {fetchError && <ErrorBanner message={`Error al cargar datos:\n${fetchError.message}`} />}
 
-      {dataLoading && !fetchError && (
-        <View style={styles.loadingRow} accessibilityLabel="Cargando datos">
-          <ActivityIndicator size="small" color={C.accent} />
-          <Text style={styles.loadingText}>Cargando datos…</Text>
-        </View>
-      )}
+      {dataLoading && !fetchError && <LoadingRow />}
 
       {/* Cabecera: emoji + nombre, fecha, pastilla fase; ajustes a la derecha */}
       <View style={styles.topRow}>
@@ -294,9 +273,9 @@ export default function Home({ onOpenSettings }: HomeProps) {
       </View>
 
       {showEmptySupplements ? (
-        <Text style={styles.emptyText}>
-          {cyclePhase ? 'Sin suplementos para esta fase.' : 'Sin datos de fase.'}
-        </Text>
+        <EmptyState
+          message={cyclePhase ? 'Sin suplementos para esta fase.' : 'Sin datos de fase.'}
+        />
       ) : !fetchError && supplements.length > 0 ? (
         <View style={styles.checklistCard}>
           {supplements.map((s, index) => {
@@ -420,7 +399,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginTop: 0,
   },
-  emptyText: { color: C.muted, fontStyle: 'italic', fontSize: 15 },
   checklistCard: {
     backgroundColor: C.card,
     borderRadius: 20,
@@ -454,18 +432,4 @@ const styles = StyleSheet.create({
   supTextCol: { flex: 1 },
   supName: { fontSize: 16, fontWeight: '600', color: C.text },
   supDose: { fontSize: 13, color: C.muted, marginTop: 3 },
-  errorBanner: {
-    backgroundColor: theme.errorBg,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 4,
-  },
-  errorText: { color: theme.errorText, fontSize: 13 },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
-  },
-  loadingText: { fontSize: 14, color: C.muted },
 });
