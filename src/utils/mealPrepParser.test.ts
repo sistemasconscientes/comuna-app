@@ -29,14 +29,12 @@ function h1(text: string): NotionBlock {
 }
 
 describe('getTodayMeals', () => {
-  const realGetDay = Date.prototype.getDay;
-
   afterEach(() => {
-    Date.prototype.getDay = realGetDay;
+    jest.restoreAllMocks();
   });
 
   it('returns meals for matching weekday heading and table rows', () => {
-    Date.prototype.getDay = () => 1; // Lunes
+    jest.spyOn(Date.prototype, 'getDay').mockReturnValue(1); // Lunes
 
     const blocks: NotionBlock[] = [
       h2('📅 Plan semanal'),
@@ -62,7 +60,7 @@ describe('getTodayMeals', () => {
   });
 
   it('returns null when no heading for today', () => {
-    Date.prototype.getDay = () => 3; // Miércoles
+    jest.spyOn(Date.prototype, 'getDay').mockReturnValue(3); // Miércoles
     const blocks: NotionBlock[] = [
       h2('📅 Plan semanal'),
       { id: 'h', type: 'heading_3', heading_3: { rich_text: rt('Lunes 23 mar') } },
@@ -71,7 +69,7 @@ describe('getTodayMeals', () => {
   });
 
   it('returns null si no hay ancla Plan semanal aunque coincida el día', () => {
-    Date.prototype.getDay = () => 1;
+    jest.spyOn(Date.prototype, 'getDay').mockReturnValue(1);
     const blocks: NotionBlock[] = [
       { id: 'h', type: 'heading_3', heading_3: { rich_text: rt('Lunes 23 mar') } },
       { id: 't', type: 'table', table: {} },
@@ -82,7 +80,7 @@ describe('getTodayMeals', () => {
   });
 
   it('treats first row as data when first column is not Comida/Tipo', () => {
-    Date.prototype.getDay = () => 1;
+    jest.spyOn(Date.prototype, 'getDay').mockReturnValue(1);
     const blocks: NotionBlock[] = [
       h2('📅 Plan semanal'),
       { id: 'h', type: 'heading_3', heading_3: { rich_text: rt('Lunes 23 mar') } },
@@ -98,7 +96,7 @@ describe('getTodayMeals', () => {
   });
 
   it('skips header row when first column is Tipo', () => {
-    Date.prototype.getDay = () => 1;
+    jest.spyOn(Date.prototype, 'getDay').mockReturnValue(1);
     const blocks: NotionBlock[] = [
       h2('📅 Plan semanal'),
       { id: 'h', type: 'heading_3', heading_3: { rich_text: rt('Lunes 23 mar') } },
@@ -111,7 +109,7 @@ describe('getTodayMeals', () => {
   });
 
   it('ignores día en Chef Prep antes de 📅 Plan semanal', () => {
-    Date.prototype.getDay = () => 1;
+    jest.spyOn(Date.prototype, 'getDay').mockReturnValue(1);
     const blocks: NotionBlock[] = [
       h2('Chef Prep'),
       { id: 'chef-lun', type: 'heading_3', heading_3: { rich_text: rt('Lunes — prep') } },
@@ -129,7 +127,7 @@ describe('getTodayMeals', () => {
   });
 
   it('con ancla Plan semanal, null si el día solo aparece antes del plan', () => {
-    Date.prototype.getDay = () => 1;
+    jest.spyOn(Date.prototype, 'getDay').mockReturnValue(1);
     const blocks: NotionBlock[] = [
       { id: 'chef-lun', type: 'heading_3', heading_3: { rich_text: rt('Lunes — chef') } },
       { id: 't0', type: 'table', table: {} },
@@ -141,7 +139,7 @@ describe('getTodayMeals', () => {
   });
 
   it('acepta ancla Plan semanal en heading_1', () => {
-    Date.prototype.getDay = () => 1;
+    jest.spyOn(Date.prototype, 'getDay').mockReturnValue(1);
     const blocks: NotionBlock[] = [
       h1('📅 Plan semanal'),
       { id: 'h', type: 'heading_3', heading_3: { rich_text: rt('Lunes 23 mar') } },
@@ -153,7 +151,7 @@ describe('getTodayMeals', () => {
   });
 
   it('ignora heading_3 de Chef Prep que contiene el día (ej. viernes) antes del plan', () => {
-    Date.prototype.getDay = () => 5; // Viernes
+    jest.spyOn(Date.prototype, 'getDay').mockReturnValue(5); // Viernes
     const blocks: NotionBlock[] = [
       {
         id: 'chef-vie',
@@ -174,7 +172,7 @@ describe('getTodayMeals', () => {
   });
 
   it('tabla 3 columnas: plato según usuaria', () => {
-    Date.prototype.getDay = () => 1;
+    jest.spyOn(Date.prototype, 'getDay').mockReturnValue(1);
     const blocks: NotionBlock[] = [
       h2('📅 Plan semanal'),
       { id: 'h', type: 'heading_3', heading_3: { rich_text: rt('Lunes 23 mar') } },

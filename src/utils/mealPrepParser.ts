@@ -61,10 +61,6 @@ function headingPlainText(block: NotionBlock): string {
   return '';
 }
 
-function cellToText(cell: NotionRichText[] | undefined): string {
-  return richTextToPlain(cell).trim();
-}
-
 /** Prioriza el primer segmento (p. ej. `cells[0][0].plain_text`) y concatena el resto si hay varios. */
 function mealColumnText(cells: NotionRichText[][] | undefined, colIndex: number): string {
   const cell = cells?.[colIndex];

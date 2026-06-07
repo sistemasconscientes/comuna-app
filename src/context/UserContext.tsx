@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import { createContext, useContext } from 'react';
 import type { ProfileId } from '../config/profiles';
 
 /** Perfil activo en la app (máx. 2 slots; ver `src/config/profiles.ts`). */

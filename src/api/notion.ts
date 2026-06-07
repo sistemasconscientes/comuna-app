@@ -339,10 +339,6 @@ function heading2PlainText(block: NotionBlock): string {
   return richTextToPlainText(rich).trim();
 }
 
-function richText(content: string): NotionRichText[] {
-  return content ? [{ type: 'text', text: { content }, plain_text: content }] : [];
-}
-
 function textCell(content: string): NotionCell {
   return content ? [{ type: 'text', text: { content } }] : [];
 }
