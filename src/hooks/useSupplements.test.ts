@@ -18,8 +18,12 @@ const mockInsert = jest.fn(() => ({ values: mockInsertValues }));
 
 jest.mock('../db', () => ({
   db: {
-    select: () => ({ from: () => ({ where: mockSelect }) }),
-    insert: () => mockInsert(),
+    // Las escrituras van en transacción; el mock ejecuta el callback con un `tx` falso.
+    transaction: (cb: (tx: unknown) => Promise<unknown>) =>
+      cb({
+        select: () => ({ from: () => ({ where: mockSelect }) }),
+        insert: () => mockInsert(),
+      }),
   },
   supplements: { notionId: 'notionId' },
 }));
@@ -60,6 +64,7 @@ describe('syncSupplementsFromNotion', () => {
     const result = await syncSupplementsFromNotion('profile_1', 'menstrual', false);
 
     expect(result.idByNotionId).toEqual({ n1: 10, n2: 11 });
+    expect(result.syncError).toBeNull();
     // Solo n2 debía insertarse (n1 ya existía).
     expect(mockInsertValues).toHaveBeenCalledTimes(1);
     const inserted = mockInsertValues.mock.calls[0][0];
@@ -77,7 +82,7 @@ describe('syncSupplementsFromNotion', () => {
     expect(mockInsert).not.toHaveBeenCalled();
   });
 
-  it('si el sync local falla: reporta a Sentry, no lanza y devuelve mapping vacío', async () => {
+  it('si el sync local falla: reporta a Sentry, no lanza, mapping vacío y syncError poblado', async () => {
     mockGetSupplements.mockResolvedValue([supp('n1', 'Magnesio')]);
     mockSelect.mockRejectedValueOnce(new Error('SQLite locked'));
 
@@ -85,8 +90,10 @@ describe('syncSupplementsFromNotion', () => {
 
     // Los suplementos de Notion sí se devuelven (la UI no se queda vacía)...
     expect(result.supplements).toHaveLength(1);
-    // ...pero el mapping queda vacío y el fallo se reporta con dominio 'sqlite'.
+    // ...pero el mapping queda vacío y el fallo se reporta + se expone en syncError.
     expect(result.idByNotionId).toEqual({});
+    expect(result.syncError).toBeInstanceOf(Error);
+    expect(result.syncError?.message).toBe('SQLite locked');
     expect(mockReport).toHaveBeenCalledTimes(1);
     expect(mockReport.mock.calls[0][1]).toMatchObject({ domain: 'sqlite', user: 'profile_1' });
   });

@@ -20,21 +20,31 @@ export type SupplementsWithStockPayload = {
   sharedByNotionId: Record<string, SharedStock | null>;
 };
 
+export type SyncResult = {
+  supplements: Supplement[];
+  idByNotionId: Record<string, number>;
+  /** `null` si el sync local fue OK; el error si SQLite falló (los datos de Notion sí se devuelven). */
+  syncError: Error | null;
+};
+
 /**
- * Notion + sync SQLite (misma lógica que `useSupplements`). No lanza si solo falla el sync local.
+ * Notion + sync SQLite. No lanza si solo falla el sync local: devuelve los datos de
+ * Notion con `syncError` poblado para que la UI sepa que el mapping local quedó incompleto.
+ * Las escrituras van en una transacción (atómicas: o entran todas o ninguna).
  */
 export async function syncSupplementsFromNotion(
   user: User,
   currentPhase: string,
   applyTemporadaFilter: boolean,
-): Promise<{ supplements: Supplement[]; idByNotionId: Record<string, number> }> {
+): Promise<SyncResult> {
   const data = await getSupplements(user, currentPhase, applyTemporadaFilter);
 
-  let mapping: Record<string, number> = {};
+  const notionIds = data.map((s) => s.notion_id);
+  if (!notionIds.length) return { supplements: data, idByNotionId: {}, syncError: null };
+
   try {
-    const notionIds = data.map((s) => s.notion_id);
-    if (notionIds.length) {
-      const existing = await db
+    const mapping = await db.transaction(async (tx) => {
+      const existing = await tx
         .select()
         .from(supplementsTable)
         .where(inArray(supplementsTable.notionId, notionIds));
@@ -44,7 +54,7 @@ export async function syncSupplementsFromNotion(
 
       if (toInsert.length) {
         const now = new Date().toISOString();
-        await db.insert(supplementsTable).values(
+        await tx.insert(supplementsTable).values(
           toInsert.map((s) => ({
             name: s.name,
             dose: s.dose,
@@ -57,24 +67,20 @@ export async function syncSupplementsFromNotion(
         );
       }
 
-      const allRows = await db
+      const allRows = await tx
         .select()
         .from(supplementsTable)
         .where(inArray(supplementsTable.notionId, notionIds));
-      mapping = Object.fromEntries(
+      return Object.fromEntries(
         allRows.filter((r) => r.notionId).map((r) => [r.notionId as string, r.id]),
-      );
-    }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    reportErrorToSentry(err, {
-      domain: 'sqlite',
-      message: msg,
-      user,
+      ) as Record<string, number>;
     });
+    return { supplements: data, idByNotionId: mapping, syncError: null };
+  } catch (err) {
+    const e = err instanceof Error ? err : new Error(String(err));
+    reportErrorToSentry(e, { domain: 'sqlite', message: e.message, user });
+    return { supplements: data, idByNotionId: {}, syncError: e };
   }
-
-  return { supplements: data, idByNotionId: mapping };
 }
 
 /** Stock: suplementos + mapping local + stock compartido (Persona Ambas). */
@@ -83,6 +89,8 @@ export async function fetchSupplementsWithStock(
   currentPhase: string,
 ): Promise<SupplementsWithStockPayload> {
   try {
+    // syncError no se propaga aquí: este payload pasa por useCache (AsyncStorage) y
+    // un Error no serializa. El display de sync incompleto en Stock va con la UI de errores.
     const { supplements, idByNotionId } = await syncSupplementsFromNotion(
       user,
       currentPhase,
@@ -110,6 +118,8 @@ export function useSupplements(user: User, currentPhase: string, options?: UseSu
   const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  /** Notion respondió pero el sync local a SQLite falló (mapping incompleto). */
+  const [syncError, setSyncError] = useState<Error | null>(null);
   const [idByNotionId, setIdByNotionId] = useState<Record<string, number>>({});
 
   const phaseDep = applyTemporadaFilter ? currentPhase : '';
@@ -121,15 +131,16 @@ export function useSupplements(user: User, currentPhase: string, options?: UseSu
       try {
         setLoading(true);
         setError(null);
-        const { supplements: data, idByNotionId: mapping } = await syncSupplementsFromNotion(
-          user,
-          currentPhase,
-          applyTemporadaFilter,
-        );
+        const {
+          supplements: data,
+          idByNotionId: mapping,
+          syncError: localSyncError,
+        } = await syncSupplementsFromNotion(user, currentPhase, applyTemporadaFilter);
 
         if (!cancelled) {
           setSupplements(data);
           setIdByNotionId(mapping);
+          setSyncError(localSyncError);
         }
       } catch (e) {
         if (!cancelled) {
@@ -154,6 +165,7 @@ export function useSupplements(user: User, currentPhase: string, options?: UseSu
     supplements,
     loading,
     error,
+    syncError,
     idByNotionId,
   };
 }
