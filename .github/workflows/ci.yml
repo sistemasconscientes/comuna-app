@@ -2,12 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [oss/public, main]
+    branches: [main, oss/public]
   pull_request:
-    branches: [oss/public, main]
+    branches: [main, oss/public]
 
 jobs:
-  test:
+  app:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,7 +16,10 @@ jobs:
           node-version: '20'
           cache: npm
       - run: npm ci
-      - run: npm test
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test # incluye version:check
 
   backend-build:
     runs-on: ubuntu-latest

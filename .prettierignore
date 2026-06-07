@@ -1,0 +1,13 @@
+node_modules
+dist
+web-build
+.expo
+android
+ios
+backend
+.cursor
+*.code-workspace
+src/db/migrations
+package-lock.json
+*.sql
+assets
