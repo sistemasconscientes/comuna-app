@@ -2,6 +2,7 @@ node_modules
 dist
 web-build
 .expo
+.claude
 android
 ios
 backend

@@ -11,6 +11,7 @@ module.exports = [
       'dist/**',
       'web-build/**',
       '.expo/**',
+      '.claude/**', // worktrees de agentes anidados; no son código del proyecto
       'android/**',
       'ios/**',
       'src/db/migrations/**', // generadas por drizzle-kit
