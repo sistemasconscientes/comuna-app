@@ -32,6 +32,7 @@ import { useStock } from '../hooks/useStock';
 import type { Supplement, StockEntry } from '../types';
 import { filterSupplementsByCurrentTemporada } from '../utils/temporadaFilter';
 import { getLocalTodayISO } from '../utils/dateUtils';
+import { calcDaysRemaining } from '../utils/stockCalc';
 import { reportErrorToSentry } from '../utils/observability';
 import {
   FLOATING_TAB_BAR_EXTRA,
@@ -44,24 +45,6 @@ import type { User } from '../context/UserContext';
 
 interface Props {
   user: User;
-}
-
-interface DaysInfo {
-  daysRemaining: number | null;
-  pillsRemaining: number | null;
-}
-
-function calcDays(entry: StockEntry): DaysInfo {
-  if (!entry.bottleOpenedAt || entry.totalPills == null || entry.pillsPerDay == null) {
-    return { daysRemaining: null, pillsRemaining: null };
-  }
-  const bottleOpenedAt = new Date(entry.bottleOpenedAt);
-  const daysSinceOpened = Math.floor(
-    (Date.now() - bottleOpenedAt.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  const pillsRemaining = entry.totalPills - daysSinceOpened * entry.pillsPerDay;
-  const daysRemaining = Math.floor(pillsRemaining / entry.pillsPerDay);
-  return { daysRemaining, pillsRemaining };
 }
 
 function parseBottleDateInput(isoDay: string): Date {
@@ -157,7 +140,7 @@ export default function Stock({ user }: Props) {
         const localId = idByNotionId[sup.notion_id];
         const entry = getEntry(sup, localId);
         if (!entry) continue;
-        const { daysRemaining } = calcDays(entry);
+        const { daysRemaining } = calcDaysRemaining(entry);
         if (daysRemaining != null && daysRemaining < 7 && !entry.restockFlagged) {
           try {
             await markForRestock(sup.notion_id);
@@ -293,7 +276,7 @@ export default function Stock({ user }: Props) {
     if (sup.persona !== 'Ambas' && localId == null) return false;
     const entry = getEntry(sup, localId);
     if (!entry) return false;
-    const { daysRemaining } = calcDays(entry);
+    const { daysRemaining } = calcDaysRemaining(entry);
     return daysRemaining != null && daysRemaining < 7;
   }).length;
 
@@ -358,7 +341,7 @@ export default function Stock({ user }: Props) {
           const localId = idByNotionId[item.notion_id];
           const entry =
             item.persona === 'Ambas' || localId != null ? getEntry(item, localId) : undefined;
-          const { daysRemaining } = entry ? calcDays(entry) : { daysRemaining: null };
+          const { daysRemaining } = entry ? calcDaysRemaining(entry) : { daysRemaining: null };
           const isLow = daysRemaining != null && daysRemaining < 7;
 
           return (
