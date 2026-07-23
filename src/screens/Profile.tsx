@@ -8,6 +8,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Linking,
   TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -61,6 +62,9 @@ const PHASE_COLORS: Record<string, string> = {
 
 const USER_EMOJIS = ['🌿', '🌸', '🦋', '🌙', '✨', '🔮', '🌺', '🍄', '🌊', '🦅'] as const;
 const emojiKeyForUser = (u: User) => `user_emoji_${u}`;
+
+/** Sin verbo de donación en la app (guideline 3.2.2); la donación vive en GitHub. */
+const GITHUB_REPO_URL = 'https://github.com/sistemasconscientes/comuna-app';
 
 type ProfileProps = {
   /** Vuelve a la zona principal (p. ej. Inicio); la barra inferior también cambia de pestaña. */
@@ -369,6 +373,19 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
             )}
           </View>
         )}
+
+      <TouchableOpacity
+        style={styles.linkCard}
+        onPress={() => Linking.openURL(GITHUB_REPO_URL)}
+        activeOpacity={0.7}
+        accessibilityRole="link"
+        accessibilityLabel="Abrir el proyecto open source en GitHub"
+      >
+        <Text style={styles.linkCardTitle}>Proyecto open source · GitHub</Text>
+        <Text style={styles.linkCardSubtitle}>
+          Código, template de Notion y novedades del proyecto
+        </Text>
+      </TouchableOpacity>
 
       {__DEV__ && (
         <View style={styles.qaCard}>
