@@ -23,4 +23,4 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - App iOS Expo: suplementos por fase, sync Notion, SQLite, HealthKit básico.
 - Perfiles de usuaria; stock local; checklist diario.
 
-[1.1.5]: https://github.com/labsistemasconscientes/comuna-app/compare/v1.0.0...v1.1.5
+[1.1.5]: https://github.com/sistemasconscientes/comuna-app/compare/v1.0.0...v1.1.5

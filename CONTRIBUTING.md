@@ -4,7 +4,7 @@ Gracias por interesar en **La Comuna App**. PRs contra la rama **`oss/public`** 
 
 ## Flujo
 
-1. Fork del repo [`comuna-app`](https://github.com/labsistemasconscientes/comuna-app).
+1. Fork del repo [`comuna-app`](https://github.com/sistemasconscientes/comuna-app).
 2. Rama feature: `git checkout -b feat/mi-cambio`.
 3. Cambios con **`npm test`** en verde.
 4. Features no triviales: spec en `docs/specs/` (ver [`.cursor/rules/spec-driven.mdc`](.cursor/rules/spec-driven.mdc)).

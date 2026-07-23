@@ -1,6 +1,6 @@
 # Fork setup — checklist
 
-Pasos después de hacer fork de [`comuna-app`](https://github.com/labsistemasconscientes/comuna-app).
+Pasos después de hacer fork de [`comuna-app`](https://github.com/sistemasconscientes/comuna-app).
 
 ## Notion
 

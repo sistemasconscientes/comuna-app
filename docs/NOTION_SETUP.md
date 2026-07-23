@@ -12,7 +12,11 @@ El template debe cumplir el contrato en [`../.cursor/rules/notion-api.mdc`](../.
 
 1. [Crear integración](https://www.notion.so/my-integrations) (Internal integration).
 2. Invitar la integración a las páginas/DB del template clonado.
-3. Copiar IDs a `.env`:
+3. Conectar la app:
+
+**Opción A — en la app (App Store o build propia):** pega el token en el onboarding; la app detecta sola la DB de Suplementos, la página de Fases y el hub de Comidas (search API) y mapea los perfiles con las personas de tu tabla de fases. Si la detección falla, puedes pegar los IDs a mano. Ver [`specs/notion-runtime-settings.md`](specs/notion-runtime-settings.md).
+
+**Opción B — `.env` (desarrollo/fork):** copiar IDs a `.env`:
 
 ```env
 NOTION_API_KEY=secret_...
@@ -23,7 +27,7 @@ NOTION_MEAL_PREP_HUB_PAGE_ID=...   # opcional
 
 ## 3. Alinear perfiles
 
-La app usa `profile_1` y `profile_2`. Por defecto mapean a **Diana** / **Estefanía** en Notion. Personaliza labels y mapeo en `src/config/profiles.local.ts` (copiar desde `profiles.local.example.ts`).
+La app usa `profile_1` y `profile_2`. Con el onboarding in-app los perfiles se mapean solos desde tu tabla de fases (y se editan en Perfil). Para `.env`/forks también puedes fijar labels y mapeo en `src/config/profiles.local.ts` (copiar desde `profiles.local.example.ts`; tiene prioridad sobre lo editado en runtime).
 
 ## 4. Debug API
 

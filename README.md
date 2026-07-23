@@ -1,17 +1,27 @@
 # La Comuna App
 
-[![CI](https://github.com/labsistemasconscientes/comuna-app/actions/workflows/ci.yml/badge.svg)](https://github.com/labsistemasconscientes/comuna-app/actions/workflows/ci.yml)
+[![CI](https://github.com/sistemasconscientes/comuna-app/actions/workflows/ci.yml/badge.svg)](https://github.com/sistemasconscientes/comuna-app/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 App móvil **iOS** de seguimiento de suplementos basada en fases del ciclo menstrual. Sincroniza con **Notion** como fuente de verdad y guarda datos localmente en **SQLite**.
 
-**Mantenido por [Laboratorio de Sistemas Conscientes](https://github.com/labsistemasconscientes).**
+**Mantenido por [Laboratorio de Sistemas Conscientes](https://github.com/sistemasconscientes).**
 
 > **Aviso de salud:** esta app no sustituye consejo médico ni nutricional. HealthKit y Notion son herramientas personales; consulta a tu profesional de salud antes de cambiar suplementos o tratamientos.
 
 > **Expo Go no funciona:** HealthKit y el dev client exigen build nativo. Usa `npx expo run:ios` (simulador o dispositivo).
 
 > **Plataforma:** solo **iOS** es mantenido activamente. ¿Android? Ver [docs/ANDROID_CONTRIBUTING.md](docs/ANDROID_CONTRIBUTING.md).
+
+## Cómo usar la app — 3 opciones
+
+| Opción                               | Para quién                                                  | Qué necesitas                                                                                                                                                                                                                      |
+| ------------------------------------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. App Store** _(próximamente)_    | Cualquiera, sin compilar nada                               | Instalar la app oficial, duplicar el [template de Notion](https://www.notion.com/es/templates/comuna-app) y pegar tu token de integración en el onboarding — o tocar **«Explorar con datos de ejemplo»** para probarla sin Notion. |
+| **2. Build local**                   | Desarrolladoras que quieren correrla desde el código        | Este repo + Xcode: quick start abajo, config vía `.env`.                                                                                                                                                                           |
+| **3. Fork + tu propia distribución** | Quien quiera su versión modificada (EAS / App Store propio) | [docs/FORK_SETUP.md](docs/FORK_SETUP.md) — bundle ID, EAS y Sentry propios.                                                                                                                                                        |
+
+> Se evaluó una PWA como alternativa y se descartó: perdería HealthKit (sync de ciclo en iOS), que es parte central de la app.
 
 ## Empieza con el template de Notion
 
@@ -45,6 +55,7 @@ cd backend && npm install && npm run dev
 | [docs/NOTION_SETUP.md](docs/NOTION_SETUP.md)                 | Template + variables   |
 | [docs/ANDROID_CONTRIBUTING.md](docs/ANDROID_CONTRIBUTING.md) | Contribuciones Android |
 | [CONTRIBUTING.md](CONTRIBUTING.md)                           | Cómo contribuir        |
+| [docs/PRIVACY.md](docs/PRIVACY.md)                           | Política de privacidad |
 | [SECURITY.md](SECURITY.md)                                   | Privacidad y reportes  |
 | [TRADEMARK.md](TRADEMARK.md)                                 | Marca vs código GPL    |
 | [CHANGELOG.md](CHANGELOG.md)                                 | Historial de versiones |
@@ -80,6 +91,10 @@ npm run ios            # expo run:ios
 npm run db:studio      # Drizzle Studio
 npm run version:sync   # package.json → app.json
 ```
+
+## Apoyar el proyecto
+
+La Comuna es gratuita y open source, mantenida en tiempo libre. Si te sirve, puedes apoyarla vía [GitHub Sponsors](https://github.com/sponsors/sistemasconscientes) ⭐ — o contribuyendo código, docs o reportes de bugs ([CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ## Licencia
 
