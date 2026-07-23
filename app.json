@@ -57,7 +57,8 @@
           "organization": "<YOUR_SENTRY_ORG>"
         }
       ],
-      "@sentry/react-native"
+      "@sentry/react-native",
+      "expo-font"
     ],
     "android": {
       "package": "com.janee.comunaapp",
