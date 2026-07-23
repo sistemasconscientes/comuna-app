@@ -7,12 +7,23 @@ import {
   ScrollView,
   Platform,
   ActivityIndicator,
+  Alert,
+  TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
 import { usePostHog } from 'posthog-react-native';
-import { PROFILES, getProfileLabel, profileIdsRecord } from '../config/profiles';
+import {
+  PROFILES,
+  getNotionPhaseRowLabel,
+  getProfileLabel,
+  getProfileOverrides,
+  profileIdsRecord,
+  saveProfileOverrides,
+  type ProfileId,
+} from '../config/profiles';
+import { clearNotionSettings, getNotionSettingsSource } from '../config/notionSettings';
 import { useUser, type User } from '../context/UserContext';
 import { useHealthData } from '../hooks/useHealthData';
 import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
@@ -54,9 +65,11 @@ const emojiKeyForUser = (u: User) => `user_emoji_${u}`;
 type ProfileProps = {
   /** Vuelve a la zona principal (p. ej. Inicio); la barra inferior también cambia de pestaña. */
   onBackToTabs: () => void;
+  /** La usuaria desconectó Notion: la app vuelve al onboarding de conexión. */
+  onNotionDisconnected: () => void;
 };
 
-export default function Profile({ onBackToTabs }: ProfileProps) {
+export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileProps) {
   const insets = useSafeAreaInsets();
   const calendarDayKey = useCalendarDayLocal();
   const posthog = usePostHog();
@@ -112,6 +125,54 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
     posthog?.capture('healthkit_sync_retried', { user });
     refetch();
   };
+
+  const notionSource = getNotionSettingsSource();
+
+  // Edición runtime de nombre mostrado y persona en Notion por perfil.
+  const [profileNameDrafts, setProfileNameDrafts] = React.useState<Record<ProfileId, string>>(() =>
+    profileIdsRecord((id) => getProfileLabel(id)),
+  );
+  const [personaDrafts, setPersonaDrafts] = React.useState<Record<ProfileId, string>>(() =>
+    profileIdsRecord((id) => getNotionPhaseRowLabel(id)),
+  );
+
+  const commitProfileEdits = React.useCallback(
+    (id: ProfileId) => {
+      const label = profileNameDrafts[id].trim();
+      const persona = personaDrafts[id].trim();
+      const prev = getProfileOverrides();
+      void saveProfileOverrides({
+        profileLabels: { ...prev.profileLabels, ...(label ? { [id]: label } : {}) },
+        notionByProfile: {
+          ...prev.notionByProfile,
+          ...(persona ? { [id]: { supplementPersona: persona, phaseRowLabel: persona } } : {}),
+        },
+      }).catch(() => {});
+      posthog?.capture('profile_overrides_edited', { profile: id });
+    },
+    [personaDrafts, posthog, profileNameDrafts],
+  );
+
+  const onDisconnectNotion = React.useCallback(() => {
+    Alert.alert(
+      'Desconectar Notion',
+      'Se borrará el token guardado en este teléfono. Tus datos en Notion no se tocan.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Desconectar',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              await clearNotionSettings();
+              posthog?.capture('notion_disconnected');
+              onNotionDisconnected();
+            })();
+          },
+        },
+      ],
+    );
+  }, [onNotionDisconnected, posthog]);
 
   const phaseColor = cyclePhase ? PHASE_COLORS[cyclePhase] : '#ccc';
   const phaseLabel = cyclePhase ? PHASE_LABELS[cyclePhase] : '—';
@@ -204,6 +265,57 @@ export default function Profile({ onBackToTabs }: ProfileProps) {
           Ver o corregir suplementos tomados en cualquier fecha
         </Text>
       </TouchableOpacity>
+
+      <View style={styles.selectorCard}>
+        <Text style={styles.selectorLabel}>Nombres de perfil</Text>
+        {PROFILES.map((profile) => (
+          <View key={profile.id} style={styles.profileEditRow}>
+            <TextInput
+              style={styles.profileEditInput}
+              value={profileNameDrafts[profile.id]}
+              onChangeText={(t) => setProfileNameDrafts((prev) => ({ ...prev, [profile.id]: t }))}
+              onEndEditing={() => commitProfileEdits(profile.id)}
+              placeholder="Nombre mostrado"
+              placeholderTextColor={theme.textMuted}
+              accessibilityLabel={`Nombre mostrado del perfil ${getProfileLabel(profile.id)}`}
+            />
+            <TextInput
+              style={styles.profileEditInput}
+              value={personaDrafts[profile.id]}
+              onChangeText={(t) => setPersonaDrafts((prev) => ({ ...prev, [profile.id]: t }))}
+              onEndEditing={() => commitProfileEdits(profile.id)}
+              placeholder="Persona en Notion"
+              placeholderTextColor={theme.textMuted}
+              autoCapitalize="none"
+              accessibilityLabel={`Persona en Notion del perfil ${getProfileLabel(profile.id)}`}
+            />
+          </View>
+        ))}
+        <Text style={styles.qaHint}>
+          «Persona en Notion» debe coincidir con la fila de tu tabla de fases y el select Persona de
+          la DB de suplementos.
+        </Text>
+      </View>
+
+      <View style={styles.selectorCard}>
+        <Text style={styles.selectorLabel}>Conexión Notion</Text>
+        <Text style={styles.notionStatusText}>
+          {notionSource === 'stored'
+            ? 'Conectada desde la app (token en el llavero del teléfono).'
+            : 'Configurada en el build (.env) — modo desarrollo/fork.'}
+        </Text>
+        {notionSource === 'stored' && (
+          <TouchableOpacity
+            style={styles.changeUserBtn}
+            onPress={onDisconnectNotion}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Desconectar Notion"
+          >
+            <Text style={styles.disconnectBtnText}>Desconectar Notion…</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       <View style={[styles.phaseCard, { borderColor: phaseColor }]}>
         <Text style={styles.phaseLabelSmall}>Fase actual</Text>
@@ -381,6 +493,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   changeUserBtnText: { fontSize: 14, fontWeight: '600', color: theme.textSecondary },
+  profileEditRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  profileEditInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 10,
+    backgroundColor: theme.bgElevated,
+    color: theme.text,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  notionStatusText: { fontSize: 14, color: theme.text, lineHeight: 20 },
+  disconnectBtnText: { fontSize: 14, fontWeight: '600', color: theme.errorText },
   linkCard: {
     backgroundColor: theme.card,
     borderRadius: 16,

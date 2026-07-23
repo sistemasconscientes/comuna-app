@@ -9,7 +9,11 @@ export type { User };
 export type Phase = 'menstrual' | 'folicular' | 'ovulatoria' | 'lutea';
 
 /** Valor del select `Persona` en la base de suplementos de Notion. */
-export type SupplementPersona = 'Diana' | 'Estefanía' | 'Ambas';
+/**
+ * Valor del select **Persona** en la DB de suplementos. `'Ambas'` es la opción
+ * compartida que trae el template; el resto son nombres libres por workspace.
+ */
+export type SupplementPersona = string;
 
 export interface Supplement {
   notion_id: string;

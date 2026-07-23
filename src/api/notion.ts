@@ -1,11 +1,7 @@
-import {
-  NOTION_API_KEY,
-  NOTION_MEAL_PREP_HUB_PAGE_ID,
-  NOTION_SUPPLEMENTS_DB_ID,
-  NOTION_PHASES_PAGE_ID,
-} from '@env';
 import type { ProfileId } from '../config/profiles';
 import { getNotionPhaseRowLabel, getNotionSupplementPersona } from '../config/profiles';
+import { getNotionSettings, getNotionSettingsSource } from '../config/notionSettings';
+import { matchNotionTemplate, type NotionSearchItem } from '../utils/notionTemplateMatch';
 import type { Phase, Supplement, SupplementPersona, Tea } from '../types';
 import { normalizePhase } from '../utils/phaseUtils';
 import { supplementMatchesCurrentTemporada } from '../utils/temporadaFilter';
@@ -13,16 +9,13 @@ import { supplementMatchesCurrentTemporada } from '../utils/temporadaFilter';
 const BASE_URL = 'https://api.notion.com/v1';
 const NOTION_VERSION = '2022-06-28';
 
-const API_KEY = NOTION_API_KEY ?? '';
-const SUPPLEMENTS_DB_ID = NOTION_SUPPLEMENTS_DB_ID ?? '';
-const PHASES_PAGE_ID = NOTION_PHASES_PAGE_ID ?? '';
-const MEAL_PREP_HUB_PAGE_ID = NOTION_MEAL_PREP_HUB_PAGE_ID ?? '';
-
-const baseHeaders = {
-  Authorization: `Bearer ${API_KEY}`,
-  'Notion-Version': NOTION_VERSION,
-  'Content-Type': 'application/json',
-};
+function baseHeaders(apiKey: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    'Notion-Version': NOTION_VERSION,
+    'Content-Type': 'application/json',
+  };
+}
 
 /** Error de la API de Notion con el status y un extracto (truncado) del cuerpo. */
 export class NotionApiError extends Error {
@@ -97,14 +90,31 @@ export async function fetchWithRetry(
   throw lastError;
 }
 
+/**
+ * Token temporal para el onboarding: permite ejercitar el cliente completo con
+ * un token aún no guardado. Scoped y secuencial (el gate bloquea el resto de la
+ * app mientras corre), así que no hay llamadas concurrentes que lo pisen.
+ */
+let apiKeyOverride: string | null = null;
+
+export async function withNotionApiKey<T>(apiKey: string, fn: () => Promise<T>): Promise<T> {
+  apiKeyOverride = apiKey.trim();
+  try {
+    return await fn();
+  } finally {
+    apiKeyOverride = null;
+  }
+}
+
 export async function notionFetch<T>(
   path: string,
   options?: RequestInit,
   retry: RetryConfig = { retries: MAX_RETRIES, baseDelayMs: BASE_DELAY_MS },
 ): Promise<T> {
-  if (!API_KEY) throw new Error('Missing NOTION_API_KEY');
+  const apiKey = apiKeyOverride ?? getNotionSettings().apiKey;
+  if (!apiKey) throw new Error('Missing NOTION_API_KEY');
   const mergedHeaders: Record<string, string> = {
-    ...baseHeaders,
+    ...baseHeaders(apiKey),
     ...(options?.headers as Record<string, string> | undefined),
   };
 
@@ -178,7 +188,8 @@ interface NotionListResponse<T> {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function requireEnv(name: string, value: string): string {
+/** Exige un ID presente en la config runtime (guardada u `.env`). */
+function requireSetting(name: string, value: string): string {
   if (!value) throw new Error(`Missing ${name}`);
   return value;
 }
@@ -199,10 +210,12 @@ function normalizePersonName(input: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
+/**
+ * El filtro del query garantiza Persona == persona del perfil o 'Ambas', así
+ * que el raw se respeta tal cual (nombres arbitrarios en workspaces ajenos).
+ */
 function parseSupplementPersona(raw: string): SupplementPersona {
-  const t = raw.trim();
-  if (t === 'Ambas' || t === 'Diana' || t === 'Estefanía') return t;
-  return 'Diana';
+  return raw.trim() || 'Ambas';
 }
 
 function parseDateLoose(input: string): Date {
@@ -366,7 +379,7 @@ export async function getSupplements(
   currentPhase: string,
   applyTemporadaFilter = true,
 ): Promise<Supplement[]> {
-  const dbId = requireEnv('NOTION_SUPPLEMENTS_DB_ID', SUPPLEMENTS_DB_ID);
+  const dbId = requireSetting('NOTION_SUPPLEMENTS_DB_ID', getNotionSettings().supplementsDbId);
 
   const personaValue = getNotionSupplementPersona(user);
 
@@ -438,7 +451,7 @@ export async function getMealPrep(): Promise<{
   pageId: string;
   blocks: any[];
 } | null> {
-  const hubId = MEAL_PREP_HUB_PAGE_ID.trim();
+  const hubId = getNotionSettings().mealPrepHubPageId;
   if (!hubId) return null;
   const hubBlocks = await listBlockChildrenAll(hubId);
   const h2Index = hubBlocks.findIndex(
@@ -514,7 +527,7 @@ async function getPhaseRowForUser(pageId: string, user: ProfileId) {
 export async function getCurrentPhase(
   user: ProfileId,
 ): Promise<{ phase: string; nextCycle: Date }> {
-  const pageId = requireEnv('NOTION_PHASES_PAGE_ID', PHASES_PAGE_ID);
+  const pageId = requireSetting('NOTION_PHASES_PAGE_ID', getNotionSettings().phasesPageId);
   const { row } = await getPhaseRowForUser(pageId, user);
 
   const cells = row.table_row.cells;
@@ -531,8 +544,18 @@ export async function getCurrentPhase(
 // Tés (BD de Notion: té recomendado por fase del ciclo)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** ID público de la BD de Tés en Notion (accesible vía la integración con `NOTION_API_KEY`). */
-const TEAS_DB_ID = '235d8880-2045-81af-93a9-c0b96040f14d';
+/**
+ * BD de Tés del maintainer: fallback cuando la config viene de `.env` y no
+ * define una propia. Con settings de onboarding se usa solo `teasDbId`
+ * detectado (otro token no puede leer esta BD).
+ */
+const DEFAULT_TEAS_DB_ID = '235d8880-2045-81af-93a9-c0b96040f14d';
+
+function resolveTeasDbId(): string {
+  const { teasDbId, apiKey } = getNotionSettings();
+  if (teasDbId) return teasDbId;
+  return apiKey && getNotionSettingsSource() === 'env' ? DEFAULT_TEAS_DB_ID : '';
+}
 
 /** Etiquetas de "Fase del ciclo recomendada" en la BD de Tés (emojis propios de esa BD). */
 const TEA_PHASE_TO_LABELS: Record<Phase, string[]> = {
@@ -563,8 +586,10 @@ const TEA_HOLISTIC_PROPS = [
 ];
 
 export async function getTeasForPhase(phase: Phase): Promise<Tea[]> {
+  const teasDbId = resolveTeasDbId();
+  if (!teasDbId) return [];
   const wantedLabels = TEA_PHASE_TO_LABELS[phase] ?? [];
-  const pages = await queryDatabaseAll(TEAS_DB_ID, {});
+  const pages = await queryDatabaseAll(teasDbId, {});
 
   return pages
     .filter((p) => {
@@ -582,7 +607,7 @@ export async function getTeasForPhase(phase: Phase): Promise<Tea[]> {
 }
 
 export async function updatePhase(user: ProfileId, phase: string, nextCycle: Date): Promise<void> {
-  const pageId = requireEnv('NOTION_PHASES_PAGE_ID', PHASES_PAGE_ID);
+  const pageId = requireSetting('NOTION_PHASES_PAGE_ID', getNotionSettings().phasesPageId);
   const { row } = await getPhaseRowForUser(pageId, user);
   const prevPersona = cellToText(row.table_row.cells[0]).trim();
   const personaToWrite = prevPersona || getNotionPhaseRowLabel(user);
@@ -599,5 +624,168 @@ export async function updatePhase(user: ProfileId, phase: string, nextCycle: Dat
     body: JSON.stringify({
       table_row: { cells },
     }),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Onboarding: descubrimiento del template en el workspace de la usuaria
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface NotionSearchResultItem {
+  id: NotionId;
+  object: 'database' | 'page';
+  title?: NotionRichText[];
+  properties?: Record<string, NotionPropertyValue>;
+}
+
+function searchItemTitle(item: NotionSearchResultItem): string {
+  if (item.object === 'database') return richTextToPlainText(item.title).trim();
+  const titleProp = Object.values(item.properties ?? {}).find((p) => p.type === 'title');
+  return richTextToPlainText(titleProp?.title).trim();
+}
+
+/** Máximo de resultados de search a recorrer por tipo (workspaces grandes). */
+const SEARCH_SCAN_CAP = 300;
+
+async function searchAllByObject(object: 'database' | 'page'): Promise<NotionSearchItem[]> {
+  const out: NotionSearchItem[] = [];
+  let cursor: string | null | undefined = undefined;
+  while (out.length < SEARCH_SCAN_CAP) {
+    const resp: NotionListResponse<NotionSearchResultItem> = await notionFetch('/search', {
+      method: 'POST',
+      body: JSON.stringify({
+        filter: { property: 'object', value: object },
+        page_size: 100,
+        ...(cursor ? { start_cursor: cursor } : {}),
+      }),
+    });
+    for (const item of resp.results) {
+      const title = searchItemTitle(item);
+      if (title) out.push({ id: item.id, title });
+    }
+    if (!resp.has_more || !resp.next_cursor) break;
+    cursor = resp.next_cursor;
+  }
+  return out;
+}
+
+/** Nombre del bot/workspace del token — feedback de "token válido" en onboarding. */
+export async function getNotionTokenInfo(apiKey: string): Promise<{ name: string }> {
+  return withNotionApiKey(apiKey, async () => {
+    const me = await notionFetch<{ name?: string; bot?: { workspace_name?: string } }>('/users/me');
+    return { name: me.bot?.workspace_name || me.name || 'Notion' };
+  });
+}
+
+export interface NotionTemplateDiscovery {
+  supplementsDbId: string;
+  phasesPageId: string;
+  mealPrepHubPageId: string;
+  teasDbId: string;
+  /** Personas de la tabla de fases (sin fila de header): para mapear perfiles. */
+  phaseRowLabels: string[];
+}
+
+/** Filas persona de la tabla inline de una página de fases, o null si no la tiene. */
+async function phaseRowLabelsForPage(pageId: string): Promise<string[] | null> {
+  let table: NotionTableBlock;
+  try {
+    table = await findInlineTableInPage(pageId);
+  } catch {
+    return null;
+  }
+  const rows = (await listBlockChildrenAll(table.id)).filter(
+    (b) => b.type === 'table_row',
+  ) as NotionTableRowBlock[];
+  const dataRows = table.table.has_column_header ? rows.slice(1) : rows;
+  const labels = dataRows
+    .filter((r) => r.table_row.cells.length >= 3)
+    .map((r) => cellToText(r.table_row.cells[0]).trim())
+    .filter(Boolean);
+  return labels.length ? labels : null;
+}
+
+async function hubHasComidasActivas(pageId: string): Promise<boolean> {
+  try {
+    const blocks = await listBlockChildrenAll(pageId);
+    return blocks.some((b) => b.type === 'heading_2' && heading2PlainText(b) === 'Comidas Activas');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Busca en lo compartido con la integración las piezas del template (DB
+ * Suplementos, página de Fases con tabla inline, hub de Comidas y BD de Tés
+ * opcionales) y verifica su estructura. Lanza con mensaje accionable si falta
+ * una pieza requerida.
+ */
+export async function discoverNotionTemplate(apiKey: string): Promise<NotionTemplateDiscovery> {
+  return withNotionApiKey(apiKey, async () => {
+    const [databases, pages] = [
+      await searchAllByObject('database'),
+      await searchAllByObject('page'),
+    ];
+    const matches = matchNotionTemplate(databases, pages);
+
+    if (!matches.supplementsDbId) {
+      throw new Error(
+        'No encontré la base de datos de Suplementos. ¿Compartiste las páginas del template con tu integración?',
+      );
+    }
+
+    let phasesPageId = '';
+    let phaseRowLabels: string[] = [];
+    for (const candidate of matches.phasesPageCandidates) {
+      const labels = await phaseRowLabelsForPage(candidate.id);
+      if (labels) {
+        phasesPageId = candidate.id;
+        phaseRowLabels = labels;
+        break;
+      }
+    }
+    if (!phasesPageId) {
+      throw new Error(
+        'No encontré la página de Fases con su tabla (persona / fase / próximo ciclo). Revisa que esté compartida con la integración.',
+      );
+    }
+
+    let mealPrepHubPageId = '';
+    for (const candidate of matches.mealPrepHubCandidates) {
+      if (await hubHasComidasActivas(candidate.id)) {
+        mealPrepHubPageId = candidate.id;
+        break;
+      }
+    }
+
+    return {
+      supplementsDbId: matches.supplementsDbId,
+      phasesPageId,
+      mealPrepHubPageId,
+      teasDbId: matches.teasDbId,
+      phaseRowLabels,
+    };
+  });
+}
+
+/**
+ * Valida IDs pegados a mano con el token dado: la DB de suplementos responde a
+ * un query y la página de fases tiene la tabla inline. Devuelve las personas
+ * encontradas (mismo contrato que el descubrimiento automático).
+ */
+export async function verifyManualNotionIds(
+  apiKey: string,
+  ids: { supplementsDbId: string; phasesPageId: string },
+): Promise<{ phaseRowLabels: string[] }> {
+  return withNotionApiKey(apiKey, async () => {
+    await notionFetch(`/databases/${encodeURIComponent(ids.supplementsDbId)}/query`, {
+      method: 'POST',
+      body: JSON.stringify({ page_size: 1 }),
+    });
+    const labels = await phaseRowLabelsForPage(ids.phasesPageId);
+    if (!labels) {
+      throw new Error('La página de fases no tiene una tabla con persona / fase / próximo ciclo.');
+    }
+    return { phaseRowLabels: labels };
   });
 }

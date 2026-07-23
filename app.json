@@ -58,7 +58,8 @@
         }
       ],
       "@sentry/react-native",
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "android": {
       "package": "com.janee.comunaapp",

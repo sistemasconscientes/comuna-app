@@ -1,3 +1,14 @@
+// Mock oficial en memoria: los módulos nativos no existen bajo Jest.
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(async () => null),
+  setItemAsync: jest.fn(async () => {}),
+  deleteItemAsync: jest.fn(async () => {}),
+}));
+
 jest.mock('@sentry/react-native', () => ({
   init: jest.fn(),
   wrap: (Component) => Component,

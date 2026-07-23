@@ -9,7 +9,10 @@ alwaysApply: false
 ## Archivo
 `src/api/notion.ts` — cliente completo de Notion para la app
 
-## Variables de entorno requeridas
+## Configuración (runtime primero)
+La config se resuelve por llamada vía `getNotionSettings()` (`src/config/notionSettings.ts`): settings guardados en el dispositivo (onboarding in-app, token en SecureStore) → fallback `.env` → none. Ver `docs/specs/notion-runtime-settings.md`.
+
+Variables `.env` (fallback forks/desarrollo):
 - `NOTION_API_KEY` — token de integración de Notion
 - `NOTION_SUPPLEMENTS_DB_ID` — ID de la base de datos de suplementos
 - `NOTION_PHASES_PAGE_ID` — ID de la página con la tabla de fases por usuario

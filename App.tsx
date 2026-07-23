@@ -14,8 +14,17 @@ import Stock from './src/screens/Stock';
 import MealPrep from './src/screens/MealPrep';
 import HealthKitData from './src/screens/HealthKitData';
 import Profile from './src/screens/Profile';
+import NotionOnboarding from './src/screens/NotionOnboarding';
 import { OfflineBanner } from './src/components/OfflineBanner';
-import { PROFILES, getProfileLabel, profileIdsRecord, type ProfileId } from './src/config/profiles';
+import {
+  PROFILES,
+  getProfileLabel,
+  loadProfileOverrides,
+  profileIdsRecord,
+  subscribeProfileOverrides,
+  type ProfileId,
+} from './src/config/profiles';
+import { loadNotionSettings, type NotionSettingsSource } from './src/config/notionSettings';
 import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
 import {
@@ -108,6 +117,25 @@ function App() {
   posthogRef.current = posthog;
 
   const [activeTab, setActiveTab] = React.useState<Tab>('home');
+
+  /** null = hidratando settings de Notion; 'none' = mostrar onboarding. */
+  const [notionSource, setNotionSource] = React.useState<NotionSettingsSource | null>(null);
+  const [, bumpProfilesVersion] = React.useReducer((v: number) => v + 1, 0);
+
+  React.useEffect(() => subscribeProfileOverrides(bumpProfilesVersion), []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      await loadProfileOverrides().catch(() => {});
+      const source = await loadNotionSettings();
+      if (!cancelled) setNotionSource(source);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [user, setUserState] = React.useState<User>('profile_1');
   const userRef = React.useRef(user);
   userRef.current = user;
@@ -319,12 +347,22 @@ function App() {
     );
   }
 
-  if (!userHydrated) {
+  if (!userHydrated || notionSource === null) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.screen}>
           <Text style={styles.bootText}>Iniciando base de datos...</Text>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (notionSource === 'none') {
+    return (
+      <SafeAreaView style={styles.container} edges={['left', 'right']}>
+        <StatusBar style="light" />
+        <OfflineBanner />
+        <NotionOnboarding onConnected={() => setNotionSource('stored')} />
       </SafeAreaView>
     );
   }
@@ -389,7 +427,12 @@ function App() {
               {activeTab === 'stock' && <Stock user={user} />}
               {activeTab === 'comidas' && <MealPrep />}
               {activeTab === 'salud' && <HealthKitData />}
-              {activeTab === 'perfil' && <Profile onBackToTabs={() => setActiveTab('home')} />}
+              {activeTab === 'perfil' && (
+                <Profile
+                  onBackToTabs={() => setActiveTab('home')}
+                  onNotionDisconnected={() => setNotionSource('none')}
+                />
+              )}
             </View>
 
             <View
