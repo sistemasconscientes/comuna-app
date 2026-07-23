@@ -31,7 +31,8 @@ type NotionOnboardingProps = {
 
 export default function NotionOnboarding({ onConnected }: NotionOnboardingProps) {
   const insets = useSafeAreaInsets();
-  const { step, error, connectAuto, connectManual, busy } = useNotionConnection(onConnected);
+  const { step, error, connectAuto, connectManual, enterDemoMode, busy } =
+    useNotionConnection(onConnected);
 
   const [token, setToken] = React.useState('');
   const [manualOpen, setManualOpen] = React.useState(false);
@@ -131,6 +132,20 @@ export default function NotionOnboarding({ onConnected }: NotionOnboardingProps)
           ) : (
             <Text style={styles.primaryBtnText}>Conectar</Text>
           )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.demoBtn}
+          onPress={enterDemoMode}
+          disabled={busy}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel="Explorar con datos de ejemplo"
+        >
+          <Text style={styles.demoBtnText}>Explorar con datos de ejemplo</Text>
+          <Text style={styles.demoBtnHint}>
+            Prueba la app sin Notion; conéctalo cuando quieras.
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -245,6 +260,17 @@ const styles = StyleSheet.create({
   primaryBtnText: { fontSize: 17, fontWeight: '600', color: theme.text },
   busyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   btnDisabled: { opacity: 0.5 },
+  demoBtn: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: theme.card,
+    borderWidth: 1,
+    borderColor: theme.border,
+    alignItems: 'center',
+    gap: 4,
+  },
+  demoBtnText: { fontSize: 15, fontWeight: '600', color: theme.text },
+  demoBtnHint: { fontSize: 12, color: theme.textMuted },
   manualToggle: { alignItems: 'center', paddingVertical: 4 },
   manualToggleText: { fontSize: 13, color: theme.textSecondary, textDecorationLine: 'underline' },
   manualCard: { gap: 10 },

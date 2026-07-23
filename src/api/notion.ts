@@ -1,6 +1,7 @@
 import type { ProfileId } from '../config/profiles';
 import { getNotionPhaseRowLabel, getNotionSupplementPersona } from '../config/profiles';
-import { getNotionSettings, getNotionSettingsSource } from '../config/notionSettings';
+import { getNotionSettings, getNotionSettingsSource, isDemoMode } from '../config/notionSettings';
+import { demoCurrentPhase, demoSupplements, demoTeas } from './notionDemo';
 import { matchNotionTemplate, type NotionSearchItem } from '../utils/notionTemplateMatch';
 import type { Phase, Supplement, SupplementPersona, Tea } from '../types';
 import { normalizePhase } from '../utils/phaseUtils';
@@ -379,6 +380,7 @@ export async function getSupplements(
   currentPhase: string,
   applyTemporadaFilter = true,
 ): Promise<Supplement[]> {
+  if (isDemoMode()) return demoSupplements(user);
   const dbId = requireSetting('NOTION_SUPPLEMENTS_DB_ID', getNotionSettings().supplementsDbId);
 
   const personaValue = getNotionSupplementPersona(user);
@@ -435,7 +437,7 @@ export async function getSupplements(
 }
 
 export async function markForRestock(notion_id: string): Promise<void> {
-  if (!notion_id) return;
+  if (!notion_id || isDemoMode()) return;
   await notionFetch(`/pages/${encodeURIComponent(notion_id)}`, {
     method: 'PATCH',
     body: JSON.stringify({
@@ -451,6 +453,7 @@ export async function getMealPrep(): Promise<{
   pageId: string;
   blocks: any[];
 } | null> {
+  if (isDemoMode()) return null;
   const hubId = getNotionSettings().mealPrepHubPageId;
   if (!hubId) return null;
   const hubBlocks = await listBlockChildrenAll(hubId);
@@ -527,6 +530,7 @@ async function getPhaseRowForUser(pageId: string, user: ProfileId) {
 export async function getCurrentPhase(
   user: ProfileId,
 ): Promise<{ phase: string; nextCycle: Date }> {
+  if (isDemoMode()) return demoCurrentPhase(user);
   const pageId = requireSetting('NOTION_PHASES_PAGE_ID', getNotionSettings().phasesPageId);
   const { row } = await getPhaseRowForUser(pageId, user);
 
@@ -586,6 +590,7 @@ const TEA_HOLISTIC_PROPS = [
 ];
 
 export async function getTeasForPhase(phase: Phase): Promise<Tea[]> {
+  if (isDemoMode()) return demoTeas();
   const teasDbId = resolveTeasDbId();
   if (!teasDbId) return [];
   const wantedLabels = TEA_PHASE_TO_LABELS[phase] ?? [];
@@ -607,6 +612,7 @@ export async function getTeasForPhase(phase: Phase): Promise<Tea[]> {
 }
 
 export async function updatePhase(user: ProfileId, phase: string, nextCycle: Date): Promise<void> {
+  if (isDemoMode()) return;
   const pageId = requireSetting('NOTION_PHASES_PAGE_ID', getNotionSettings().phasesPageId);
   const { row } = await getPhaseRowForUser(pageId, user);
   const prevPersona = cellToText(row.table_row.cells[0]).trim();

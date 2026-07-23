@@ -24,7 +24,11 @@ import {
   subscribeProfileOverrides,
   type ProfileId,
 } from './src/config/profiles';
-import { loadNotionSettings, type NotionSettingsSource } from './src/config/notionSettings';
+import {
+  getNotionSettingsSource,
+  loadNotionSettings,
+  type NotionSettingsSource,
+} from './src/config/notionSettings';
 import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
 import {
@@ -362,7 +366,7 @@ function App() {
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <StatusBar style="light" />
         <OfflineBanner />
-        <NotionOnboarding onConnected={() => setNotionSource('stored')} />
+        <NotionOnboarding onConnected={() => setNotionSource(getNotionSettingsSource())} />
       </SafeAreaView>
     );
   }

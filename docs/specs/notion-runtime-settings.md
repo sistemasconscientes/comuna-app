@@ -16,6 +16,10 @@ Para publicar la app en el App Store, cualquier usuaria debe poder conectarla a 
 | Perfiles       | `src/config/profiles.ts`                                 | Overrides **runtime** (AsyncStorage `profile_overrides_v1`) con prioridad `profiles.local.ts` (build) > runtime > defaults. `overridesFromPhaseRowLabels` mapea filas detectadas a slots. Suscripción para re-render (`subscribeProfileOverrides`).                                                                                                                     |
 | Perfil (UI)    | `src/screens/Profile.tsx`                                | Sección **Conexión Notion** (estado, desconectar → borra token y vuelve al onboarding) y edición de nombre mostrado + persona en Notion por perfil.                                                                                                                                                                                                                     |
 
+## Modo demo
+
+`source === 'demo'` (flag persistido en AsyncStorage, sin token): las funciones públicas de `notion.ts` devuelven fixtures de `src/api/notionDemo.ts` (suplementos, fase por perfil, tés; Comidas sin plan) y las escrituras son no-op. Se activa desde el onboarding («Explorar con datos de ejemplo» — también es la vía para App Review), se desactiva al conectar un workspace real o desde Perfil («Salir del modo de ejemplo»). Los perfiles demo se llaman Luna y Mar.
+
 ## Reglas
 
 - La BD de Tés del maintainer (hardcodeada) solo se usa como fallback cuando la config viene de `.env`; con settings guardados se usa el `teasDbId` detectado o no hay tés.

@@ -6,8 +6,10 @@
 import {
   __resetNotionSettingsForTests,
   clearNotionSettings,
+  enableDemoMode,
   getNotionSettings,
   getNotionSettingsSource,
+  isDemoMode,
   isNotionConfigured,
   loadNotionSettings,
   saveNotionSettings,
@@ -97,6 +99,25 @@ describe('notionSettings', () => {
     expect(getNotionSettingsSource()).toBe('none');
     expect(mockSecureStore.size).toBe(0);
     expect(mockAsyncStorage.size).toBe(0);
+  });
+
+  it('modo demo persiste entre arranques y se apaga al conectar de verdad', async () => {
+    await enableDemoMode();
+    expect(isDemoMode()).toBe(true);
+    __resetNotionSettingsForTests();
+    expect(await loadNotionSettings()).toBe('demo');
+    await saveNotionSettings(SETTINGS);
+    expect(getNotionSettingsSource()).toBe('stored');
+    __resetNotionSettingsForTests();
+    expect(await loadNotionSettings()).toBe('stored');
+  });
+
+  it('salir del modo demo vuelve a none', async () => {
+    await enableDemoMode();
+    await clearNotionSettings();
+    expect(getNotionSettingsSource()).toBe('none');
+    __resetNotionSettingsForTests();
+    expect(await loadNotionSettings()).toBe('none');
   });
 
   it('rechaza settings incompletos al guardar', async () => {

@@ -60,6 +60,17 @@ Tras `npm version patch|minor|major`, si tenés hook `version` en `package.json`
 - **`appVersionSource: "local"`** — Semver y números nativos vienen del proyecto (o del bump en pre-install en preview).
 - **Sin `autoIncrement`** en `eas.json` para reemplazar `nativeBuild`; el incremento en preview está en **`eas-preview-bump-native.js`**.
 
+## App Store (release público)
+
+El flujo TestFlight de arriba sigue igual; para publicar en App Store se agrega:
+
+1. `npm run version:bump:feature` (o bump minor/major) + `version:sync`; `nativeBuild` sube como en cualquier build.
+2. `eas build --profile production` (usa `EXPO_PUBLIC_APP_ENV=production`; secrets DSN/PostHog vía EAS env).
+3. `eas submit --profile production` → App Store Connect.
+4. En App Store Connect: notas de versión, captura de pantallas, y **notas para el reviewer**: la app funciona sin cuenta usando el botón **«Explorar con datos de ejemplo»** del onboarding (no requiere crear integración de Notion).
+5. **App Privacy**: los datos viven en el dispositivo y el Notion de la usuaria; HealthKit se lee on-device; sin tracking. URL de política de privacidad: `docs/PRIVACY.md` publicado en el repo público.
+6. Smoke S1–S8 aplica igual, más: onboarding sin `.env` (conexión + demo), desconexión desde Perfil.
+
 ## Opcional (futuro)
 
 - Mostrar versión instalada en Perfil con `expo-application` — fuera de alcance hasta que se defina UI.

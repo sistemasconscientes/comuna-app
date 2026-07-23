@@ -154,25 +154,28 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
   );
 
   const onDisconnectNotion = React.useCallback(() => {
+    const demo = notionSource === 'demo';
     Alert.alert(
-      'Desconectar Notion',
-      'Se borrará el token guardado en este teléfono. Tus datos en Notion no se tocan.',
+      demo ? 'Salir del modo de ejemplo' : 'Desconectar Notion',
+      demo
+        ? 'Volverás a la pantalla de conexión para enlazar tu Notion.'
+        : 'Se borrará el token guardado en este teléfono. Tus datos en Notion no se tocan.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Desconectar',
+          text: demo ? 'Salir' : 'Desconectar',
           style: 'destructive',
           onPress: () => {
             void (async () => {
               await clearNotionSettings();
-              posthog?.capture('notion_disconnected');
+              posthog?.capture(demo ? 'notion_demo_mode_exited' : 'notion_disconnected');
               onNotionDisconnected();
             })();
           },
         },
       ],
     );
-  }, [onNotionDisconnected, posthog]);
+  }, [notionSource, onNotionDisconnected, posthog]);
 
   const phaseColor = cyclePhase ? PHASE_COLORS[cyclePhase] : '#ccc';
   const phaseLabel = cyclePhase ? PHASE_LABELS[cyclePhase] : '—';
@@ -302,17 +305,23 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
         <Text style={styles.notionStatusText}>
           {notionSource === 'stored'
             ? 'Conectada desde la app (token en el llavero del teléfono).'
-            : 'Configurada en el build (.env) — modo desarrollo/fork.'}
+            : notionSource === 'demo'
+              ? 'Modo de ejemplo: datos de muestra, sin conexión a Notion.'
+              : 'Configurada en el build (.env) — modo desarrollo/fork.'}
         </Text>
-        {notionSource === 'stored' && (
+        {(notionSource === 'stored' || notionSource === 'demo') && (
           <TouchableOpacity
             style={styles.changeUserBtn}
             onPress={onDisconnectNotion}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Desconectar Notion"
+            accessibilityLabel={
+              notionSource === 'demo' ? 'Salir del modo de ejemplo' : 'Desconectar Notion'
+            }
           >
-            <Text style={styles.disconnectBtnText}>Desconectar Notion…</Text>
+            <Text style={styles.disconnectBtnText}>
+              {notionSource === 'demo' ? 'Salir del modo de ejemplo…' : 'Desconectar Notion…'}
+            </Text>
           </TouchableOpacity>
         )}
       </View>

@@ -22,10 +22,11 @@ export interface NotionSettings {
   teasDbId: string;
 }
 
-export type NotionSettingsSource = 'stored' | 'env' | 'none';
+export type NotionSettingsSource = 'stored' | 'env' | 'demo' | 'none';
 
 const SECURE_TOKEN_KEY = 'notion_api_key';
 const STORAGE_IDS_KEY = 'notion_settings_v1';
+const DEMO_FLAG_KEY = 'notion_demo_mode';
 
 type StoredIds = Omit<NotionSettings, 'apiKey'>;
 
@@ -53,10 +54,17 @@ let hydrated = false;
  */
 export async function loadNotionSettings(): Promise<NotionSettingsSource> {
   try {
-    const [token, rawIds] = await Promise.all([
+    const [token, rawIds, demoFlag] = await Promise.all([
       SecureStore.getItemAsync(SECURE_TOKEN_KEY),
       AsyncStorage.getItem(STORAGE_IDS_KEY),
+      AsyncStorage.getItem(DEMO_FLAG_KEY),
     ]);
+    if (demoFlag && !token) {
+      snapshot = envSettings();
+      snapshotSource = 'demo';
+      hydrated = true;
+      return snapshotSource;
+    }
     if (token && rawIds) {
       const ids = JSON.parse(rawIds) as Partial<StoredIds>;
       const stored: NotionSettings = {
@@ -117,14 +125,27 @@ export async function saveNotionSettings(settings: NotionSettings): Promise<void
   };
   await SecureStore.setItemAsync(SECURE_TOKEN_KEY, clean.apiKey);
   await AsyncStorage.setItem(STORAGE_IDS_KEY, JSON.stringify(ids));
+  await AsyncStorage.removeItem(DEMO_FLAG_KEY).catch(() => {});
   snapshot = clean;
   snapshotSource = 'stored';
+}
+
+/** Activa el modo demo (datos de ejemplo, sin Notion). Persiste entre arranques. */
+export async function enableDemoMode(): Promise<void> {
+  await AsyncStorage.setItem(DEMO_FLAG_KEY, '1');
+  snapshot = envSettings();
+  snapshotSource = 'demo';
+}
+
+export function isDemoMode(): boolean {
+  return snapshotSource === 'demo';
 }
 
 /** Borra el token y los IDs guardados; vuelve a `.env` si existe, o a `none`. */
 export async function clearNotionSettings(): Promise<void> {
   await SecureStore.deleteItemAsync(SECURE_TOKEN_KEY).catch(() => {});
   await AsyncStorage.removeItem(STORAGE_IDS_KEY).catch(() => {});
+  await AsyncStorage.removeItem(DEMO_FLAG_KEY).catch(() => {});
   snapshot = envSettings();
   snapshotSource = isComplete(snapshot) ? 'env' : 'none';
 }

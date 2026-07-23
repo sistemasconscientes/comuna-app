@@ -6,7 +6,8 @@ import {
   getNotionTokenInfo,
   verifyManualNotionIds,
 } from '../api/notion';
-import { saveNotionSettings } from '../config/notionSettings';
+import { enableDemoMode, saveNotionSettings } from '../config/notionSettings';
+import { DEMO_PROFILE_LABELS } from '../api/notionDemo';
 import { overridesFromPhaseRowLabels, saveProfileOverrides } from '../config/profiles';
 import { reportErrorToSentry } from '../utils/observability';
 
@@ -141,5 +142,21 @@ export function useNotionConnection(onConnected: () => void) {
     [finishWith, runConnect],
   );
 
-  return { step, error, connectAuto, connectManual, busy: step !== 'idle' };
+  /** Modo demo: datos de ejemplo locales, sin Notion (también para App Review). */
+  const enterDemoMode = React.useCallback(() => {
+    setError(null);
+    void (async () => {
+      try {
+        await enableDemoMode();
+        await saveProfileOverrides(overridesFromPhaseRowLabels([...DEMO_PROFILE_LABELS]));
+        posthog?.capture('notion_demo_mode_entered');
+        onConnected();
+      } catch (e) {
+        reportErrorToSentry(e, { domain: 'notion_onboarding', mode: 'demo' });
+        if (mountedRef.current) setError('No se pudo activar el modo de ejemplo.');
+      }
+    })();
+  }, [onConnected, posthog]);
+
+  return { step, error, connectAuto, connectManual, enterDemoMode, busy: step !== 'idle' };
 }
