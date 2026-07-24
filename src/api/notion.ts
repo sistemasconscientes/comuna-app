@@ -653,6 +653,9 @@ function searchItemTitle(item: NotionSearchResultItem): string {
 /** Máximo de resultados de search a recorrer por tipo (workspaces grandes). */
 const SEARCH_SCAN_CAP = 300;
 
+/** Máximo de páginas sin título «Fases…» a inspeccionar buscando la tabla. */
+const PHASES_FALLBACK_SCAN_CAP = 15;
+
 async function searchAllByObject(object: 'database' | 'page'): Promise<NotionSearchItem[]> {
   const out: NotionSearchItem[] = [];
   let cursor: string | null | undefined = undefined;
@@ -742,7 +745,13 @@ export async function discoverNotionTemplate(apiKey: string): Promise<NotionTemp
 
     let phasesPageId = '';
     let phaseRowLabels: string[] = [];
-    for (const candidate of matches.phasesPageCandidates) {
+    // Primero candidatas por título; si ninguna aplica, barrido acotado del
+    // resto de páginas compartidas (títulos distintos a «Fases…»).
+    const triedIds = new Set(matches.phasesPageCandidates.map((c) => c.id));
+    const fallbackPages = pages
+      .filter((p) => !triedIds.has(p.id))
+      .slice(0, PHASES_FALLBACK_SCAN_CAP);
+    for (const candidate of [...matches.phasesPageCandidates, ...fallbackPages]) {
       const labels = await phaseRowLabelsForPage(candidate.id);
       if (labels) {
         phasesPageId = candidate.id;
@@ -752,7 +761,7 @@ export async function discoverNotionTemplate(apiKey: string): Promise<NotionTemp
     }
     if (!phasesPageId) {
       throw new Error(
-        'No encontré la página de Fases con su tabla (persona / fase / próximo ciclo). Revisa que esté compartida con la integración.',
+        'No encontré la página de Fases con su tabla (persona / fase / próximo ciclo). En Notion: página principal del template → ··· → Conexiones → elige tu integración; espera unos segundos y vuelve a intentar.',
       );
     }
 

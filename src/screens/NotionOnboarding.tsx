@@ -88,7 +88,10 @@ export default function NotionOnboarding({ onConnected }: NotionOnboardingProps)
           </Text>
           <Text style={styles.stepLine}>
             <Text style={styles.stepNumber}>3. </Text>
-            En Notion, comparte las páginas del template con tu integración (··· → Conexiones).
+            En Notion, abre la página principal del template → menú{' '}
+            <Text style={styles.stepNumber}>···</Text> → Conexiones →{' '}
+            <Text style={styles.stepNumber}>elige tu integración</Text> en la lista (las subpáginas
+            se comparten solas).
           </Text>
           <Text style={styles.stepLine}>
             <Text style={styles.stepNumber}>4. </Text>
