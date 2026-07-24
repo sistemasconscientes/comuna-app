@@ -695,6 +695,22 @@ export interface NotionTemplateDiscovery {
   phaseRowLabels: string[];
 }
 
+const PHASE_HEADER_FIRST_CELL = ['persona', 'nombre', 'usuario', 'perfil', 'quien'];
+
+/**
+ * Detecta filas de encabezado escritas como filas normales («Persona / Fase /
+ * Próximo ciclo»): Notion no siempre marca `has_column_header`.
+ */
+export function isPhaseHeaderRow(cellTexts: string[]): boolean {
+  const first = normalizePersonName(cellTexts[0] ?? '');
+  if (PHASE_HEADER_FIRST_CELL.includes(first)) return true;
+  const second = normalizePersonName(cellTexts[1] ?? '');
+  const third = normalizePersonName(cellTexts[2] ?? '');
+  return (
+    second.startsWith('fase') && (third.startsWith('proximo') || third.startsWith('siguiente'))
+  );
+}
+
 /** Filas persona de la tabla inline de una página de fases, o null si no la tiene. */
 async function phaseRowLabelsForPage(pageId: string): Promise<string[] | null> {
   let table: NotionTableBlock;
@@ -709,6 +725,7 @@ async function phaseRowLabelsForPage(pageId: string): Promise<string[] | null> {
   const dataRows = table.table.has_column_header ? rows.slice(1) : rows;
   const labels = dataRows
     .filter((r) => r.table_row.cells.length >= 3)
+    .filter((r) => !isPhaseHeaderRow(r.table_row.cells.map((c) => cellToText(c))))
     .map((r) => cellToText(r.table_row.cells[0]).trim())
     .filter(Boolean);
   return labels.length ? labels : null;

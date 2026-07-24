@@ -93,3 +93,21 @@ describe('fetchWithRetry', () => {
     expect(doFetch).toHaveBeenCalledTimes(4);
   });
 });
+
+describe('isPhaseHeaderRow', () => {
+  const { isPhaseHeaderRow } = require('./notion');
+
+  it('detecta encabezados escritos como fila normal', () => {
+    expect(isPhaseHeaderRow(['Persona', 'Fase', 'Próximo ciclo'])).toBe(true);
+    expect(isPhaseHeaderRow(['Nombre', 'Fase actual', 'Siguiente ciclo'])).toBe(true);
+  });
+
+  it('no descarta filas de datos reales', () => {
+    expect(isPhaseHeaderRow(['Diana', 'Folicular 🌸', '2026-08-02'])).toBe(false);
+    expect(isPhaseHeaderRow(['Estefanía', 'Lútea 🦥', '05/08/2026'])).toBe(false);
+  });
+
+  it('tolera celdas faltantes', () => {
+    expect(isPhaseHeaderRow([''])).toBe(false);
+  });
+});
