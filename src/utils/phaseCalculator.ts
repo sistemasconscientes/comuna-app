@@ -35,25 +35,77 @@ export function derivePeriodStartFromFlowSampleDates(
   sampleDates: Date[],
   maxGapDays: number = MAX_CALENDAR_GAP_DAYS_SAME_MENSTRUAL_PERIOD,
 ): Date | null {
-  if (sampleDates.length === 0) return null;
+  return derivePeriodStartsFromFlowSampleDates(sampleDates, maxGapDays, 1)[0] ?? null;
+}
+
+/** Máximo de episodios a reconstruir al estimar duración de ciclo. */
+export const MAX_PERIOD_EPISODES_FOR_ESTIMATION = 8;
+
+/**
+ * Inicios de **todos los episodios** de menstruación (más reciente primero),
+ * agrupando días de flujo con la misma regla de hueco que el episodio único.
+ */
+export function derivePeriodStartsFromFlowSampleDates(
+  sampleDates: Date[],
+  maxGapDays: number = MAX_CALENDAR_GAP_DAYS_SAME_MENSTRUAL_PERIOD,
+  maxEpisodes: number = MAX_PERIOD_EPISODES_FOR_ESTIMATION,
+): Date[] {
   const dayMillis = sampleDates
     .map((d) => startOfLocalCalendarDay(d).getTime())
     .filter((t) => !Number.isNaN(t));
-  if (dayMillis.length === 0) return null;
+  if (dayMillis.length === 0) return [];
 
   const uniqueNewestFirst = [...new Set(dayMillis)].sort((a, b) => b - a);
-  const cluster: number[] = [uniqueNewestFirst[0]!];
+  const starts: Date[] = [];
+  let clusterOldestMs = uniqueNewestFirst[0]!;
 
   for (let k = 1; k < uniqueNewestFirst.length; k++) {
     const olderMs = uniqueNewestFirst[k]!;
-    const newestInClusterMs = cluster[0]!;
-    const gap = localCalendarDaysBetween(new Date(olderMs), new Date(newestInClusterMs));
-    if (gap > maxGapDays) break;
-    cluster.push(olderMs);
+    const gap = localCalendarDaysBetween(new Date(olderMs), new Date(clusterOldestMs));
+    if (gap > maxGapDays) {
+      starts.push(new Date(clusterOldestMs));
+      if (starts.length >= maxEpisodes) return starts;
+      clusterOldestMs = olderMs;
+    } else {
+      clusterOldestMs = olderMs;
+    }
   }
+  starts.push(new Date(clusterOldestMs));
+  return starts;
+}
 
-  const oldestMs = cluster[cluster.length - 1]!;
-  return new Date(oldestMs);
+/** Rango plausible de duración de ciclo (días); fuera de esto el delta se descarta. */
+export const MIN_PLAUSIBLE_CYCLE_DAYS = 21;
+export const MAX_PLAUSIBLE_CYCLE_DAYS = 45;
+
+/** Deltas usados como máximo para la mediana (ciclos más recientes pesan). */
+const MAX_CYCLE_DELTAS_FOR_ESTIMATION = 6;
+
+/**
+ * Estima la duración del ciclo como **mediana** de los deltas entre inicios de
+ * episodios consecutivos (más recientes primero), descartando deltas fuera de
+ * [21, 45] días. Devuelve null con menos de 2 deltas válidos → el caller usa
+ * `DEFAULT_CYCLE_LENGTH_DAYS`.
+ */
+export function estimateCycleLengthFromPeriodStarts(
+  periodStartsNewestFirst: Date[],
+): { days: number; cyclesUsed: number } | null {
+  const deltas: number[] = [];
+  for (let i = 0; i + 1 < periodStartsNewestFirst.length; i++) {
+    const d = localCalendarDaysBetween(
+      periodStartsNewestFirst[i + 1]!,
+      periodStartsNewestFirst[i]!,
+    );
+    if (d >= MIN_PLAUSIBLE_CYCLE_DAYS && d <= MAX_PLAUSIBLE_CYCLE_DAYS) deltas.push(d);
+    if (deltas.length >= MAX_CYCLE_DELTAS_FOR_ESTIMATION) break;
+  }
+  if (deltas.length < 2) return null;
+
+  const sorted = [...deltas].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median =
+    sorted.length % 2 === 1 ? sorted[mid]! : Math.round((sorted[mid - 1]! + sorted[mid]!) / 2);
+  return { days: median, cyclesUsed: deltas.length };
 }
 
 /** Suma días al **día civil local** de `date` (arroja mes/año como `setDate`). */
@@ -88,13 +140,20 @@ export function getPhaseFromCycleDay(cycleDay: number, config: CycleConfig = {})
 }
 
 /**
- * Calcula el día del ciclo (1..28) a partir del inicio del último período y "hoy",
+ * Calcula el día del ciclo (1..cycleLength) a partir del inicio del último período y "hoy",
  * usando **días calendario locales** del dispositivo (medianoche local), no delta UTC fija.
  */
-export function getCycleDayFromDate(lastPeriodStart: Date, targetDate: Date = new Date()): number {
+export function getCycleDayFromDate(
+  lastPeriodStart: Date,
+  targetDate: Date = new Date(),
+  cycleLengthDays: number = DEFAULT_CYCLE_LENGTH_DAYS,
+): number {
+  const len =
+    Number.isFinite(cycleLengthDays) && cycleLengthDays >= 1
+      ? Math.round(cycleLengthDays)
+      : DEFAULT_CYCLE_LENGTH_DAYS;
   const diff = localCalendarDaysBetween(lastPeriodStart, targetDate);
-  const mod =
-    ((diff % DEFAULT_CYCLE_LENGTH_DAYS) + DEFAULT_CYCLE_LENGTH_DAYS) % DEFAULT_CYCLE_LENGTH_DAYS;
+  const mod = ((diff % len) + len) % len;
   return mod + 1;
 }
 
@@ -106,7 +165,7 @@ export function getCurrentCycleInfo(
   config?: CycleConfig,
   targetDate: Date = new Date(),
 ): { phase: CyclePhase; day: number } {
-  const day = getCycleDayFromDate(lastPeriodStart, targetDate);
+  const day = getCycleDayFromDate(lastPeriodStart, targetDate, config?.cycleLength);
   return { phase: getPhaseFromCycleDay(day, config), day };
 }
 

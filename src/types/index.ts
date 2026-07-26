@@ -102,6 +102,10 @@ export interface HealthKitCycleSignals {
   bbtRiseAnchorDate: Date | null;
   irregularCycleReported: boolean;
   lifecycleContext: HealthKitLifecycleContext;
+  /** Mediana de deltas entre inicios de período en Salud; null = usar 28. */
+  estimatedCycleLengthDays: number | null;
+  /** Cuántos ciclos (deltas válidos) respaldan la estimación. */
+  estimatedCycleLengthCyclesUsed: number | null;
 }
 
 /** Fila de la pestaña Salud (lecturas HealthKit visibles para la usuaria). */

@@ -172,6 +172,10 @@ export function useHealthData(user: User, options?: UseHealthDataOptions): UseHe
           const { phase, day } = getCurrentCycleInfoWithHealthKitRefinements(
             lastPeriod,
             refinements,
+            // Duración estimada desde Salud; sin datos suficientes → modelo de 28.
+            hkSignals.estimatedCycleLengthDays
+              ? { cycleLength: hkSignals.estimatedCycleLengthDays }
+              : undefined,
           );
           if (!cancelled) {
             setState({

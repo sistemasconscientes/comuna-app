@@ -9,6 +9,8 @@ import { reportErrorToSentry } from '../utils/observability';
 import {
   addLocalCalendarDays,
   derivePeriodStartFromFlowSampleDates,
+  derivePeriodStartsFromFlowSampleDates,
+  estimateCycleLengthFromPeriodStarts,
   inferBbtRiseAnchorFromSamples,
   startOfLocalCalendarDay,
 } from '../utils/phaseCalculator';
@@ -63,6 +65,8 @@ export const EMPTY_HEALTH_KIT_CYCLE_SIGNALS: HealthKitCycleSignals = {
   bbtRiseAnchorDate: null,
   irregularCycleReported: false,
   lifecycleContext: 'none',
+  estimatedCycleLengthDays: null,
+  estimatedCycleLengthCyclesUsed: null,
 };
 
 async function ensureHealthKit(): Promise<HealthKitAPI | null> {
@@ -468,10 +472,25 @@ async function fetchLifecycleContext(hk: HealthKitAPI): Promise<HealthKitLifecyc
   return 'none';
 }
 
+/** Mediana de duración de ciclo desde los inicios de período registrados en Salud. */
+async function computeCycleLengthEstimate(
+  hk: HealthKitAPI,
+): Promise<{ days: number; cyclesUsed: number } | null> {
+  try {
+    const flowStarts = await queryFlowSampleStarts(hk, HK_MENSTRUAL_FLOW);
+    const periodStarts = derivePeriodStartsFromFlowSampleDates(flowStarts);
+    return estimateCycleLengthFromPeriodStarts(periodStarts);
+  } catch (e) {
+    logHealthKitError('computeCycleLengthEstimate', e);
+    return null;
+  }
+}
+
 async function fetchHealthKitCycleSignalsForHk(hk: HealthKitAPI): Promise<HealthKitCycleSignals> {
   const lastPeriodStart = await computeLastPeriodStart(hk);
   const irregularCycleReported = await fetchIrregularCycleReported(hk);
   const lifecycleContext = await fetchLifecycleContext(hk);
+  const cycleLengthEstimate = await computeCycleLengthEstimate(hk);
 
   let ovulationSignalDate: Date | null = null;
   let peakFertileMucusDate: Date | null = null;
@@ -496,6 +515,8 @@ async function fetchHealthKitCycleSignalsForHk(hk: HealthKitAPI): Promise<Health
     bbtRiseAnchorDate,
     irregularCycleReported,
     lifecycleContext,
+    estimatedCycleLengthDays: cycleLengthEstimate?.days ?? null,
+    estimatedCycleLengthCyclesUsed: cycleLengthEstimate?.cyclesUsed ?? null,
   };
 }
 
@@ -789,6 +810,24 @@ export async function getHealthKitDataScreenSnapshot(): Promise<HealthKitDataScr
       );
     }
   }
+
+  rows.push(
+    signals.estimatedCycleLengthDays
+      ? hkDataRow(
+          'cycle_length',
+          'Duración de ciclo estimada',
+          'value',
+          `${signals.estimatedCycleLengthDays} días`,
+          `Mediana de los últimos ${signals.estimatedCycleLengthCyclesUsed} ciclos en Salud; la app la usa en vez del modelo de 28.`,
+        )
+      : hkDataRow(
+          'cycle_length',
+          'Duración de ciclo estimada',
+          'no_data',
+          'Sin ciclos suficientes en Salud',
+          'Se necesitan al menos 3 inicios de período; mientras tanto se usa el modelo de 28 días.',
+        ),
+  );
 
   const sinceForBbt =
     signals.lastPeriodStart != null
