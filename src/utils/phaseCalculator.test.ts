@@ -1,5 +1,7 @@
 import {
   derivePeriodStartFromFlowSampleDates,
+  derivePeriodStartsFromFlowSampleDates,
+  estimateCycleLengthFromPeriodStarts,
   getPhaseFromCycleDay,
   getCycleDayFromDate,
   getCurrentCycleInfo,
@@ -185,7 +187,6 @@ describe('derivePeriodStartsFromFlowSampleDates', () => {
       d('2026-05-08'),
       d('2026-05-09'),
     ];
-    const { derivePeriodStartsFromFlowSampleDates } = require('./phaseCalculator');
     const starts = derivePeriodStartsFromFlowSampleDates(samples);
     expect(starts.map((x: Date) => x.toDateString())).toEqual([
       d('2026-07-01').toDateString(),
@@ -195,7 +196,6 @@ describe('derivePeriodStartsFromFlowSampleDates', () => {
   });
 
   it('tolera huecos ≤ maxGapDays dentro de un episodio', () => {
-    const { derivePeriodStartsFromFlowSampleDates } = require('./phaseCalculator');
     const starts = derivePeriodStartsFromFlowSampleDates([
       d('2026-07-05'),
       d('2026-07-03'),
@@ -209,7 +209,6 @@ describe('derivePeriodStartsFromFlowSampleDates', () => {
 
 describe('estimateCycleLengthFromPeriodStarts', () => {
   const d = (s: string) => new Date(`${s}T00:00:00`);
-  const { estimateCycleLengthFromPeriodStarts } = require('./phaseCalculator');
 
   it('mediana de deltas con 3+ inicios', () => {
     const est = estimateCycleLengthFromPeriodStarts([
@@ -238,7 +237,6 @@ describe('estimateCycleLengthFromPeriodStarts', () => {
 });
 
 describe('getCycleDayFromDate con duración personalizada', () => {
-  const { getCycleDayFromDate } = require('./phaseCalculator');
   const start = new Date(2026, 5, 1); // 1 jun
 
   it('usa la duración estimada en el módulo', () => {

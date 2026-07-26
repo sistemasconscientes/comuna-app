@@ -9,6 +9,7 @@ import {
   parseRetryAfterMs,
   backoffMs,
   NotionApiError,
+  isPhaseHeaderRow,
 } from './notion';
 
 const FAST = { retries: 3, baseDelayMs: 0 };
@@ -95,8 +96,6 @@ describe('fetchWithRetry', () => {
 });
 
 describe('isPhaseHeaderRow', () => {
-  const { isPhaseHeaderRow } = require('./notion');
-
   it('detecta encabezados escritos como fila normal', () => {
     expect(isPhaseHeaderRow(['Persona', 'Fase', 'Próximo ciclo'])).toBe(true);
     expect(isPhaseHeaderRow(['Nombre', 'Fase actual', 'Siguiente ciclo'])).toBe(true);

@@ -14,6 +14,12 @@ import {
   inferBbtRiseAnchorFromSamples,
   startOfLocalCalendarDay,
 } from '../utils/phaseCalculator';
+import {
+  formatDurationHM,
+  formatQuantity,
+  mergeIntervalsTotalMs,
+  type MsInterval,
+} from '../utils/healthObservation';
 
 type HealthKitAPI = typeof import('@kingstinct/react-native-healthkit');
 
@@ -121,6 +127,14 @@ function logHealthKitError(message: string, err: unknown): void {
 }
 
 /** Tipos de lectura a solicitar (solo los que el SO expone en este dispositivo). */
+// Observación (solo lectura, sin lógica de negocio): pestaña Salud.
+const HK_SLEEP = 'HKCategoryTypeIdentifierSleepAnalysis' as const;
+const HK_RESTING_HR = 'HKQuantityTypeIdentifierRestingHeartRate' as const;
+const HK_HRV = 'HKQuantityTypeIdentifierHeartRateVariabilitySDNN' as const;
+const HK_WRIST_TEMP = 'HKQuantityTypeIdentifierAppleSleepingWristTemperature' as const;
+const HK_RESP_RATE = 'HKQuantityTypeIdentifierRespiratoryRate' as const;
+const HK_STEPS = 'HKQuantityTypeIdentifierStepCount' as const;
+
 async function buildReadTypes(hk: HealthKitAPI): Promise<string[]> {
   const candidates: string[] = [
     HK_MENSTRUAL_FLOW,
@@ -132,6 +146,12 @@ async function buildReadTypes(hk: HealthKitAPI): Promise<string[]> {
     HK_LACTATION,
     HK_CONTRACEPTIVE,
     ...HK_IRREGULAR_CYCLE_IDS,
+    HK_SLEEP,
+    HK_RESTING_HR,
+    HK_HRV,
+    HK_WRIST_TEMP,
+    HK_RESP_RATE,
+    HK_STEPS,
   ];
 
   try {
@@ -1111,7 +1131,184 @@ export async function getHealthKitDataScreenSnapshot(): Promise<HealthKitDataScr
     ),
   );
 
+  rows.push(...(await buildObservationRows(hk)));
+
   return { rows, refreshedAt };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Observación (solo lectura): sueño y métricas de reposo para la pestaña Salud
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Última muestra de un tipo quantity, en su unidad preferida. */
+async function queryLatestQuantity(
+  hk: HealthKitAPI,
+  identifier: string,
+): Promise<{ value: number; unit: string; date: Date } | null> {
+  const queryQuantitySamples = (hk as any)?.queryQuantitySamples;
+  if (typeof queryQuantitySamples !== 'function') return null;
+  let unit = '';
+  const getPreferredUnit = (hk as any)?.getPreferredUnit;
+  if (typeof getPreferredUnit === 'function') {
+    try {
+      unit = String(await getPreferredUnit(identifier));
+    } catch {
+      unit = '';
+    }
+  }
+  try {
+    const raw: any[] = await queryQuantitySamples(identifier, {
+      limit: 1,
+      ascending: false,
+      ...(unit ? { unit } : {}),
+    });
+    const s = raw?.[0];
+    const date = s?.startDate ? new Date(s.startDate) : null;
+    const value = Number(s?.quantity);
+    if (!date || Number.isNaN(date.getTime()) || Number.isNaN(value)) return null;
+    return { value, unit, date };
+  } catch (e) {
+    if (!isBenignHealthKitReadError(e)) logHealthKitError(`queryLatestQuantity(${identifier})`, e);
+    return null;
+  }
+}
+
+/** Suma de un tipo quantity desde la medianoche local de hoy (p. ej. pasos). */
+async function querySumQuantityToday(
+  hk: HealthKitAPI,
+  identifier: string,
+): Promise<{ value: number; unit: string } | null> {
+  const queryQuantitySamples = (hk as any)?.queryQuantitySamples;
+  if (typeof queryQuantitySamples !== 'function') return null;
+  let unit = '';
+  const getPreferredUnit = (hk as any)?.getPreferredUnit;
+  if (typeof getPreferredUnit === 'function') {
+    try {
+      unit = String(await getPreferredUnit(identifier));
+    } catch {
+      unit = '';
+    }
+  }
+  try {
+    const raw: any[] = await queryQuantitySamples(identifier, {
+      limit: 1000,
+      ascending: false,
+      ...(unit ? { unit } : {}),
+      filter: { date: { startDate: startOfLocalCalendarDay(new Date()) } },
+    });
+    if (!Array.isArray(raw) || raw.length === 0) return null;
+    let sum = 0;
+    for (const s of raw) {
+      const v = Number(s?.quantity);
+      if (!Number.isNaN(v)) sum += v;
+    }
+    return { value: sum, unit };
+  } catch (e) {
+    if (!isBenignHealthKitReadError(e))
+      logHealthKitError(`querySumQuantityToday(${identifier})`, e);
+    return null;
+  }
+}
+
+/** Valores `sleepAnalysis` que cuentan como dormida (no inBed=0 ni awake=2). */
+const SLEEP_ASLEEP_VALUES = new Set([1, 3, 4, 5]);
+
+/** Sueño dormido en las últimas 24 h, fusionando solapes entre fuentes. */
+async function querySleepLast24hMs(hk: HealthKitAPI): Promise<number | null> {
+  const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
+  const samples = await queryCategorySamplesRaw(hk, HK_SLEEP, {
+    limit: 500,
+    ascending: false,
+    filter: { date: { startDate: new Date(sinceMs) } },
+  });
+  if (!samples.length) return null;
+  const intervals: MsInterval[] = [];
+  for (const s of samples) {
+    const v = Number(s?.value);
+    if (!SLEEP_ASLEEP_VALUES.has(v)) continue;
+    const start = s?.startDate ? new Date(s.startDate).getTime() : NaN;
+    const end = s?.endDate ? new Date(s.endDate).getTime() : NaN;
+    if (Number.isNaN(start) || Number.isNaN(end)) continue;
+    intervals.push({ startMs: Math.max(start, sinceMs), endMs: end });
+  }
+  if (!intervals.length) return null;
+  return mergeIntervalsTotalMs(intervals);
+}
+
+const NO_DATA_HINT = 'Sin muestras recientes o sin permiso de lectura en Salud.';
+
+function observationRow(
+  id: string,
+  label: string,
+  text: string | null,
+  hint?: string,
+): HealthKitDataScreenRow {
+  return text
+    ? hkDataRow(id, label, 'value', text, hint)
+    : hkDataRow(id, label, 'no_data', 'Sin datos', NO_DATA_HINT);
+}
+
+/**
+ * Filas de observación (solo mostrar; sin efecto en fase ni suplementos).
+ * Cada métrica falla de forma aislada: una lectura rota no tira las demás.
+ */
+async function buildObservationRows(hk: HealthKitAPI): Promise<HealthKitDataScreenRow[]> {
+  const [sleepMs, restingHr, hrv, wristTemp, respRate, steps] = await Promise.all([
+    querySleepLast24hMs(hk),
+    queryLatestQuantity(hk, HK_RESTING_HR),
+    queryLatestQuantity(hk, HK_HRV),
+    queryLatestQuantity(hk, HK_WRIST_TEMP),
+    queryLatestQuantity(hk, HK_RESP_RATE),
+    querySumQuantityToday(hk, HK_STEPS),
+  ]);
+
+  return [
+    hkDataRow(
+      'obs_header',
+      'Observación (solo lectura)',
+      'info',
+      'Métricas informativas de Salud; aún sin efecto en fase ni suplementos.',
+      undefined,
+    ),
+    observationRow(
+      'obs_sleep',
+      'Sueño (últimas 24 h)',
+      sleepMs != null ? formatDurationHM(sleepMs) : null,
+      'Suma de tramos dormida, fusionando fuentes (iPhone/Watch).',
+    ),
+    observationRow(
+      'obs_resting_hr',
+      'Frecuencia cardiaca en reposo',
+      restingHr ? formatQuantity(restingHr.value, restingHr.unit || 'count/min') : null,
+      restingHr ? `Última muestra: ${formatHealthKitLocalDate(restingHr.date)}` : undefined,
+    ),
+    observationRow(
+      'obs_hrv',
+      'Variabilidad cardiaca (HRV, SDNN)',
+      hrv ? formatQuantity(hrv.value, hrv.unit || 'ms') : null,
+      hrv ? `Última muestra: ${formatHealthKitLocalDate(hrv.date)}` : undefined,
+    ),
+    observationRow(
+      'obs_wrist_temp',
+      'Temperatura de muñeca (sueño)',
+      wristTemp ? formatQuantity(wristTemp.value, wristTemp.unit || 'degC') : null,
+      wristTemp
+        ? `Última muestra: ${formatHealthKitLocalDate(wristTemp.date)} · útil para observar tu ciclo`
+        : 'Requiere Apple Watch (serie 8+ / Ultra).',
+    ),
+    observationRow(
+      'obs_resp_rate',
+      'Frecuencia respiratoria (sueño)',
+      respRate ? formatQuantity(respRate.value, respRate.unit || 'count/min') : null,
+      respRate ? `Última muestra: ${formatHealthKitLocalDate(respRate.date)}` : undefined,
+    ),
+    observationRow(
+      'obs_steps',
+      'Pasos de hoy',
+      steps ? formatQuantity(steps.value, steps.unit || 'count') : null,
+      undefined,
+    ),
+  ];
 }
 
 /**
