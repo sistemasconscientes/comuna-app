@@ -9,6 +9,32 @@ export interface NotionSearchItem {
   title: string;
 }
 
+/**
+ * Palabras de encabezado de la columna persona en la tabla de fases («Persona /
+ * Fase / Próximo ciclo» escrita como fila normal). Compartido entre el
+ * detector (notion.ts) y el saneo de overrides de perfil (profiles.ts).
+ */
+export const PHASE_HEADER_FIRST_CELL_WORDS = [
+  'persona',
+  'nombre',
+  'usuario',
+  'perfil',
+  'quien',
+] as const;
+
+export function normalizeHeaderWord(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+/** ¿El texto es una palabra de encabezado y no un nombre real? */
+export function isPhaseHeaderWord(text: string): boolean {
+  return (PHASE_HEADER_FIRST_CELL_WORDS as readonly string[]).includes(normalizeHeaderWord(text));
+}
+
 export interface NotionTemplateMatches {
   supplementsDbId: string;
   teasDbId: string;

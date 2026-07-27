@@ -2,7 +2,11 @@ import type { ProfileId } from '../config/profiles';
 import { getNotionPhaseRowLabel, getNotionSupplementPersona } from '../config/profiles';
 import { getNotionSettings, getNotionSettingsSource, isDemoMode } from '../config/notionSettings';
 import { demoCurrentPhase, demoSupplements, demoTeas } from './notionDemo';
-import { matchNotionTemplate, type NotionSearchItem } from '../utils/notionTemplateMatch';
+import {
+  isPhaseHeaderWord,
+  matchNotionTemplate,
+  type NotionSearchItem,
+} from '../utils/notionTemplateMatch';
 import type { Phase, Supplement, SupplementPersona, Tea } from '../types';
 import { normalizePhase } from '../utils/phaseUtils';
 import { supplementMatchesCurrentTemporada } from '../utils/temporadaFilter';
@@ -695,15 +699,12 @@ export interface NotionTemplateDiscovery {
   phaseRowLabels: string[];
 }
 
-const PHASE_HEADER_FIRST_CELL = ['persona', 'nombre', 'usuario', 'perfil', 'quien'];
-
 /**
  * Detecta filas de encabezado escritas como filas normales («Persona / Fase /
  * Próximo ciclo»): Notion no siempre marca `has_column_header`.
  */
 export function isPhaseHeaderRow(cellTexts: string[]): boolean {
-  const first = normalizePersonName(cellTexts[0] ?? '');
-  if (PHASE_HEADER_FIRST_CELL.includes(first)) return true;
+  if (isPhaseHeaderWord(cellTexts[0] ?? '')) return true;
   const second = normalizePersonName(cellTexts[1] ?? '');
   const third = normalizePersonName(cellTexts[2] ?? '');
   return (

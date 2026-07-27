@@ -1,4 +1,5 @@
 import type { SupplementPersona } from '../types';
+import { isPhaseHeaderWord } from '../utils/notionTemplateMatch';
 
 export const MAX_PROFILES = 2 as const;
 
@@ -64,13 +65,65 @@ export function subscribeProfileOverrides(cb: () => void): () => void {
   return () => overrideListeners.delete(cb);
 }
 
+/**
+ * Repara overrides guardados por versiones con el bug de fila de encabezado
+ * (perfil mapeado a «Persona»): descarta slots con palabra de header y
+ * recorre los sobrevivientes hacia arriba (slot 1 primero).
+ */
+export function sanitizeProfileOverrides(overrides: ProfileOverrides): {
+  next: ProfileOverrides;
+  changed: boolean;
+} {
+  const survivors: { label?: string; persona?: string; phaseRow?: string }[] = [];
+  let dropped = false;
+  for (const p of PROFILES) {
+    const label = overrides.profileLabels?.[p.id];
+    const notion = overrides.notionByProfile?.[p.id];
+    const hasAny = label != null || notion != null;
+    if (!hasAny) continue;
+    const headerish =
+      (label != null && isPhaseHeaderWord(label)) ||
+      (notion?.supplementPersona != null && isPhaseHeaderWord(notion.supplementPersona)) ||
+      (notion?.phaseRowLabel != null && isPhaseHeaderWord(notion.phaseRowLabel));
+    if (headerish) {
+      dropped = true;
+      continue;
+    }
+    survivors.push({
+      label,
+      persona: notion?.supplementPersona,
+      phaseRow: notion?.phaseRowLabel,
+    });
+  }
+  if (!dropped) return { next: overrides, changed: false };
+
+  const next: ProfileOverrides = { profileLabels: {}, notionByProfile: {} };
+  PROFILES.forEach((p, i) => {
+    const s = survivors[i];
+    if (!s) return;
+    if (s.label != null) next.profileLabels![p.id] = s.label;
+    if (s.persona != null || s.phaseRow != null) {
+      next.notionByProfile![p.id] = {
+        ...(s.persona != null ? { supplementPersona: s.persona } : {}),
+        ...(s.phaseRow != null ? { phaseRowLabel: s.phaseRow } : {}),
+      };
+    }
+  });
+  return { next, changed: true };
+}
+
 /** Hidrata overrides runtime desde el dispositivo; llamar una vez en el boot. */
 export async function loadProfileOverrides(): Promise<void> {
   // Import perezoso: mantiene profiles.ts importable en tests sin native storage.
   const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
   try {
     const raw = await AsyncStorage.getItem(RUNTIME_OVERRIDES_KEY);
-    runtimeOverrides = raw ? (JSON.parse(raw) as ProfileOverrides) : {};
+    const loaded = raw ? (JSON.parse(raw) as ProfileOverrides) : {};
+    const { next, changed } = sanitizeProfileOverrides(loaded);
+    runtimeOverrides = next;
+    if (changed) {
+      await AsyncStorage.setItem(RUNTIME_OVERRIDES_KEY, JSON.stringify(next)).catch(() => {});
+    }
   } catch {
     runtimeOverrides = {};
   }
@@ -99,9 +152,11 @@ export function __setRuntimeProfileOverridesForTests(next: ProfileOverrides): vo
  * onboarding: cada fila mapea a un slot (label mostrado = persona en Notion).
  */
 export function overridesFromPhaseRowLabels(labels: string[]): ProfileOverrides {
+  // Defensa extra: nunca mapear palabras de encabezado como personas.
+  const cleanLabels = labels.map((l) => l?.trim()).filter((l) => l && !isPhaseHeaderWord(l));
   const next: ProfileOverrides = { profileLabels: {}, notionByProfile: {} };
   PROFILES.forEach((profile, i) => {
-    const label = labels[i]?.trim();
+    const label = cleanLabels[i];
     if (!label) return;
     next.profileLabels![profile.id] = label;
     next.notionByProfile![profile.id] = { supplementPersona: label, phaseRowLabel: label };

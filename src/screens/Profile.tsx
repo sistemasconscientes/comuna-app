@@ -23,6 +23,7 @@ import {
   getProfileOverrides,
   profileIdsRecord,
   saveProfileOverrides,
+  subscribeProfileOverrides,
   type ProfileId,
 } from '../config/profiles';
 import { clearNotionSettings, getNotionSettingsSource } from '../config/notionSettings';
@@ -141,6 +142,16 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
   );
   const [personaDrafts, setPersonaDrafts] = React.useState<Record<ProfileId, string>>(() =>
     profileIdsRecord((id) => getNotionPhaseRowLabel(id)),
+  );
+
+  // Reconexión/saneo cambian los overrides por fuera: refrescar los drafts.
+  React.useEffect(
+    () =>
+      subscribeProfileOverrides(() => {
+        setProfileNameDrafts(profileIdsRecord((id) => getProfileLabel(id)));
+        setPersonaDrafts(profileIdsRecord((id) => getNotionPhaseRowLabel(id)));
+      }),
+    [],
   );
 
   const commitProfileEdits = React.useCallback(
@@ -290,32 +301,43 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
 
       <View style={styles.selectorCard}>
         <Text style={styles.selectorLabel}>Nombres de perfil</Text>
-        {PROFILES.map((profile) => (
-          <View key={profile.id} style={styles.profileEditRow}>
-            <TextInput
-              style={styles.profileEditInput}
-              value={profileNameDrafts[profile.id]}
-              onChangeText={(t) => setProfileNameDrafts((prev) => ({ ...prev, [profile.id]: t }))}
-              onEndEditing={() => commitProfileEdits(profile.id)}
-              placeholder="Nombre mostrado"
-              placeholderTextColor={theme.textMuted}
-              accessibilityLabel={`Nombre mostrado del perfil ${getProfileLabel(profile.id)}`}
-            />
-            <TextInput
-              style={styles.profileEditInput}
-              value={personaDrafts[profile.id]}
-              onChangeText={(t) => setPersonaDrafts((prev) => ({ ...prev, [profile.id]: t }))}
-              onEndEditing={() => commitProfileEdits(profile.id)}
-              placeholder="Persona en Notion"
-              placeholderTextColor={theme.textMuted}
-              autoCapitalize="none"
-              accessibilityLabel={`Persona en Notion del perfil ${getProfileLabel(profile.id)}`}
-            />
+        {PROFILES.map((profile, index) => (
+          <View key={profile.id} style={styles.profileEditBlock}>
+            <Text style={styles.profileEditSlot}>Perfil {index + 1}</Text>
+            <View style={styles.profileEditRow}>
+              <View style={styles.profileEditField}>
+                <Text style={styles.profileEditFieldLabel}>Nombre en la app</Text>
+                <TextInput
+                  style={styles.profileEditInput}
+                  value={profileNameDrafts[profile.id]}
+                  onChangeText={(t) =>
+                    setProfileNameDrafts((prev) => ({ ...prev, [profile.id]: t }))
+                  }
+                  onEndEditing={() => commitProfileEdits(profile.id)}
+                  placeholder="p. ej. Diana"
+                  placeholderTextColor={theme.textMuted}
+                  accessibilityLabel={`Nombre en la app del perfil ${index + 1}`}
+                />
+              </View>
+              <View style={styles.profileEditField}>
+                <Text style={styles.profileEditFieldLabel}>Persona en Notion</Text>
+                <TextInput
+                  style={styles.profileEditInput}
+                  value={personaDrafts[profile.id]}
+                  onChangeText={(t) => setPersonaDrafts((prev) => ({ ...prev, [profile.id]: t }))}
+                  onEndEditing={() => commitProfileEdits(profile.id)}
+                  placeholder="p. ej. Diana"
+                  placeholderTextColor={theme.textMuted}
+                  autoCapitalize="none"
+                  accessibilityLabel={`Persona en Notion del perfil ${index + 1}`}
+                />
+              </View>
+            </View>
           </View>
         ))}
         <Text style={styles.qaHint}>
           «Persona en Notion» debe coincidir con la fila de tu tabla de fases y el select Persona de
-          la DB de suplementos.
+          la DB de suplementos. Reconectar Notion los vuelve a detectar solos.
         </Text>
       </View>
 
@@ -591,7 +613,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   changeUserBtnText: { fontSize: 14, fontWeight: '600', color: theme.textSecondary },
-  profileEditRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  profileEditBlock: { marginBottom: 12 },
+  profileEditSlot: { fontSize: 12, fontWeight: '700', color: theme.textSecondary, marginBottom: 6 },
+  profileEditRow: { flexDirection: 'row', gap: 10 },
+  profileEditField: { flex: 1 },
+  profileEditFieldLabel: { fontSize: 11, color: theme.textMuted, marginBottom: 4 },
   profileEditInput: {
     flex: 1,
     borderWidth: 1,

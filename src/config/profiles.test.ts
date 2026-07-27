@@ -5,6 +5,7 @@ import {
   getProfileLabel,
   overridesFromPhaseRowLabels,
   subscribeProfileOverrides,
+  sanitizeProfileOverrides,
 } from './profiles';
 
 afterEach(() => {
@@ -57,8 +58,44 @@ describe('overridesFromPhaseRowLabels', () => {
     expect(o.notionByProfile?.profile_2).toBeUndefined();
   });
 
-  it('ignora filas extra más allá de los slots y labels vacíos', () => {
-    const o = overridesFromPhaseRowLabels(['', 'María', 'Tercera']);
-    expect(o.profileLabels).toEqual({ profile_2: 'María' });
+  it('compacta labels vacíos y descarta filas extra más allá de los slots', () => {
+    const o = overridesFromPhaseRowLabels(['', 'María', 'Tercera', 'Cuarta']);
+    expect(o.profileLabels).toEqual({ profile_1: 'María', profile_2: 'Tercera' });
+  });
+});
+
+describe('sanitizeProfileOverrides', () => {
+  it('descarta el slot mapeado a palabra de encabezado y recorre el resto', () => {
+    const { next, changed } = sanitizeProfileOverrides({
+      profileLabels: { profile_1: 'Persona', profile_2: 'Diana' },
+      notionByProfile: {
+        profile_1: { supplementPersona: 'Persona', phaseRowLabel: 'Persona' },
+        profile_2: { supplementPersona: 'Diana', phaseRowLabel: 'Diana' },
+      },
+    });
+    expect(changed).toBe(true);
+    expect(next.profileLabels).toEqual({ profile_1: 'Diana' });
+    expect(next.notionByProfile?.profile_1).toEqual({
+      supplementPersona: 'Diana',
+      phaseRowLabel: 'Diana',
+    });
+    expect(next.notionByProfile?.profile_2).toBeUndefined();
+  });
+
+  it('no toca overrides sanos', () => {
+    const clean = {
+      profileLabels: { profile_1: 'Ana', profile_2: 'María' },
+      notionByProfile: { profile_1: { supplementPersona: 'Ana', phaseRowLabel: 'Ana' } },
+    };
+    const { next, changed } = sanitizeProfileOverrides(clean);
+    expect(changed).toBe(false);
+    expect(next).toBe(clean);
+  });
+});
+
+describe('overridesFromPhaseRowLabels con encabezados residuales', () => {
+  it('filtra palabras de header aunque lleguen del detector', () => {
+    const o = overridesFromPhaseRowLabels(['Persona', 'Diana', 'Estefanía']);
+    expect(o.profileLabels).toEqual({ profile_1: 'Diana', profile_2: 'Estefanía' });
   });
 });
