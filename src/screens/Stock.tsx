@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import { markForRestock } from '../api/notion';
+import { notifyLowStockOnce } from '../api/localNotifications';
 import {
   reviveSharedStockMapFromCache,
   sharedStockToStockEntry,
@@ -94,8 +95,8 @@ export default function Stock({ user }: Props) {
     refresh: refreshStockBundle,
   } = useCache(`stock_${user}_${calendarDayKey}`, fetchStockBundle, 5 * 60 * 1000);
 
-  const supplements = stockBundle?.supplements ?? [];
-  const idByNotionId = stockBundle?.idByNotionId ?? {};
+  const supplements = useMemo(() => stockBundle?.supplements ?? [], [stockBundle]);
+  const idByNotionId = useMemo(() => stockBundle?.idByNotionId ?? {}, [stockBundle]);
   const sharedByNotionId = useMemo(
     () =>
       stockBundle?.sharedByNotionId
@@ -176,6 +177,20 @@ export default function Stock({ user }: Props) {
     setRestockFlagged,
     refreshStockBundle,
   ]);
+
+  // Aviso local de stock bajo (una vez por cruce de umbral, con histéresis).
+  useEffect(() => {
+    if ((cacheLoading && !stockBundle) || stockLoading) return;
+    const items = supplements.map((sup) => {
+      const entry = getEntry(sup, idByNotionId[sup.notion_id]);
+      return {
+        notionId: sup.notion_id,
+        name: sup.name,
+        daysRemaining: entry ? calcDaysRemaining(entry).daysRemaining : null,
+      };
+    });
+    void notifyLowStockOnce(items);
+  }, [cacheLoading, stockBundle, stockLoading, supplements, idByNotionId, getEntry]);
 
   const openModal = (sup: Supplement) => {
     const localId = idByNotionId[sup.notion_id];

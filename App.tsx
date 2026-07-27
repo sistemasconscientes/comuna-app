@@ -29,6 +29,7 @@ import {
   loadNotionSettings,
   type NotionSettingsSource,
 } from './src/config/notionSettings';
+import { configureNotificationHandler } from './src/api/localNotifications';
 import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
 import {
@@ -44,6 +45,9 @@ import {
   reportErrorToSentry,
 } from './src/utils/observability';
 import { theme } from './src/theme/colors';
+
+// Presentación de notificaciones locales en foreground (recordatorios).
+configureNotificationHandler();
 
 const sentryDsn = (SENTRY_DSN ?? '').trim();
 

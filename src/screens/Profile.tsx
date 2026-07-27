@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Switch,
   TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,6 +26,8 @@ import {
   type ProfileId,
 } from '../config/profiles';
 import { clearNotionSettings, getNotionSettingsSource } from '../config/notionSettings';
+import { useReminders } from '../hooks/useReminders';
+import { formatReminderTime, parseReminderTime } from '../utils/reminderSchedule';
 import { useUser, type User } from '../context/UserContext';
 import { useHealthData } from '../hooks/useHealthData';
 import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
@@ -181,6 +184,18 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
     );
   }, [notionSource, onNotionDisconnected, posthog]);
 
+  const reminders = useReminders();
+  const [reminderTimeDraft, setReminderTimeDraft] = React.useState<string | null>(null);
+  const reminderTimeShown =
+    reminderTimeDraft ?? formatReminderTime(reminders.settings.hour, reminders.settings.minute);
+
+  const commitReminderTime = React.useCallback(() => {
+    if (reminderTimeDraft == null) return;
+    const parsed = parseReminderTime(reminderTimeDraft);
+    if (parsed) reminders.setTime(parsed.hour, parsed.minute);
+    setReminderTimeDraft(null);
+  }, [reminderTimeDraft, reminders]);
+
   const phaseColor = cyclePhase ? PHASE_COLORS[cyclePhase] : '#ccc';
   const phaseLabel = cyclePhase ? PHASE_LABELS[cyclePhase] : '—';
 
@@ -301,6 +316,63 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
         <Text style={styles.qaHint}>
           «Persona en Notion» debe coincidir con la fila de tu tabla de fases y el select Persona de
           la DB de suplementos.
+        </Text>
+      </View>
+
+      <View style={styles.selectorCard}>
+        <Text style={styles.selectorLabel}>Recordatorio de registro</Text>
+        <View style={styles.reminderRow}>
+          <Text style={styles.reminderLabel}>Avisarme si no he registrado mis suplementos</Text>
+          <Switch
+            value={reminders.settings.enabled}
+            onValueChange={reminders.setEnabled}
+            disabled={!reminders.hydrated}
+            accessibilityLabel="Activar recordatorio de registro"
+          />
+        </View>
+        {reminders.permissionDenied && (
+          <Text style={styles.reminderWarn}>
+            Permiso de notificaciones denegado. Actívalo en Ajustes → Notificaciones → La Comuna.
+          </Text>
+        )}
+        {reminders.settings.enabled && (
+          <View style={styles.reminderTimeRow}>
+            {['20:00', '21:00', '22:00'].map((preset) => {
+              const active = reminderTimeShown === preset;
+              return (
+                <TouchableOpacity
+                  key={preset}
+                  style={[styles.reminderChip, active && styles.reminderChipActive]}
+                  onPress={() => {
+                    const parsed = parseReminderTime(preset)!;
+                    setReminderTimeDraft(null);
+                    reminders.setTime(parsed.hour, parsed.minute);
+                  }}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Recordar a las ${preset}`}
+                >
+                  <Text style={[styles.reminderChipText, active && styles.reminderChipTextActive]}>
+                    {preset}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TextInput
+              style={[styles.profileEditInput, styles.reminderTimeInput]}
+              value={reminderTimeShown}
+              onChangeText={setReminderTimeDraft}
+              onEndEditing={commitReminderTime}
+              keyboardType="numbers-and-punctuation"
+              placeholder="HH:MM"
+              placeholderTextColor={theme.textMuted}
+              accessibilityLabel="Hora del recordatorio"
+            />
+          </View>
+        )}
+        <Text style={styles.qaHint}>
+          Notificación local en tu teléfono (sin servidores). Si completas el registro del día, no
+          suena. Incluye aviso cuando un suplemento baja de ~5 días de stock.
         </Text>
       </View>
 
@@ -532,6 +604,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   notionStatusText: { fontSize: 14, color: theme.text, lineHeight: 20 },
+  reminderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  reminderLabel: { flex: 1, fontSize: 14, color: theme.text, lineHeight: 20 },
+  reminderWarn: { marginTop: 10, fontSize: 13, color: theme.warningText, lineHeight: 18 },
+  reminderTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
+  reminderChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.bgElevated,
+  },
+  reminderChipActive: { borderColor: theme.accent, backgroundColor: theme.accentSoft },
+  reminderChipText: { fontSize: 13, fontWeight: '600', color: theme.textSecondary },
+  reminderChipTextActive: { color: theme.text },
+  reminderTimeInput: { flex: 0, minWidth: 74, textAlign: 'center' },
   disconnectBtnText: { fontSize: 14, fontWeight: '600', color: theme.errorText },
   linkCard: {
     backgroundColor: theme.card,

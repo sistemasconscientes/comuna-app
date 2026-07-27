@@ -8,6 +8,7 @@ import { useDailyLog } from '../hooks/useDailyLog';
 import { useTeas } from '../hooks/useTeas';
 import TeaCard from '../components/TeaCard';
 import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
+import { reportDailyLogProgress } from '../api/localNotifications';
 import { getProfileLabel } from '../config/profiles';
 import { useUser } from '../context/UserContext';
 import type { Phase } from '../types';
@@ -167,6 +168,12 @@ export default function Home({ onOpenSettings }: HomeProps) {
     if (!localId) return count;
     return count + (isTaken(localId) ? 1 : 0);
   }, 0);
+
+  // Recordatorio nocturno: hoy completo ⇒ no suena; desmarcar lo rearma.
+  React.useEffect(() => {
+    if (dataLoading || fetchError) return;
+    void reportDailyLogProgress(calendarDayKey, takenCount, supplements.length);
+  }, [calendarDayKey, dataLoading, fetchError, takenCount, supplements.length]);
 
   const dateLine = formatTodayLongEs();
 
