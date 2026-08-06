@@ -15,8 +15,8 @@
         "com.apple.developer.healthkit.access": []
       },
       "infoPlist": {
-        "NSHealthShareUsageDescription": "Usamos HealthKit para leer datos de tu ciclo menstrual y adaptar tus suplementos.",
-        "NSHealthUpdateUsageDescription": "Usamos HealthKit para registrar datos de salud relevantes.",
+        "NSHealthShareUsageDescription": "La Comuna lee de Apple Salud datos de tu ciclo menstrual y señales relacionadas (sueño, frecuencia cardiaca, temperatura) para calcular tu fase y adaptar tus suplementos. Estos datos no salen de tu dispositivo.",
+        "NSHealthUpdateUsageDescription": "La Comuna puede registrar datos de tu ciclo en Apple Salud si activas esa función.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -45,8 +45,8 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "La Comuna necesita leer tu ciclo menstrual para personalizar tus suplementos",
-          "NSHealthUpdateUsageDescription": "La Comuna puede registrar datos de ciclo",
+          "NSHealthShareUsageDescription": "La Comuna lee de Apple Salud datos de tu ciclo menstrual y señales relacionadas (sueño, frecuencia cardiaca, temperatura) para calcular tu fase y adaptar tus suplementos. Estos datos no salen de tu dispositivo.",
+          "NSHealthUpdateUsageDescription": "La Comuna puede registrar datos de tu ciclo en Apple Salud si activas esa función.",
           "background": false
         }
       ],
@@ -58,7 +58,6 @@
           "organization": "<YOUR_SENTRY_ORG>"
         }
       ],
-      "@sentry/react-native",
       "expo-font",
       "expo-secure-store"
     ],

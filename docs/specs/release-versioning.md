@@ -65,11 +65,12 @@ Tras `npm version patch|minor|major`, si tenés hook `version` en `package.json`
 El flujo TestFlight de arriba sigue igual; para publicar en App Store se agrega:
 
 1. `npm run version:bump:feature` (o bump minor/major) + `version:sync`; `nativeBuild` sube como en cualquier build.
-2. `eas build --profile production` (usa `EXPO_PUBLIC_APP_ENV=production`; secrets DSN/PostHog vía EAS env).
-3. `eas submit --profile production` → App Store Connect.
-4. En App Store Connect: notas de versión, captura de pantallas, y **notas para el reviewer**: la app funciona sin cuenta usando el botón **«Explorar con datos de ejemplo»** del onboarding (no requiere crear integración de Notion).
-5. **App Privacy**: los datos viven en el dispositivo y el Notion de la usuaria; HealthKit se lee on-device; sin tracking. URL de política de privacidad: `docs/PRIVACY.md` publicado en el repo público.
+2. **`npm run eas:build:production`** (bump de `nativeBuild` + `eas build --profile production`; usa `EXPO_PUBLIC_APP_ENV=production` y `EXPO_PUBLIC_BACKEND_URL` desde `eas.json`). Las vars de observabilidad (`SENTRY_DSN`, `POSTHOG_API_KEY`, `POSTHOG_HOST`) deben existir como **EAS env vars** del proyecto (`eas env:create`, visibilidad secret): `eas-build-pre-install` corre [`scripts/eas-write-env.js`](../../scripts/eas-write-env.js), que las materializa en `.env` en el worker para que `@env` (babel-plugin-dotenv-import) las vea. Sin ellas la app compila pero sin Sentry/PostHog. `SENTRY_AUTH_TOKEN` (source maps) también va como EAS env var.
+3. **`npm run eas:submit:production`** → App Store Connect. Antes, reemplazar los `PENDIENTE_*` de `submit.production.ios` en [`eas.json`](../../eas.json): `appleId` (Apple ID del developer), `ascAppId` (ID numérico de la app en App Store Connect, se obtiene al crearla), `appleTeamId` (Team ID de la membresía).
+4. En App Store Connect: metadata (descripción, keywords, screenshots) y **notas para el reviewer** — todo redactado y listo para pegar en [`docs/store/app-store-metadata.md`](../store/app-store-metadata.md). Clave para el reviewer: la app funciona sin cuenta con el botón **«Explorar con datos de ejemplo»** del onboarding (no requiere integración de Notion); en modo demo la pestaña Salud puede aparecer vacía (HealthKit sin datos en simulador/dispositivo de review).
+5. **App Privacy**: respuestas campo por campo en [`docs/store/app-store-metadata.md`](../store/app-store-metadata.md). URL de política de privacidad: **<https://github.com/sistemasconscientes/comuna-app/blob/main/docs/PRIVACY.md>** (el `docs/PRIVACY.md` del repo público).
 6. Smoke S1–S8 aplica igual, más: onboarding sin `.env` (conexión + demo), desconexión desde Perfil.
+7. Antes de subir: verificar que el icono del binario no tenga canal alpha (`sips -g hasAlpha assets/icon.png` → `no`; App Store rechaza transparencia con `ITMS-90717`).
 
 ## Opcional (futuro)
 

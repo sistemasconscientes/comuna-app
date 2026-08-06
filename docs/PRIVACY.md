@@ -1,6 +1,8 @@
 # Política de privacidad — La Comuna App
 
-_Última actualización: julio 2026_
+_Última actualización: agosto 2026_
+
+_URL canónica de este documento (la que se declara en App Store Connect): <https://github.com/sistemasconscientes/comuna-app/blob/main/docs/PRIVACY.md>_
 
 La Comuna App es una app de seguimiento de suplementos alineados a las fases del ciclo menstrual. Está diseñada para que **tus datos vivan contigo**: en tu teléfono y en tu propio workspace de Notion.
 
@@ -38,4 +40,4 @@ El código es abierto (GPL-3.0): puedes auditar exactamente qué hace la app en 
 
 ## Contacto
 
-Dudas o reportes de privacidad: abre un issue en el repositorio o escribe al correo indicado en la ficha de App Store.
+Dudas o reportes de privacidad: abre un issue en [el repositorio](https://github.com/sistemasconscientes/comuna-app/issues) o escribe a **diana@sistemasconscientes.tech**.

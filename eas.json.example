@@ -23,11 +23,18 @@
     },
     "production": {
       "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://your-backend.example.com",
         "EXPO_PUBLIC_APP_ENV": "production"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "PENDIENTE_APPLE_ID",
+        "ascAppId": "PENDIENTE_ASC_APP_ID",
+        "appleTeamId": "PENDIENTE_TEAM_ID"
+      }
+    }
   }
 }
