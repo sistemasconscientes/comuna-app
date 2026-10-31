@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { eq, and } from 'drizzle-orm';
 import { db, dailyLogs } from '../db';
 import type { User } from '../context/UserContext';
-import type { DailyLog } from '../types';
+import type { DailyLog, Supplement } from '../types';
 import { reportErrorToSentry } from '../utils/observability';
+import { syncNutrientsForLog } from '../api/nutrientsHealth';
 
 /**
  * Registro de tomas para `date` (YYYY-MM-DD) en calendario local del dispositivo.
@@ -52,8 +53,17 @@ export function useDailyLog(user: User, date: string) {
     void load();
   }, [load]);
 
+  /**
+   * `supplement` (opcional): si se pasa, la toma se refleja en Apple Salud como
+   * nutrientes cuando el perfil lo activó (ver `syncNutrientsForLog`).
+   */
   const markTaken = useCallback(
-    async (supplementId: number, taken: boolean, notes?: string) => {
+    async (
+      supplementId: number,
+      taken: boolean,
+      notes?: string,
+      supplement?: Pick<Supplement, 'notion_id' | 'nutrientsText'>,
+    ) => {
       const existing = data.find((l) => l.supplementId === supplementId);
       const now = new Date().toISOString();
 
@@ -79,6 +89,15 @@ export function useDailyLog(user: User, date: string) {
         });
       }
       await load();
+      if (supplement) {
+        void syncNutrientsForLog({
+          profile: user,
+          date,
+          notionId: supplement.notion_id,
+          notionNutrientsText: supplement.nutrientsText,
+          taken,
+        });
+      }
     },
     [data, date, load, user],
   );

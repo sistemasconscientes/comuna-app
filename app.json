@@ -16,7 +16,7 @@
       },
       "infoPlist": {
         "NSHealthShareUsageDescription": "La Comuna lee de Apple Salud tu ciclo menstrual y señales relacionadas (sueño, frecuencia cardiaca, temperatura) para estimar tu fase y mostrar tus suplementos. Los datos de Salud se quedan en tu teléfono; solo la fase estimada y la fecha de tu próximo ciclo pueden guardarse en tu propio Notion.",
-        "NSHealthUpdateUsageDescription": "La Comuna no escribe datos en Apple Salud.",
+        "NSHealthUpdateUsageDescription": "Solo si lo activas en Perfil: La Comuna registra en Apple Salud los nutrientes (p. ej. magnesio, vitamina D) de los suplementos que marcas como tomados, y los borra si desmarcas la toma.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -46,7 +46,7 @@
         "@kingstinct/react-native-healthkit",
         {
           "NSHealthShareUsageDescription": "La Comuna lee de Apple Salud tu ciclo menstrual y señales relacionadas (sueño, frecuencia cardiaca, temperatura) para estimar tu fase y mostrar tus suplementos. Los datos de Salud se quedan en tu teléfono; solo la fase estimada y la fecha de tu próximo ciclo pueden guardarse en tu propio Notion.",
-          "NSHealthUpdateUsageDescription": "La Comuna no escribe datos en Apple Salud.",
+          "NSHealthUpdateUsageDescription": "Solo si lo activas en Perfil: La Comuna registra en Apple Salud los nutrientes (p. ej. magnesio, vitamina D) de los suplementos que marcas como tomados, y los borra si desmarcas la toma.",
           "background": false
         }
       ],

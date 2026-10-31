@@ -28,7 +28,7 @@ La app sigue aceptando el template viejo (`Ambas`, dos filas de fases), así que
    - En «💊 Salud del hogar» (o la página que contenga Suplementos, Fases y Comidas): menú ··· → Conexiones → elige la integración.
    - Pega el token en la app → Conectar.
 3. Revisa Perfil → «Perfiles en este teléfono»: deberían aparecer Diana y Estefanía con «Sigue ciclo». Ajusta emojis y nombres.
-4. **Stock compartido:** la versión pública no usa el backend de Render, así que los suplementos «Ambas/Compartido» pasan a llevar stock **local en cada teléfono**. Copia a mano en Stock → editar los conteos actuales de esos suplementos (los ves en el backend o en la app vieja antes de reemplazarla).
+4. **Stock compartido:** la versión pública no usa el backend de Render. Si tu DB de Suplementos tiene las propiedades `Frasco abierto`, `Pastillas por frasco` y `Pastillas al día` (ver el brief para Cowork), el stock de los suplementos «Ambas/Compartido» se guarda en Notion y se comparte entre los dos teléfonos. Copia una vez los conteos actuales del backend a esas propiedades (o en Stock → editar). Sin esas propiedades, cada teléfono lleva su propio stock local.
 5. Activa los recordatorios en Perfil si los usabas, y acepta el permiso de Apple Salud.
 6. Estefanía repite los pasos 1 a 5 en su teléfono. Puede usar el mismo token: es del mismo workspace.
 

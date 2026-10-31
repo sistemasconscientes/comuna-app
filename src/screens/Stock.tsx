@@ -26,6 +26,9 @@ import {
   type SharedStock,
 } from '../api/sharedStock';
 import { useCache } from '../hooks/useCache';
+import { useReduceMotion } from '../hooks/useReduceMotion';
+import { getNutrientsText, saveNutrientsText } from '../api/nutrientsHealth';
+import { formatNutrient, nutrientsToText, parseNutrients } from '../utils/nutrients';
 import { useHealthData } from '../hooks/useHealthData';
 import { fetchSupplementsWithStock } from '../hooks/useSupplements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -78,6 +81,9 @@ interface EditState {
   bottleOpenedAt: string;
   totalPills: string;
   pillsPerDay: string;
+  /** Nutrientes por toma (texto libre; `null` = cargando). */
+  nutrientsText: string | null;
+  nutrientsInitial: string;
 }
 
 export default function Stock({ user }: Props) {
@@ -108,6 +114,7 @@ export default function Stock({ user }: Props) {
 
   const { data: stockData, loading: stockLoading, updateBottle, setRestockFlagged } = useStock();
   const [editState, setEditState] = useState<EditState | null>(null);
+  const reduceMotion = useReduceMotion();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [temporadaView, setTemporadaView] = useState<'all' | 'current'>('all');
 
@@ -206,18 +213,56 @@ export default function Stock({ user }: Props) {
       bottleOpenedAt: entry?.bottleOpenedAt ?? getLocalTodayISO(),
       totalPills: entry?.totalPills?.toString() ?? '',
       pillsPerDay: entry?.pillsPerDay?.toString() ?? '',
+      nutrientsText: null,
+      nutrientsInitial: '',
     });
+    void getNutrientsText(sup.notion_id, sup.nutrientsText).then((text) =>
+      setEditState((s) =>
+        s && s.supplement.notion_id === sup.notion_id
+          ? { ...s, nutrientsText: text, nutrientsInitial: text }
+          : s,
+      ),
+    );
+  };
+
+  /** Guarda nutrientes si cambiaron (Notion o respaldo local). */
+  const saveNutrientsIfChanged = async (state: EditState) => {
+    if (
+      state.nutrientsText == null ||
+      state.nutrientsText.trim() === state.nutrientsInitial.trim()
+    ) {
+      return;
+    }
+    const parsed = parseNutrients(state.nutrientsText);
+    const text = parsed.length ? nutrientsToText(parsed) : state.nutrientsText.trim();
+    await saveNutrientsText(state.supplement.notion_id, text);
+    await refreshStockBundle();
   };
 
   const handleSave = async () => {
     if (!editState) return;
+    // Solo nutrientes (sin datos de frasco): se guardan sin exigir stock.
+    if (!editState.totalPills.trim() && !editState.pillsPerDay.trim()) {
+      try {
+        await saveNutrientsIfChanged(editState);
+        setEditState(null);
+      } catch (e) {
+        reportErrorToSentry(e, { domain: 'nutrients_save', user });
+        Alert.alert('No se guardó', 'Revisa tu conexión a internet e inténtalo otra vez.');
+      }
+      return;
+    }
     const total = parseFloat(editState.totalPills);
     const perDay = parseFloat(editState.pillsPerDay);
     if (isNaN(total) || total <= 0 || isNaN(perDay) || perDay <= 0) {
-      Alert.alert('Valores inválidos', 'Ingresá números positivos para total y pastillas/día.');
+      Alert.alert(
+        'Faltan datos',
+        'Escribe números mayores que 0 en «Total» y «Pastillas por día».',
+      );
       return;
     }
     try {
+      await saveNutrientsIfChanged(editState);
       if (usesSharedStockBackend(editState.supplement.persona)) {
         await updateSharedStock(editState.supplement.notion_id, {
           bottleOpenedAt: parseBottleDateInput(editState.bottleOpenedAt),
@@ -233,8 +278,8 @@ export default function Stock({ user }: Props) {
     } catch (e) {
       reportErrorToSentry(e, { domain: 'stock_save', user });
       Alert.alert(
-        'Error',
-        'No se pudo guardar el stock. Revisá la conexión o la clave del backend.',
+        'No se guardó',
+        'No se pudo guardar el stock. Revisa tu conexión a internet e inténtalo otra vez.',
       );
     }
   };
@@ -244,7 +289,7 @@ export default function Stock({ user }: Props) {
     const total = parseFloat(editState.totalPills);
     const perDay = parseFloat(editState.pillsPerDay);
     if (isNaN(total) || total <= 0 || isNaN(perDay) || perDay <= 0) {
-      Alert.alert('Valores inválidos', 'Completá total de pastillas y pastillas/día primero.');
+      Alert.alert('Faltan datos', 'Primero escribe el total de pastillas y cuántas tomas al día.');
       return;
     }
     const today = getLocalTodayISO();
@@ -265,8 +310,8 @@ export default function Stock({ user }: Props) {
     } catch (e) {
       reportErrorToSentry(e, { domain: 'stock_new_bottle', user });
       Alert.alert(
-        'Error',
-        'No se pudo guardar el stock. Revisá la conexión o la clave del backend.',
+        'No se guardó',
+        'No se pudo guardar el stock. Revisa tu conexión a internet e inténtalo otra vez.',
       );
     }
   };
@@ -393,7 +438,7 @@ export default function Stock({ user }: Props) {
 
       <Modal
         visible={editState != null}
-        animationType="slide"
+        animationType={reduceMotion ? 'fade' : 'slide'}
         transparent
         onRequestClose={() => setEditState(null)}
       >
@@ -451,8 +496,45 @@ export default function Stock({ user }: Props) {
                   keyboardType="decimal-pad"
                 />
 
+                <Text style={styles.label}>Nutrientes por toma (opcional)</Text>
+                <TextInput
+                  style={[styles.input, styles.inputMultiline]}
+                  value={editState?.nutrientsText ?? ''}
+                  editable={editState?.nutrientsText != null}
+                  onChangeText={(v) => setEditState((s) => s && { ...s, nutrientsText: v })}
+                  placeholder={'Magnesio 200 mg\nVitamina D 2000 UI'}
+                  placeholderTextColor="#bbb"
+                  multiline
+                  accessibilityLabel="Nutrientes por toma"
+                  accessibilityHint="Mantén presionado el campo y elige Escanear texto para leer la tabla nutricional con la cámara"
+                />
+                <Text style={styles.hint}>
+                  📷 Para leer la etiqueta: toca el campo, mantén presionado y elige «Escanear
+                  texto». Apunta a la tabla nutricional y toca «Insertar».
+                </Text>
+                {(() => {
+                  const parsed = parseNutrients(editState?.nutrientsText ?? '');
+                  return parsed.length ? (
+                    <View
+                      style={styles.chipsRow}
+                      accessible
+                      accessibilityLabel={`Reconocidos: ${parsed.map(formatNutrient).join(', ')}`}
+                    >
+                      {parsed.map((n) => (
+                        <View key={n.key} style={styles.chip}>
+                          <Text style={styles.chipText}>✓ {formatNutrient(n)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : editState?.nutrientsText?.trim() ? (
+                    <Text style={styles.hint}>
+                      Aún no reconozco nutrientes con cantidad (p. ej. «Zinc 15 mg»).
+                    </Text>
+                  ) : null;
+                })()}
+
                 <TouchableOpacity style={styles.newBottleBtn} onPress={handleOpenNewBottle}>
-                  <Text style={styles.newBottleBtnText}>Abrí frasco nuevo</Text>
+                  <Text style={styles.newBottleBtnText}>Empecé un frasco nuevo hoy</Text>
                 </TouchableOpacity>
 
                 <View style={styles.sheetActions}>
@@ -592,6 +674,16 @@ const styles = StyleSheet.create({
     color: theme.text,
     backgroundColor: theme.inputBg,
   },
+  inputMultiline: { minHeight: 88, textAlignVertical: 'top' },
+  hint: { fontSize: 13, color: theme.textSecondary, lineHeight: 18 },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: theme.accentSoft,
+  },
+  chipText: { fontSize: 13, color: theme.text },
   newBottleBtn: {
     backgroundColor: 'rgba(100, 181, 246, 0.2)',
     borderRadius: 10,

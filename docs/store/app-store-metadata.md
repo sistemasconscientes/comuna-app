@@ -73,7 +73,12 @@ Notes:
 - Diagnostics (Sentry/PostHog, no health data) can be turned off in Profile →
   "Privacidad y datos". The privacy policy and a medical disclaimer are linked
   in Profile.
-- The app never writes to HealthKit; the update usage string only states that.
+- HealthKit writes are opt-in per profile (Profile → Apple Salud): when the user
+  checks a supplement as taken, dietary nutrient samples (e.g. magnesium mg)
+  from the nutrients the user typed or scanned with iOS Live Text are saved, and
+  deleted if unchecked. Sleep is read on-device to show an "energy today" hint.
+- Nutrition labels are read with the system "Scan Text" (Live Text) of the text
+  field; the app requests no camera permission.
 - Non-profit open-source project (GPL-3.0); no in-app donations.
 ```
 

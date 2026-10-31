@@ -36,9 +36,10 @@ Fuente: [App Review Guidelines](https://developer.apple.com/app-store/review/gui
 - [ ] **Disclaimer médico dentro de la app** (Perfil, onboarding o la pantalla de suplementos): "La Comuna no es un dispositivo médico ni sustituye consejo profesional. Consulta a tu médica antes de cambiar tus suplementos." También en la descripción de la tienda.
 - [ ] La app no recomienda **dosis**. Muestra lo que la usuaria anotó en su Notion; el texto no debe decir que la app prescribe nada (1.4.2).
 - [ ] La estimación de fase o ciclo explica su método donde se muestra: mediana de los ciclos de HealthKit, rango de 21 a 45 días, fallback de 28 días. Nada de "predicción de fertilidad" ni promesas de exactitud (1.4.1).
-- [ ] La app no escribe en HealthKit (`toShare: []` en `src/api/healthkit.ts`). Si sigue sin escribir, **quita `NSHealthUpdateUsageDescription`** de `app.json` (en `infoPlist` y en el plugin de HealthKit). Un permiso de escritura sin uso invita a preguntas del reviewer.
+- [ ] Escritura en HealthKit = solo nutrientes, **opt-in por perfil** (Perfil → Apple Salud), con borrado al desmarcar y sin escribir nada ambiguo (`parseNutrients` exige cantidad + unidad). `NSHealthUpdateUsageDescription` debe describir exactamente eso; las notas al reviewer lo explican. Si se agrega otra escritura, actualizar los tres.
 - [ ] Solo se piden los tipos de HealthKit que se usan de verdad (5.1.1(iii)): revisa la lista `toRead` contra lo que muestran Inicio y Salud.
 - [ ] La UI identifica HealthKit / Apple Salud de forma clara (2.5.1) y la app funciona si la usuaria niega el permiso (5.1.1(iv)).
+- [ ] La «energía de hoy» se presenta como orientativa, con su método a un toque (1.4.1), y solo lee sueño del teléfono.
 - [ ] Ningún dato de salud va a iCloud (5.1.3(ii)): ni CloudKit, ni iCloud Drive. Riesgo bajo: la SQLite con `cycle_states` entra al backup del dispositivo; si Apple lo objeta, excluirla del backup.
 
 ## 3. Privacidad y datos (5.1.1, 5.1.2)

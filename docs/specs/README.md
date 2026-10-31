@@ -25,6 +25,7 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 | [splash-screen.md](./splash-screen.md)                                 | Splash nativo (`app.json`), tema oscuro (`#141210`), `StatusBar` claro sobre UI oscura                                            |
 | [backend-stock-api.md](./backend-stock-api.md)                         | Backend Express + Mongoose: `GET`/`PUT /stock/:notionId`, MongoDB, variables `MONGODB_URI` / `PORT` / `appName`                   |
 | [multi-profile-cycle-optional.md](./multi-profile-cycle-optional.md)   | Hasta 8 perfiles por teléfono, ciclo opcional por perfil, detección en onboarding, Persona «Compartido»                           |
+| [energy-nutrients-nd-ui.md](./energy-nutrients-nd-ui.md)               | Energía según sueño, nutrientes → Apple Salud (Live Text), stock compartido vía Notion, UI neurodivergente                        |
 
 Añadir aquí una fila al crear un spec nuevo.
 

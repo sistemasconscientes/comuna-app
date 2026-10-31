@@ -162,7 +162,9 @@ export default function DailyLogByDate({ onBack }: Props) {
             <Text style={styles.sectionTitle}>Lista</Text>
             {showEmptySupplements && (
               <Text style={styles.emptyText}>
-                {cyclePhase ? 'Sin suplementos para esta fase.' : 'Sin datos de fase.'}
+                {cyclePhase
+                  ? 'Sin suplementos para esta fase.'
+                  : 'No hay suplementos para este día.'}
               </Text>
             )}
             {supplements.map((s) => {
@@ -174,8 +176,11 @@ export default function DailyLogByDate({ onBack }: Props) {
                   style={[styles.supRow, taken && styles.supRowTaken]}
                   onPress={() => {
                     if (!localId) return;
-                    markTaken(localId, !taken);
+                    markTaken(localId, !taken, undefined, s);
                   }}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: taken, disabled: !localId }}
+                  accessibilityLabel={`${s.name}, ${s.dose}`}
                 >
                   <View
                     style={[

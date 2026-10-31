@@ -33,6 +33,11 @@ import {
   type ProfileId,
 } from '../config/profiles';
 import { isDiagnosticsOptedOut, setDiagnosticsOptedOut } from '../utils/observability';
+import { setUiPref, useUiPrefs } from '../config/uiPrefs';
+import {
+  isNutrientsHealthSyncEnabled,
+  setNutrientsHealthSyncEnabled,
+} from '../api/nutrientsHealth';
 import { clearNotionSettings, getNotionSettingsSource } from '../config/notionSettings';
 import { useReminders } from '../hooks/useReminders';
 import { formatReminderTime, parseReminderTime } from '../utils/reminderSchedule';
@@ -223,6 +228,28 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
       posthog?.capture('profile_cycle_tracking_changed', { tracks_cycle: tracks });
     },
     [posthog],
+  );
+
+  const { simpleMode } = useUiPrefs();
+
+  // Nutrientes → Apple Salud: opt-in del perfil activo (Salud es de quien usa este teléfono).
+  const [nutrientsSync, setNutrientsSync] = React.useState(false);
+  React.useEffect(() => {
+    let cancelled = false;
+    void isNutrientsHealthSyncEnabled(user).then((on) => {
+      if (!cancelled) setNutrientsSync(on);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+  const onToggleNutrientsSync = React.useCallback(
+    (on: boolean) => {
+      setNutrientsSync(on);
+      void setNutrientsHealthSyncEnabled(user, on);
+      posthog?.capture('nutrients_health_sync_changed', { enabled: on });
+    },
+    [posthog, user],
   );
 
   const [diagnosticsOn, setDiagnosticsOn] = React.useState(() => !isDiagnosticsOptedOut());
@@ -606,6 +633,43 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
             )}
           </View>
         )}
+
+      <View style={styles.selectorCard}>
+        <Text style={styles.selectorLabel}>Pantalla</Text>
+        <View style={styles.reminderRow}>
+          <Text style={styles.reminderLabel}>Modo simple</Text>
+          <Switch
+            value={simpleMode}
+            onValueChange={(v) => void setUiPref('simpleMode', v)}
+            accessibilityLabel="Modo simple"
+          />
+        </View>
+        <Text style={styles.qaHint}>
+          Inicio muestra solo tu energía y la lista del día, agrupada por momento. Oculta el té y la
+          barra de fases para que haya menos que mirar.
+        </Text>
+      </View>
+
+      {Platform.OS === 'ios' && (
+        <View style={styles.selectorCard}>
+          <Text style={styles.selectorLabel}>Apple Salud</Text>
+          <View style={styles.reminderRow}>
+            <Text style={styles.reminderLabel}>
+              Registrar los nutrientes de mis tomas ({getProfileLabel(user)})
+            </Text>
+            <Switch
+              value={nutrientsSync}
+              onValueChange={onToggleNutrientsSync}
+              accessibilityLabel="Registrar nutrientes en Apple Salud"
+            />
+          </View>
+          <Text style={styles.qaHint}>
+            Al marcar un suplemento como tomado, se guardan en Apple Salud los nutrientes que
+            anotaste en Stock (p. ej. «Magnesio 200 mg»). Al desmarcarlo se borran. Actívalo solo en
+            tu perfil: los datos van a la app Salud de este teléfono.
+          </Text>
+        </View>
+      )}
 
       <View style={styles.selectorCard}>
         <Text style={styles.selectorLabel}>Privacidad y datos</Text>

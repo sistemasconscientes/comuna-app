@@ -21,7 +21,8 @@ La Comuna App es una app de seguimiento de suplementos para uno o varios perfile
 
 - No tenemos servidores propios con tus datos: no hay cuenta, ni registro, ni base de datos nuestra.
 - No vendemos ni compartimos datos con terceros.
-- No enviamos datos de HealthKit a ningún servicio externo (tampoco a Sentry/PostHog). No escribimos en Apple Salud.
+- No enviamos datos de HealthKit a ningún servicio externo (tampoco a Sentry/PostHog). El sueño se lee solo para estimar tu «energía de hoy» en el teléfono.
+- Solo escribimos en Apple Salud si lo activas en Perfil: los nutrientes de los suplementos que marcas como tomados (y los borramos si desmarcas).
 - No guardamos datos de salud en iCloud.
 - No usamos publicidad ni rastreo entre apps (App Tracking Transparency no aplica).
 

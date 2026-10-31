@@ -7,6 +7,11 @@ import { useSupplements } from '../hooks/useSupplements';
 import { useDailyLog } from '../hooks/useDailyLog';
 import { useTeas } from '../hooks/useTeas';
 import TeaCard from '../components/TeaCard';
+import EnergyCard from '../components/EnergyCard';
+import { Ionicons } from '@expo/vector-icons';
+import { useEnergy } from '../hooks/useEnergy';
+import { useUiPrefs } from '../config/uiPrefs';
+import { DOSE_MOMENT_LABEL, currentMoment, groupByMoment } from '../utils/doseMoment';
 import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
 import { reportDailyLogProgress } from '../api/localNotifications';
 import { getNotionSupplementPersona, getProfileLabel } from '../config/profiles';
@@ -180,6 +185,14 @@ export default function Home({ onOpenSettings }: HomeProps) {
   const dateLine = formatTodayLongEs();
 
   const showEmptySupplements = !dataLoading && !fetchError && supplements.length === 0;
+  const remaining = supplements.length - takenCount;
+  const groups = React.useMemo(() => groupByMoment(supplements), [supplements]);
+  const nowMoment = currentMoment();
+  const { simpleMode } = useUiPrefs();
+  const { estimate: energy, loading: energyLoading } = useEnergy(
+    tracksCycle ? cyclePhase : null,
+    calendarDayKey,
+  );
 
   return (
     <ScrollView
@@ -219,14 +232,108 @@ export default function Home({ onOpenSettings }: HomeProps) {
           style={styles.settingsBtn}
           onPress={onOpenSettings}
           activeOpacity={0.7}
+          accessibilityRole="button"
           accessibilityLabel="Abrir perfil y ajustes"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.settingsIcon}>⚙</Text>
+          <Ionicons name="settings-outline" size={22} color={C.text} />
+          <Text style={styles.settingsLabel}>Ajustes</Text>
         </TouchableOpacity>
       </View>
 
-      {tracksCycle && (
+      <EnergyCard estimate={energy} loading={energyLoading} />
+
+      <View style={styles.todayHeaderBlock}>
+        <View style={styles.todayHeaderRow}>
+          <Text style={styles.sectionLabel}>Para hoy</Text>
+          <Text
+            style={styles.supCountInline}
+            accessibilityLabel={`${takenCount} de ${supplements.length} suplementos tomados`}
+          >
+            {supplements.length === 0
+              ? ''
+              : remaining === 0
+                ? 'Todo listo'
+                : `Te faltan ${remaining}`}
+          </Text>
+        </View>
+        <View style={styles.supProgressBarThin}>
+          <View
+            style={[
+              styles.supProgressFillThin,
+              {
+                width: supplements.length ? `${(takenCount / supplements.length) * 100}%` : '0%',
+              },
+            ]}
+          />
+        </View>
+      </View>
+
+      {showEmptySupplements ? (
+        <EmptyState
+          message={
+            !tracksCycle || cyclePhase
+              ? `No hay suplementos para hoy. En Notion, marca «Disponible» y elige «${getNotionSupplementPersona(user)}» o «Compartido» en Persona.`
+              : 'Aún no hay fase calculada. Revisa tu fila en la tabla de fases de Notion o el permiso de Apple Salud.'
+          }
+        />
+      ) : !fetchError && supplements.length > 0 ? (
+        <>
+          {remaining === 0 && (
+            <View style={styles.doneCard} accessibilityRole="summary">
+              <Text style={styles.doneTitle}>✓ Listo por hoy</Text>
+              <Text style={styles.doneText}>Ya marcaste todo. No hay nada más pendiente aquí.</Text>
+            </View>
+          )}
+          {groups.map(({ moment, items }) => {
+            const isNow = moment === nowMoment && remaining > 0;
+            return (
+              <View key={moment} style={styles.momentBlock}>
+                <View style={styles.momentHeader}>
+                  <Text style={[styles.momentLabel, isNow && styles.momentLabelNow]}>
+                    {DOSE_MOMENT_LABEL[moment]}
+                  </Text>
+                  {isNow && <Text style={styles.nowBadge}>Ahora</Text>}
+                </View>
+                <View style={[styles.checklistCard, isNow && styles.checklistCardNow]}>
+                  {items.map((s, index) => {
+                    const localId = idByNotionId[s.notion_id];
+                    const taken = localId ? isTaken(localId) : false;
+                    const isLast = index === items.length - 1;
+                    return (
+                      <TouchableOpacity
+                        key={s.notion_id}
+                        style={[styles.supRow, !isLast && styles.supRowBorder]}
+                        onPress={() => {
+                          if (!localId) return;
+                          markTaken(localId, !taken, undefined, s);
+                        }}
+                        activeOpacity={0.65}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: taken, disabled: !localId }}
+                        accessibilityLabel={`${s.name}, ${s.dose}`}
+                      >
+                        <View style={[styles.checkboxOuter, taken && styles.checkboxOuterTaken]}>
+                          {taken ? <Text style={styles.checkboxMark}>✓</Text> : null}
+                        </View>
+                        <View style={styles.supTextCol}>
+                          <Text style={[styles.supName, taken && styles.supNameTaken]}>
+                            {s.name}
+                          </Text>
+                          <Text style={styles.supDose}>{s.dose}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            );
+          })}
+        </>
+      ) : null}
+
+      {/* Secundario: debajo de lo accionable; oculto en modo simple. */}
+      {tracksCycle && !simpleMode && (
         <View style={styles.phaseCard}>
           <View style={styles.phaseLabels}>
             {(['menstrual', 'folicular', 'ovulatoria', 'lutea'] as const).map((p) => (
@@ -261,69 +368,9 @@ export default function Home({ onOpenSettings }: HomeProps) {
         </View>
       )}
 
-      <TeaCard tea={teas[currentIndex] ?? null} onNext={nextTea} canCycle={teas.length > 1} />
-
-      <View style={styles.todayHeaderBlock}>
-        <View style={styles.todayHeaderRow}>
-          <Text style={styles.sectionLabel}>Para hoy</Text>
-          <Text
-            style={styles.supCountInline}
-            accessibilityLabel={`${takenCount} de ${supplements.length} suplementos tomados`}
-          >
-            {takenCount}/{supplements.length}
-          </Text>
-        </View>
-        <View style={styles.supProgressBarThin}>
-          <View
-            style={[
-              styles.supProgressFillThin,
-              {
-                width: supplements.length ? `${(takenCount / supplements.length) * 100}%` : '0%',
-              },
-            ]}
-          />
-        </View>
-      </View>
-
-      {showEmptySupplements ? (
-        <EmptyState
-          message={
-            !tracksCycle || cyclePhase
-              ? `No hay suplementos para hoy. En Notion, marca «Disponible» y elige «${getNotionSupplementPersona(user)}» o «Compartido» en Persona.`
-              : 'Aún no hay fase calculada. Revisa tu fila en la tabla de fases de Notion o el permiso de Apple Salud.'
-          }
-        />
-      ) : !fetchError && supplements.length > 0 ? (
-        <View style={styles.checklistCard}>
-          {supplements.map((s, index) => {
-            const localId = idByNotionId[s.notion_id];
-            const taken = localId ? isTaken(localId) : false;
-            const isLast = index === supplements.length - 1;
-            return (
-              <TouchableOpacity
-                key={s.notion_id}
-                style={[styles.supRow, !isLast && styles.supRowBorder]}
-                onPress={() => {
-                  if (!localId) return;
-                  markTaken(localId, !taken);
-                }}
-                activeOpacity={0.65}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: taken, disabled: !localId }}
-                accessibilityLabel={`${s.name}, ${s.dose}`}
-              >
-                <View style={[styles.checkboxOuter, taken && styles.checkboxOuterTaken]}>
-                  {taken ? <Text style={styles.checkboxMark}>✓</Text> : null}
-                </View>
-                <View style={styles.supTextCol}>
-                  <Text style={styles.supName}>{s.name}</Text>
-                  <Text style={styles.supDose}>{s.dose}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      ) : null}
+      {!simpleMode && (
+        <TeaCard tea={teas[currentIndex] ?? null} onNext={nextTea} canCycle={teas.length > 1} />
+      )}
     </ScrollView>
   );
 }
@@ -360,16 +407,18 @@ const styles = StyleSheet.create({
   },
   phasePillText: { fontSize: 13, fontWeight: '600', color: C.text },
   settingsBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    minWidth: 56,
+    minHeight: 56,
+    paddingHorizontal: 8,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: C.border,
     backgroundColor: C.card,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 2,
   },
-  settingsIcon: { fontSize: 20, color: C.text },
+  settingsLabel: { fontSize: 11, fontWeight: '600', color: C.muted },
   phaseCard: {
     backgroundColor: C.card,
     borderRadius: 18,
@@ -399,7 +448,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   supCountInline: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: C.muted,
     fontVariant: ['tabular-nums'],
@@ -426,12 +475,37 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     overflow: 'hidden',
   },
+  /** Grupo de «ahora»: borde de acento (además del texto «Ahora», no solo color). */
+  checklistCardNow: { borderColor: C.accent, borderWidth: 2 },
+  momentBlock: { gap: 8 },
+  momentHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  momentLabel: { fontSize: 15, fontWeight: '600', color: C.muted },
+  momentLabelNow: { color: C.text },
+  nowBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: C.text,
+    backgroundColor: theme.accentSoft,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  doneCard: {
+    backgroundColor: theme.accentSoft,
+    borderRadius: 18,
+    padding: 18,
+    gap: 4,
+  },
+  doneTitle: { fontSize: 18, fontWeight: '700', color: C.text },
+  doneText: { fontSize: 15, color: C.text, lineHeight: 21 },
   supRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     paddingVertical: 16,
     paddingHorizontal: 16,
+    minHeight: 64,
   },
   supRowBorder: { borderBottomWidth: 1, borderBottomColor: C.rowDivider },
   checkboxOuter: {
@@ -450,6 +524,8 @@ const styles = StyleSheet.create({
   },
   checkboxMark: { color: '#fff', fontSize: 14, fontWeight: '800', marginTop: -1 },
   supTextCol: { flex: 1 },
-  supName: { fontSize: 16, fontWeight: '600', color: C.text },
-  supDose: { fontSize: 13, color: C.muted, marginTop: 3 },
+  supName: { fontSize: 17, fontWeight: '600', color: C.text },
+  /** Tomado: tachado + atenuado (no solo color). */
+  supNameTaken: { textDecorationLine: 'line-through', color: C.muted },
+  supDose: { fontSize: 14, color: C.muted, marginTop: 3, lineHeight: 19 },
 });

@@ -32,6 +32,7 @@ import {
   type NotionSettingsSource,
 } from './src/config/notionSettings';
 import { configureNotificationHandler } from './src/api/localNotifications';
+import { loadUiPrefs } from './src/config/uiPrefs';
 import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
 import {
@@ -143,6 +144,7 @@ function App() {
     let cancelled = false;
     void (async () => {
       await loadProfileOverrides().catch(() => {});
+      await loadUiPrefs().catch(() => {});
       // PostHog guarda su propio opt-out; aquí lo re-sincronizamos con la preferencia.
       if (await loadDiagnosticsPreference().catch(() => false)) {
         void posthogRef.current?.optOut();

@@ -1235,6 +1235,104 @@ async function querySleepLast24hMs(hk: HealthKitAPI): Promise<number | null> {
   return mergeIntervalsTotalMs(intervals);
 }
 
+// ─── Escritura de nutrientes (opt-in por perfil; ver src/api/nutrientsHealth.ts) ───
+
+export interface WrittenHealthSample {
+  hkIdentifier: string;
+  uuid: string;
+}
+
+/** Pide permiso de escritura solo para los tipos dietéticos indicados. */
+export async function requestNutrientWriteAuthorization(hkIdentifiers: string[]): Promise<boolean> {
+  if (Platform.OS !== 'ios' || !hkIdentifiers.length) return false;
+  const hk = await ensureHealthKit();
+  if (!hk) return false;
+  try {
+    await hk.requestAuthorization({ toShare: hkIdentifiers as any, toRead: [] as any });
+    return true;
+  } catch (e) {
+    logHealthKitError('requestNutrientWriteAuthorization', e);
+    return false;
+  }
+}
+
+/** Guarda una muestra por nutriente en `at`; devuelve los uuids para poder borrarlas. */
+export async function saveNutrientSamples(
+  nutrients: { hkIdentifier: string; amount: number; unit: string }[],
+  at: Date,
+  metadata: Record<string, string>,
+): Promise<WrittenHealthSample[]> {
+  if (Platform.OS !== 'ios' || !nutrients.length) return [];
+  const hk = await ensureHealthKit();
+  if (!hk) return [];
+  await requestNutrientWriteAuthorization(nutrients.map((n) => n.hkIdentifier));
+  const out: WrittenHealthSample[] = [];
+  for (const n of nutrients) {
+    try {
+      const sample = await hk.saveQuantitySample(
+        n.hkIdentifier as any,
+        n.unit as any,
+        n.amount,
+        at,
+        at,
+        metadata as any,
+      );
+      if (sample?.uuid) out.push({ hkIdentifier: n.hkIdentifier, uuid: sample.uuid });
+    } catch (e) {
+      // Sin permiso para ese tipo: se omite sin romper el resto.
+      logHealthKitError(`saveQuantitySample(${n.hkIdentifier})`, e);
+    }
+  }
+  return out;
+}
+
+export async function deleteHealthSamples(samples: WrittenHealthSample[]): Promise<void> {
+  if (Platform.OS !== 'ios' || !samples.length) return;
+  const hk = await ensureHealthKit();
+  if (!hk) return;
+  const byType = new Map<string, string[]>();
+  for (const s of samples)
+    byType.set(s.hkIdentifier, [...(byType.get(s.hkIdentifier) ?? []), s.uuid]);
+  for (const [identifier, uuids] of byType) {
+    try {
+      await hk.deleteObjects(identifier as any, { uuids });
+    } catch (e) {
+      logHealthKitError(`deleteObjects(${identifier})`, e);
+    }
+  }
+}
+
+/**
+ * Tramos dormida de las últimas `nights` noches (para «energía disponible»).
+ * Sin agrupar: `groupSleepByNight` (utils/energy) los reparte por noche.
+ */
+export async function fetchSleepIntervals(nights = 15): Promise<MsInterval[]> {
+  if (Platform.OS !== 'ios') return [];
+  await initHealthKit();
+  const hk = await ensureHealthKit();
+  if (!hk) return [];
+  const sinceMs = Date.now() - (nights + 1) * 24 * 60 * 60 * 1000;
+  try {
+    const samples = await queryCategorySamplesRaw(hk, HK_SLEEP, {
+      limit: 5000,
+      ascending: false,
+      filter: { date: { startDate: new Date(sinceMs) } },
+    });
+    const out: MsInterval[] = [];
+    for (const s of samples) {
+      if (!SLEEP_ASLEEP_VALUES.has(Number(s?.value))) continue;
+      const start = s?.startDate ? new Date(s.startDate).getTime() : NaN;
+      const end = s?.endDate ? new Date(s.endDate).getTime() : NaN;
+      if (Number.isNaN(start) || Number.isNaN(end)) continue;
+      out.push({ startMs: start, endMs: end });
+    }
+    return out;
+  } catch (e) {
+    logHealthKitError('fetchSleepIntervals', e);
+    return [];
+  }
+}
+
 const NO_DATA_HINT = 'Sin muestras recientes o sin permiso de lectura en Salud.';
 
 function observationRow(

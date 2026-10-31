@@ -2,6 +2,11 @@ import { BACKEND_API_KEY } from '@env';
 import type { StockEntry } from '../types';
 import { reportErrorToSentry } from '../utils/observability';
 import { isSharedPersona } from '../config/profiles';
+import {
+  getSupplementStockFromNotion,
+  isNotionSharedStockAvailable,
+  updateSupplementStockInNotion,
+} from './notion';
 
 function sharedStockBackendBaseUrl(): string {
   return (process.env.EXPO_PUBLIC_BACKEND_URL ?? '').trim().replace(/\/$/, '');
@@ -13,12 +18,15 @@ export function isSharedStockBackendConfigured(): boolean {
 }
 
 /**
- * ¿El stock de este suplemento vive en el backend compartido? Solo si es de
- * Persona compartida **y** hay backend; si no (p. ej. build de App Store sin
- * servidor propio), se guarda en SQLite local como cualquier otro.
+ * ¿El stock de este suplemento se comparte entre teléfonos? Solo si es de
+ * Persona compartida **y** hay dónde guardarlo: el backend (builds del
+ * maintainer) o las propiedades de stock en la página de Notion (sin
+ * servidor). Si no hay ninguno, vive en SQLite local como cualquier otro.
  */
 export function usesSharedStockBackend(persona: string): boolean {
-  return isSharedPersona(persona) && isSharedStockBackendConfigured();
+  return (
+    isSharedPersona(persona) && (isSharedStockBackendConfigured() || isNotionSharedStockAvailable())
+  );
 }
 
 export interface SharedStock {
@@ -118,6 +126,15 @@ export function sharedStockToStockEntry(shared: SharedStock, supplementId: numbe
 }
 
 export async function getSharedStock(notionId: string): Promise<SharedStock | null> {
+  if (!isSharedStockBackendConfigured() && isNotionSharedStockAvailable()) {
+    try {
+      const s = await getSupplementStockFromNotion(notionId);
+      return s ? { notionId, ...s } : null;
+    } catch (e) {
+      reportErrorToSentry(e, { domain: 'shared_stock', source: 'notion', notion_id: notionId });
+      return null;
+    }
+  }
   const key = BACKEND_API_KEY?.trim();
   if (!key) {
     return null;
@@ -166,6 +183,10 @@ function serializeBottleOpenedAt(value: Date | null | undefined): unknown {
 }
 
 export async function updateSharedStock(notionId: string, data: SharedStockUpdate): Promise<void> {
+  if (!isSharedStockBackendConfigured() && isNotionSharedStockAvailable()) {
+    await updateSupplementStockInNotion(notionId, data);
+    return;
+  }
   const key = BACKEND_API_KEY?.trim();
   if (!key) {
     throw new Error('Missing BACKEND_API_KEY');

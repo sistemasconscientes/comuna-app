@@ -160,6 +160,8 @@ interface NotionPropertyValue {
   select?: { name: string } | null;
   multi_select?: { name: string }[];
   checkbox?: boolean;
+  number?: number | null;
+  date?: { start: string } | null;
 }
 
 interface NotionDatabaseQueryResponse {
@@ -408,6 +410,9 @@ export async function getSupplements(
   };
 
   const pages = await queryDatabaseAll(dbId, { filter });
+  if (pages.length) {
+    notionSharedStockAvailable = NOTION_STOCK_PROPS.totalPills in pages[0].properties;
+  }
   const month = new Date().getMonth() + 1;
   const sourcePages = applyTemporadaFilter
     ? pages.filter((p) =>
@@ -433,6 +438,8 @@ export async function getSupplements(
 
     const normalized = normalizePhase(seasonRaw) ?? 'all';
     const persona = parseSupplementPersona(propText(props, ['Persona']));
+    const nutrientsText =
+      NUTRIENTS_PROP in props ? propText(props, [NUTRIENTS_PROP]).trim() : undefined;
 
     return {
       notion_id: p.id,
@@ -442,6 +449,7 @@ export async function getSupplements(
       phase_specific: normalized,
       temporadaLabels,
       persona,
+      ...(nutrientsText !== undefined ? { nutrientsText } : {}),
     };
   });
 }
@@ -456,6 +464,131 @@ export async function markForRestock(notion_id: string): Promise<void> {
       },
     }),
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stock compartido en Notion (sin servidor): propiedades de la página del suplemento
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Propiedades opcionales del template para el stock de suplementos compartidos. */
+export const NOTION_STOCK_PROPS = {
+  bottleOpenedAt: 'Frasco abierto',
+  totalPills: 'Pastillas por frasco',
+  pillsPerDay: 'Pastillas al día',
+  restockFlagged: 'Recompra?',
+} as const;
+
+let notionSharedStockAvailable = false;
+
+/**
+ * La DB de suplementos tiene las propiedades de stock (se detecta en
+ * `getSupplements`): el stock compartido se sincroniza vía Notion entre los
+ * teléfonos del hogar.
+ */
+export function isNotionSharedStockAvailable(): boolean {
+  return notionSharedStockAvailable && !isDemoMode();
+}
+
+/** Solo tests. */
+export function __setNotionSharedStockAvailableForTests(v: boolean): void {
+  notionSharedStockAvailable = v;
+}
+
+export interface NotionSupplementStock {
+  bottleOpenedAt: Date | null;
+  totalPills: number;
+  pillsPerDay: number;
+  restockFlagged: boolean;
+  updatedAt: Date;
+}
+
+/** Stock guardado en la página, o null si aún no tiene conteo (o la DB no tiene las propiedades). */
+export async function getSupplementStockFromNotion(
+  notionId: string,
+): Promise<NotionSupplementStock | null> {
+  const page = await notionFetch<{
+    last_edited_time?: string;
+    properties: Record<string, NotionPropertyValue>;
+  }>(`/pages/${encodeURIComponent(notionId)}`);
+  return parseNotionSupplementStock(page.properties, page.last_edited_time);
+}
+
+export function parseNotionSupplementStock(
+  props: Record<string, NotionPropertyValue>,
+  lastEdited?: string,
+): NotionSupplementStock | null {
+  const total = props[NOTION_STOCK_PROPS.totalPills]?.number;
+  const perDay = props[NOTION_STOCK_PROPS.pillsPerDay]?.number;
+  if (total == null || perDay == null || !Number.isFinite(total) || !Number.isFinite(perDay)) {
+    return null;
+  }
+  const opened = props[NOTION_STOCK_PROPS.bottleOpenedAt]?.date?.start;
+  const openedDate = opened ? parseDateLoose(opened) : null;
+  return {
+    bottleOpenedAt: openedDate,
+    totalPills: total,
+    pillsPerDay: perDay,
+    restockFlagged: props[NOTION_STOCK_PROPS.restockFlagged]?.checkbox ?? false,
+    updatedAt: lastEdited ? new Date(lastEdited) : new Date(),
+  };
+}
+
+export async function updateSupplementStockInNotion(
+  notionId: string,
+  data: Partial<Omit<NotionSupplementStock, 'updatedAt'>>,
+): Promise<void> {
+  const properties: Record<string, unknown> = {};
+  if (data.bottleOpenedAt !== undefined) {
+    properties[NOTION_STOCK_PROPS.bottleOpenedAt] = {
+      date: data.bottleOpenedAt ? { start: toDeviceCalendarISODate(data.bottleOpenedAt) } : null,
+    };
+  }
+  if (data.totalPills !== undefined) {
+    properties[NOTION_STOCK_PROPS.totalPills] = { number: data.totalPills };
+  }
+  if (data.pillsPerDay !== undefined) {
+    properties[NOTION_STOCK_PROPS.pillsPerDay] = { number: data.pillsPerDay };
+  }
+  if (data.restockFlagged !== undefined) {
+    properties[NOTION_STOCK_PROPS.restockFlagged] = { checkbox: data.restockFlagged };
+  }
+  if (!Object.keys(properties).length) return;
+  await notionFetch(`/pages/${encodeURIComponent(notionId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ properties }),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Nutrientes por toma (texto libre, p. ej. escaneado de la tabla nutricional)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Propiedad de texto opcional del template: «Magnesio 200 mg; Vitamina D 25 µg». */
+export const NUTRIENTS_PROP = 'Nutrientes';
+
+/**
+ * Guarda el texto de nutrientes en la página. Devuelve false si la DB no tiene
+ * la propiedad (el caller lo guarda local).
+ */
+export async function updateSupplementNutrientsInNotion(
+  notionId: string,
+  text: string,
+): Promise<boolean> {
+  if (isDemoMode()) return false;
+  try {
+    await notionFetch(`/pages/${encodeURIComponent(notionId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        properties: {
+          [NUTRIENTS_PROP]: { rich_text: text ? [{ type: 'text', text: { content: text } }] : [] },
+        },
+      }),
+    });
+    return true;
+  } catch (e) {
+    if (e instanceof NotionApiError && e.status === 400) return false;
+    throw e;
+  }
 }
 
 export async function getMealPrep(): Promise<{

@@ -25,6 +25,11 @@ export interface Supplement {
   temporadaLabels: string[];
   /** Select `Persona` en Notion; determina si el stock vive en SQLite o en el backend compartido. */
   persona: SupplementPersona;
+  /**
+   * Propiedad `Nutrientes` de Notion (texto libre por toma). `undefined` = la DB
+   * no tiene la propiedad (se usa el respaldo local).
+   */
+  nutrientsText?: string;
 }
 
 /** Té recomendado por fase del ciclo (BD de Tés en Notion; sin caché local). */

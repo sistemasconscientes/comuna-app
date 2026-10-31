@@ -11,6 +11,7 @@ import {
   NotionApiError,
   isPhaseHeaderRow,
   isNoCyclePhaseText,
+  parseNotionSupplementStock,
 } from './notion';
 
 const FAST = { retries: 3, baseDelayMs: 0 };
@@ -126,5 +127,28 @@ describe('isNoCyclePhaseText', () => {
       false,
       false,
     ]);
+  });
+});
+
+describe('parseNotionSupplementStock (stock compartido sin servidor)', () => {
+  it('lee las propiedades de stock del template', () => {
+    const s = parseNotionSupplementStock(
+      {
+        'Frasco abierto': { type: 'date', date: { start: '2026-10-01' } },
+        'Pastillas por frasco': { type: 'number', number: 60 },
+        'Pastillas al día': { type: 'number', number: 2 },
+        'Recompra?': { type: 'checkbox', checkbox: true },
+      },
+      '2026-10-20T10:00:00.000Z',
+    );
+    expect(s).toMatchObject({ totalPills: 60, pillsPerDay: 2, restockFlagged: true });
+    expect(s?.bottleOpenedAt?.getDate()).toBe(1);
+  });
+
+  it('sin conteo aún (o sin las propiedades) devuelve null', () => {
+    expect(parseNotionSupplementStock({})).toBeNull();
+    expect(
+      parseNotionSupplementStock({ 'Pastillas por frasco': { type: 'number', number: null } }),
+    ).toBeNull();
   });
 });
