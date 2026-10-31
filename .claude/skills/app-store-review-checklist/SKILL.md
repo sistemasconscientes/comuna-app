@@ -25,11 +25,11 @@ Fuente: [App Review Guidelines](https://developer.apple.com/app-store/review/gui
 
 ## 1. Completitud y acceso para el reviewer (2.1)
 
-- [ ] El reviewer puede usar **todas** las funciones sin cuenta de Notion: botón visible "Explorar con datos de ejemplo" en el onboarding → modo demo (Luna/Mar) que cubre Inicio, Stock, Comidas, Salud y Perfil.
+- [ ] El reviewer puede usar **todas** las funciones sin cuenta de Notion: botón visible "Explorar con datos de ejemplo" en el onboarding → modo demo (Luna y Mar con ciclo, Sol sin ciclo) que cubre Inicio, Stock, Comidas, Salud y Perfil.
 - [ ] Las notas al reviewer (en inglés) explican: qué es Notion y por qué se pide un token de integración; cómo entrar al modo demo; que HealthKit es opcional y la app funciona sin datos de Salud; que no hay cuentas, compras ni backend propio (salvo sharedStock, si sigue activo; explicar qué hace).
 - [ ] Si Apple pide probar con Notion real: tener lista una workspace de prueba con el template y un token **de solo esa workspace** para pegar en las notas (nunca el workspace personal).
 - [ ] Sin placeholders, "TODO", "lorem", pantallas vacías ni crashes en el primer arranque (probar instalación limpia + modo avión).
-- [ ] `EXPO_PUBLIC_BACKEND_URL` de producción responde (si el backend de Render está dormido, la primera llamada no debe colgar la UI).
+- [ ] Stock compartido: el build de EAS **no** recibe `BACKEND_API_KEY`, así que `usesSharedStockBackend()` es false y los suplementos «Compartido» guardan stock local. Si alguna vez se activa el backend en un build público, hay que declararlo en PRIVACY.md y en App Privacy (servidor propio con datos de stock).
 
 ## 2. Salud y seguridad médica (1.4.1, 1.4.2, 5.1.3)
 
@@ -60,7 +60,7 @@ Fuente: [App Review Guidelines](https://developer.apple.com/app-store/review/gui
 
 ## 5. Metadata de App Store Connect (2.3, 5.1)
 
-- [ ] **Age rating con el cuestionario nuevo** (sistema 4+/9+/13+/16+/18+ desde 2025; "12+" ya no existe). Responder honestamente "Medical or Treatment-Focused Content" y "Health or Wellness Topics", y corregir el "12+" en `docs/store/app-store-metadata.md`.
+- [ ] **Age rating 18+** (decisión oct 2026) con el cuestionario nuevo (sistema 4+/9+/13+/16+/18+ desde 2025). Responder honestamente «Medical or Treatment-Focused Content» y «Health or Wellness Topics», y fijar la edad mínima en 18+. Debe coincidir con `docs/store/app-store-metadata.md` y `docs/PRIVACY.md`.
 - [ ] Las respuestas de App Privacy coinciden con el código y los privacy manifests: Crash Data y Performance (Sentry), Product Interaction (PostHog), Device ID / Other Identifiers (`identify(profile_x)`, IP si `sendDefaultPii`), todo "Not linked to identity" y "Not used for tracking". Health: no se recolecta en servidores.
 - [ ] Screenshots de la app en uso, en modo demo, sin datos personales reales. Hacen falta las de 6.9" y, si `supportsTablet: true`, también las de iPad 13". Sin splash ni onboarding como captura principal (2.3.3).
 - [ ] La descripción y las keywords no mencionan Android ni otras plataformas (2.3.10), no tienen keywords irrelevantes o de competidores (2.3.7) y no hacen promesas médicas.

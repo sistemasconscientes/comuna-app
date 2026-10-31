@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,8 +17,10 @@ import Profile from './src/screens/Profile';
 import NotionOnboarding from './src/screens/NotionOnboarding';
 import { OfflineBanner } from './src/components/OfflineBanner';
 import {
-  PROFILES,
+  getDefaultEmoji,
   getProfileLabel,
+  getProfiles,
+  isActiveProfileId,
   loadProfileOverrides,
   profileIdsRecord,
   subscribeProfileOverrides,
@@ -42,7 +44,9 @@ import {
   getAppEnvironment,
   getSentryDist,
   getSentryRelease,
+  loadDiagnosticsPreference,
   reportErrorToSentry,
+  sentryBeforeSend,
 } from './src/utils/observability';
 import { theme } from './src/theme/colors';
 
@@ -58,8 +62,11 @@ if (sentryDsn) {
     release: getSentryRelease(),
     dist: getSentryDist(),
     // https://docs.sentry.io/platforms/react-native/data-management/data-collected/
-    sendDefaultPii: true,
-    enableLogs: true,
+    // Sin IP ni identificadores por defecto (App Privacy / guideline 5.1.2).
+    sendDefaultPii: false,
+    // Logs solo en desarrollo: en release podrían arrastrar datos de salud de un console.log.
+    enableLogs: __DEV__,
+    beforeSend: sentryBeforeSend,
     integrations: [Sentry.feedbackIntegration()],
     // spotlight: __DEV__,
   });
@@ -128,7 +135,7 @@ function App() {
 
   /** null = hidratando settings de Notion; 'none' = mostrar onboarding. */
   const [notionSource, setNotionSource] = React.useState<NotionSettingsSource | null>(null);
-  const [, bumpProfilesVersion] = React.useReducer((v: number) => v + 1, 0);
+  const [profilesVersion, bumpProfilesVersion] = React.useReducer((v: number) => v + 1, 0);
 
   React.useEffect(() => subscribeProfileOverrides(bumpProfilesVersion), []);
 
@@ -136,6 +143,10 @@ function App() {
     let cancelled = false;
     void (async () => {
       await loadProfileOverrides().catch(() => {});
+      // PostHog guarda su propio opt-out; aquí lo re-sincronizamos con la preferencia.
+      if (await loadDiagnosticsPreference().catch(() => false)) {
+        void posthogRef.current?.optOut();
+      }
       const source = await loadNotionSettings();
       if (!cancelled) setNotionSource(source);
     })();
@@ -156,14 +167,19 @@ function App() {
   const pickerReasonRef = React.useRef<PickerReason>('no_stored_value');
 
   /** Evita que la hidratación desde AsyncStorage pise un emoji ya elegido en el gate. */
-  const emojiTouchedRef = React.useRef(profileIdsRecord(() => false));
+  const emojiTouchedRef = React.useRef<Partial<Record<ProfileId, boolean>>>({});
   /** Solo true mientras el picker está visible; al cerrar vuelve a false para detectar la próxima apertura. */
   const showUserPickerWasOpenRef = React.useRef(false);
 
   const emojiKeyForUser = React.useCallback((u: User) => `user_emoji_${u}`, []);
-  const [userEmojiByUser, setUserEmojiByUser] = React.useState<Record<User, string>>(() =>
-    profileIdsRecord((id) => PROFILES.find((p) => p.id === id)!.emojiDefault),
+  const [userEmojiByUser, setUserEmojiByUser] = React.useState<Partial<Record<User, string>>>(() =>
+    profileIdsRecord(getDefaultEmoji),
   );
+
+  // Se quitó el perfil activo (o el guardado ya no existe): volver al primero.
+  React.useEffect(() => {
+    if (notionSource !== null && !isActiveProfileId(user)) setUserState('profile_1');
+  }, [notionSource, profilesVersion, user]);
 
   const markEmojiTouched = React.useCallback((u: User, emoji: string) => {
     emojiTouchedRef.current[u] = true;
@@ -183,13 +199,13 @@ function App() {
 
     if (!pickerJustOpened) return;
 
-    emojiTouchedRef.current = profileIdsRecord(() => false);
+    emojiTouchedRef.current = {};
 
     let cancelled = false;
     void (async () => {
       try {
         const entries = await Promise.all(
-          PROFILES.map(
+          getProfiles().map(
             async (p) => [p.id, await AsyncStorage.getItem(emojiKeyForUser(p.id))] as const,
           ),
         );
@@ -199,7 +215,7 @@ function App() {
           for (const [id, raw] of entries) {
             const profileId = id as ProfileId;
             if (emojiTouchedRef.current[profileId]) continue;
-            next[profileId] = raw || PROFILES.find((p) => p.id === profileId)!.emojiDefault;
+            next[profileId] = raw || getDefaultEmoji(profileId);
           }
           return next;
         });
@@ -303,7 +319,7 @@ function App() {
       const reason = pickerReasonRef.current;
       void (async () => {
         try {
-          const emojiToSave = userEmojiByUser[u] || PROFILES.find((p) => p.id === u)!.emojiDefault;
+          const emojiToSave = userEmojiByUser[u] || getDefaultEmoji(u);
           await AsyncStorage.setItem(emojiKeyForUser(u), emojiToSave);
           await AsyncStorage.setItem(SELECTED_USER_KEY, u);
           setUserState(u);
@@ -395,17 +411,27 @@ function App() {
           >
             <Text style={styles.gateTitle}>¿Quién usa la app?</Text>
             <Text style={styles.gateSubtitle}>Elige tu perfil para continuar</Text>
-            <View style={styles.gateRow}>
-              {PROFILES.map((profile) => (
+            {/* Lista vertical: escala a hogares con varios perfiles (roomies). */}
+            <ScrollView contentContainerStyle={styles.gateList} showsVerticalScrollIndicator>
+              {getProfiles().map((profile) => (
                 <View key={profile.id} style={styles.gateUserStack}>
                   <TouchableOpacity
                     style={styles.gateBtn}
                     onPress={() => completeGateSelection(profile.id)}
                     activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Continuar como ${getProfileLabel(profile.id)}`}
                   >
+                    <Text style={styles.gateBtnEmoji}>
+                      {userEmojiByUser[profile.id] ?? profile.emojiDefault}
+                    </Text>
                     <Text style={styles.gateBtnText}>{getProfileLabel(profile.id)}</Text>
                   </TouchableOpacity>
-                  <View style={styles.emojiPickerRow}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.emojiPickerRow}
+                  >
                     {USER_EMOJIS.map((emoji) => {
                       const active = userEmojiByUser[profile.id] === emoji;
                       return (
@@ -414,6 +440,9 @@ function App() {
                           onPress={() => markEmojiTouched(profile.id, emoji)}
                           style={[styles.emojiChip, active && styles.emojiChipActive]}
                           activeOpacity={0.8}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: active }}
+                          accessibilityLabel={`Emoji ${emoji} para ${getProfileLabel(profile.id)}`}
                         >
                           <Text
                             style={[styles.emojiChipText, active && styles.emojiChipTextActive]}
@@ -423,10 +452,10 @@ function App() {
                         </TouchableOpacity>
                       );
                     })}
-                  </View>
+                  </ScrollView>
                 </View>
               ))}
-            </View>
+            </ScrollView>
           </View>
         ) : (
           <View style={styles.tabbedRoot}>
@@ -487,10 +516,13 @@ const styles = StyleSheet.create({
   gateContent: { padding: 24, justifyContent: 'center', gap: 16 },
   gateTitle: { fontSize: 24, fontWeight: '700', color: theme.text, textAlign: 'center' },
   gateSubtitle: { fontSize: 15, color: theme.textSecondary, textAlign: 'center', marginBottom: 8 },
-  gateRow: { flexDirection: 'row', gap: 12 },
-  gateUserStack: { flex: 1 },
+  gateList: { gap: 18, paddingBottom: 8 },
+  gateUserStack: {},
   gateBtn: {
+    flexDirection: 'row',
+    gap: 10,
     paddingVertical: 16,
+    paddingHorizontal: 18,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: theme.borderStrong,
@@ -498,13 +530,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
+  gateBtnEmoji: { fontSize: 22 },
   gateBtnText: { fontSize: 17, fontWeight: '600', color: theme.text },
   emojiPickerRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
     gap: 8,
     marginTop: 10,
+    paddingHorizontal: 2,
   },
   emojiChip: {
     paddingVertical: 6,

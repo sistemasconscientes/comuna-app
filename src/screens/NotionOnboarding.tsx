@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotionConnection, type NotionConnectStep } from '../hooks/useNotionConnection';
 import { theme } from '../theme/colors';
+import { MAX_PROFILES } from '../config/profiles';
 
 const TEMPLATE_URL = 'https://www.notion.com/es/templates/comuna-app';
 const INTEGRATIONS_URL = 'https://www.notion.so/my-integrations';
@@ -96,6 +97,11 @@ export default function NotionOnboarding({ onConnected }: NotionOnboardingProps)
           <Text style={styles.stepLine}>
             <Text style={styles.stepNumber}>4. </Text>
             Pega el token aquí. Se guarda cifrado en tu teléfono.
+          </Text>
+          <Text style={styles.stepHint}>
+            ¿Comparten casa? Cada persona es un perfil (hasta {MAX_PROFILES}). Quien no sigue ciclo
+            menstrual escribe «Sin ciclo» en la columna Fase o solo aparece en el select Persona de
+            Suplementos. Lo de todo el hogar va con Persona «Compartido».
           </Text>
         </View>
 
@@ -213,6 +219,11 @@ export default function NotionOnboarding({ onConnected }: NotionOnboardingProps)
             </TouchableOpacity>
           </View>
         )}
+
+        <Text style={styles.disclaimer}>
+          La Comuna no es un dispositivo médico ni sustituye el consejo de un profesional de la
+          salud.
+        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -232,6 +243,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   stepLine: { fontSize: 14, color: theme.text, lineHeight: 20 },
+  stepHint: { fontSize: 13, color: theme.textSecondary, lineHeight: 19, marginTop: 4 },
+  disclaimer: {
+    fontSize: 12,
+    color: theme.textMuted,
+    lineHeight: 17,
+    textAlign: 'center',
+    marginTop: 8,
+  },
   stepNumber: { fontWeight: '700', color: theme.textSecondary },
   link: { color: '#C97B6E', textDecorationLine: 'underline' },
   input: {

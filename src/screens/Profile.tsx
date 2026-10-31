@@ -17,15 +17,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
 import { usePostHog } from 'posthog-react-native';
 import {
-  PROFILES,
+  MAX_PROFILES,
+  addProfile,
+  getDefaultEmoji,
   getNotionPhaseRowLabel,
   getProfileLabel,
   getProfileOverrides,
+  getProfiles,
   profileIdsRecord,
+  profileTracksCycle,
+  removeLastProfile,
   saveProfileOverrides,
+  setProfileTracksCycle,
   subscribeProfileOverrides,
   type ProfileId,
 } from '../config/profiles';
+import { isDiagnosticsOptedOut, setDiagnosticsOptedOut } from '../utils/observability';
 import { clearNotionSettings, getNotionSettingsSource } from '../config/notionSettings';
 import { useReminders } from '../hooks/useReminders';
 import { formatReminderTime, parseReminderTime } from '../utils/reminderSchedule';
@@ -69,6 +76,9 @@ const emojiKeyForUser = (u: User) => `user_emoji_${u}`;
 
 /** Sin verbo de donación en la app (guideline 3.2.2); la donación vive en GitHub. */
 const GITHUB_REPO_URL = 'https://github.com/sistemasconscientes/comuna-app';
+/** URL canónica de la política (la misma que va en App Store Connect). */
+const PRIVACY_POLICY_URL = `${GITHUB_REPO_URL}/blob/main/docs/PRIVACY.md`;
+const LICENSE_URL = `${GITHUB_REPO_URL}/blob/main/LICENSE`;
 
 type ProfileProps = {
   /** Vuelve a la zona principal (p. ej. Inicio); la barra inferior también cambia de pestaña. */
@@ -83,24 +93,28 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
   const posthog = usePostHog();
   const [dailyLogOpen, setDailyLogOpen] = React.useState(false);
   const { user, setUser, clearStoredUserAndShowPicker } = useUser();
-  const [userEmojiByUser, setUserEmojiByUser] = React.useState<Record<User, string>>(() =>
-    profileIdsRecord((id) => PROFILES.find((p) => p.id === id)!.emojiDefault),
+  const [userEmojiByUser, setUserEmojiByUser] = React.useState<Partial<Record<User, string>>>(() =>
+    profileIdsRecord(getDefaultEmoji),
   );
+  /** Re-render al agregar/quitar perfiles o cambiar «sigue ciclo». */
+  const [profilesVersion, bumpProfilesVersion] = React.useReducer((v: number) => v + 1, 0);
+  React.useEffect(() => subscribeProfileOverrides(bumpProfilesVersion), []);
+  const profiles = getProfiles();
+  /** Perfil con el panel de edición abierto (uno a la vez para no saturar la pantalla). */
+  const [editingId, setEditingId] = React.useState<ProfileId | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
         const entries = await Promise.all(
-          PROFILES.map(
+          getProfiles().map(
             async (p) => [p.id, await AsyncStorage.getItem(emojiKeyForUser(p.id))] as const,
           ),
         );
         if (cancelled) return;
         const next = profileIdsRecord(
-          (id) =>
-            entries.find(([eid]) => eid === id)?.[1] ||
-            PROFILES.find((p) => p.id === id)!.emojiDefault,
+          (id) => entries.find(([eid]) => eid === id)?.[1] || getDefaultEmoji(id),
         );
         setUserEmojiByUser(next);
       } catch {
@@ -110,7 +124,7 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [profilesVersion]);
 
   const persistEmoji = React.useCallback((u: User, emoji: string) => {
     setUserEmojiByUser((prev) => ({ ...prev, [u]: emoji }));
@@ -126,6 +140,7 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
     healthKitDiagnostics,
     healthKitIrregularCycleHint,
     healthKitLifecycleContext,
+    tracksCycle,
     refetch,
   } = useHealthData(user, { calendarDayKey });
 
@@ -137,10 +152,10 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
   const notionSource = getNotionSettingsSource();
 
   // Edición runtime de nombre mostrado y persona en Notion por perfil.
-  const [profileNameDrafts, setProfileNameDrafts] = React.useState<Record<ProfileId, string>>(() =>
-    profileIdsRecord((id) => getProfileLabel(id)),
-  );
-  const [personaDrafts, setPersonaDrafts] = React.useState<Record<ProfileId, string>>(() =>
+  const [profileNameDrafts, setProfileNameDrafts] = React.useState<
+    Partial<Record<ProfileId, string>>
+  >(() => profileIdsRecord((id) => getProfileLabel(id)));
+  const [personaDrafts, setPersonaDrafts] = React.useState<Partial<Record<ProfileId, string>>>(() =>
     profileIdsRecord((id) => getNotionPhaseRowLabel(id)),
   );
 
@@ -156,10 +171,11 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
 
   const commitProfileEdits = React.useCallback(
     (id: ProfileId) => {
-      const label = profileNameDrafts[id].trim();
-      const persona = personaDrafts[id].trim();
+      const label = (profileNameDrafts[id] ?? '').trim();
+      const persona = (personaDrafts[id] ?? '').trim();
       const prev = getProfileOverrides();
       void saveProfileOverrides({
+        ...prev,
         profileLabels: { ...prev.profileLabels, ...(label ? { [id]: label } : {}) },
         notionByProfile: {
           ...prev.notionByProfile,
@@ -169,6 +185,58 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
       posthog?.capture('profile_overrides_edited', { profile: id });
     },
     [personaDrafts, posthog, profileNameDrafts],
+  );
+
+  const onAddProfile = React.useCallback(() => {
+    void (async () => {
+      const id = await addProfile();
+      if (!id) return;
+      setEditingId(id);
+      posthog?.capture('profile_added', { profile_count: getProfiles().length });
+    })();
+  }, [posthog]);
+
+  const onRemoveLastProfile = React.useCallback(() => {
+    const last = getProfiles().at(-1);
+    if (!last) return;
+    Alert.alert(
+      `Quitar «${getProfileLabel(last.id)}»`,
+      'Se quita de este teléfono. Sus datos en Notion no se tocan y su historial local se conserva por si lo vuelves a agregar.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Quitar',
+          style: 'destructive',
+          onPress: () => {
+            void removeLastProfile();
+            if (editingId === last.id) setEditingId(null);
+            posthog?.capture('profile_removed', { profile_count: getProfiles().length - 1 });
+          },
+        },
+      ],
+    );
+  }, [editingId, posthog]);
+
+  const onToggleTracksCycle = React.useCallback(
+    (id: ProfileId, tracks: boolean) => {
+      void setProfileTracksCycle(id, tracks);
+      posthog?.capture('profile_cycle_tracking_changed', { tracks_cycle: tracks });
+    },
+    [posthog],
+  );
+
+  const [diagnosticsOn, setDiagnosticsOn] = React.useState(() => !isDiagnosticsOptedOut());
+  const onToggleDiagnostics = React.useCallback(
+    (on: boolean) => {
+      setDiagnosticsOn(on);
+      void setDiagnosticsOptedOut(!on);
+      if (on) {
+        void posthog?.optIn();
+      } else {
+        void posthog?.optOut();
+      }
+    },
+    [posthog],
   );
 
   const onDisconnectNotion = React.useCallback(() => {
@@ -205,7 +273,7 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
     const parsed = parseReminderTime(reminderTimeDraft);
     if (parsed) reminders.setTime(parsed.hour, parsed.minute);
     setReminderTimeDraft(null);
-  }, [reminderTimeDraft, reminders]);
+  }, [reminderTimeDraft, reminders, setReminderTimeDraft]);
 
   const phaseColor = cyclePhase ? PHASE_COLORS[cyclePhase] : '#ccc';
   const phaseLabel = cyclePhase ? PHASE_LABELS[cyclePhase] : '—';
@@ -242,49 +310,154 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
       <Text style={styles.title}>Perfil</Text>
 
       <View style={styles.selectorCard}>
-        <Text style={styles.selectorLabel}>Usuario activo</Text>
-        <View style={styles.selectorRow}>
-          {PROFILES.map((profile) => (
-            <View key={profile.id} style={styles.selectorUserStack}>
-              <TouchableOpacity
-                style={[styles.selectorBtn, user === profile.id && styles.selectorBtnActive]}
-                onPress={() => setUser(profile.id)}
-              >
-                <Text
-                  style={[
-                    styles.selectorBtnText,
-                    user === profile.id && styles.selectorBtnTextActive,
-                  ]}
+        <Text style={styles.selectorLabel}>Perfiles en este teléfono</Text>
+        {profiles.map((profile, index) => {
+          const active = user === profile.id;
+          const editing = editingId === profile.id;
+          const emoji = userEmojiByUser[profile.id] ?? profile.emojiDefault;
+          const cycle = profileTracksCycle(profile.id);
+          return (
+            <View key={profile.id} style={styles.profileRowBlock}>
+              <View style={styles.profileRow}>
+                <TouchableOpacity
+                  style={[styles.profileRowMain, active && styles.selectorBtnActive]}
+                  onPress={() => setUser(profile.id)}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={`Usar el perfil ${getProfileLabel(profile.id)}`}
                 >
-                  {getProfileLabel(profile.id)}
-                </Text>
-              </TouchableOpacity>
-              <View style={styles.emojiPickerRow}>
-                {USER_EMOJIS.map((emoji) => {
-                  const active = userEmojiByUser[profile.id] === emoji;
-                  return (
-                    <TouchableOpacity
-                      key={`${profile.id}-${emoji}`}
-                      onPress={() => persistEmoji(profile.id, emoji)}
-                      style={[styles.emojiChip, active && styles.emojiChipActive]}
-                      activeOpacity={0.8}
+                  <Text style={styles.profileRowEmoji}>{emoji}</Text>
+                  <View style={styles.profileRowTextCol}>
+                    <Text
+                      style={[styles.selectorBtnText, active && styles.selectorBtnTextActive]}
+                      numberOfLines={1}
                     >
-                      <Text style={[styles.emojiChipText, active && styles.emojiChipTextActive]}>
-                        {emoji}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                      {getProfileLabel(profile.id)}
+                    </Text>
+                    <Text style={styles.profileRowMeta}>
+                      {active ? 'Activo · ' : ''}
+                      {cycle ? 'Sigue ciclo' : 'Sin seguimiento de ciclo'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.profileEditToggle}
+                  onPress={() => setEditingId(editing ? null : profile.id)}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: editing }}
+                  accessibilityLabel={`Editar el perfil ${getProfileLabel(profile.id)}`}
+                >
+                  <Text style={styles.profileEditToggleText}>{editing ? 'Listo' : 'Editar'}</Text>
+                </TouchableOpacity>
               </View>
+
+              {editing && (
+                <View style={styles.profileEditPanel}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.emojiPickerRow}
+                  >
+                    {USER_EMOJIS.map((e) => {
+                      const selected = emoji === e;
+                      return (
+                        <TouchableOpacity
+                          key={`${profile.id}-${e}`}
+                          onPress={() => persistEmoji(profile.id, e)}
+                          style={[styles.emojiChip, selected && styles.emojiChipActive]}
+                          activeOpacity={0.8}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected }}
+                          accessibilityLabel={`Emoji ${e}`}
+                        >
+                          <Text
+                            style={[styles.emojiChipText, selected && styles.emojiChipTextActive]}
+                          >
+                            {e}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                  <View style={styles.profileEditRow}>
+                    <View style={styles.profileEditField}>
+                      <Text style={styles.profileEditFieldLabel}>Nombre en la app</Text>
+                      <TextInput
+                        style={styles.profileEditInput}
+                        value={profileNameDrafts[profile.id] ?? ''}
+                        onChangeText={(t) =>
+                          setProfileNameDrafts((prev) => ({ ...prev, [profile.id]: t }))
+                        }
+                        onEndEditing={() => commitProfileEdits(profile.id)}
+                        placeholder={`Perfil ${index + 1}`}
+                        placeholderTextColor={theme.textMuted}
+                        accessibilityLabel={`Nombre en la app del perfil ${index + 1}`}
+                      />
+                    </View>
+                    <View style={styles.profileEditField}>
+                      <Text style={styles.profileEditFieldLabel}>Persona en Notion</Text>
+                      <TextInput
+                        style={styles.profileEditInput}
+                        value={personaDrafts[profile.id] ?? ''}
+                        onChangeText={(t) =>
+                          setPersonaDrafts((prev) => ({ ...prev, [profile.id]: t }))
+                        }
+                        onEndEditing={() => commitProfileEdits(profile.id)}
+                        placeholder="Igual que en Notion"
+                        placeholderTextColor={theme.textMuted}
+                        autoCapitalize="none"
+                        accessibilityLabel={`Persona en Notion del perfil ${index + 1}`}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.reminderRow}>
+                    <Text style={styles.reminderLabel}>Sigue ciclo menstrual</Text>
+                    <Switch
+                      value={cycle}
+                      onValueChange={(v) => onToggleTracksCycle(profile.id, v)}
+                      accessibilityLabel={`Seguimiento de ciclo para ${getProfileLabel(profile.id)}`}
+                    />
+                  </View>
+                  <Text style={styles.qaHint}>
+                    Sin ciclo: la app no calcula fases ni lee el ciclo en Apple Salud, y muestra los
+                    suplementos que no dependen de una fase. «Persona en Notion» debe coincidir con
+                    el select Persona (y con la fila de la tabla de fases, si sigue ciclo).
+                  </Text>
+                </View>
+              )}
             </View>
-          ))}
+          );
+        })}
+        <View style={styles.profileFooterRow}>
+          {profiles.length < MAX_PROFILES && (
+            <TouchableOpacity
+              style={styles.profileFooterBtn}
+              onPress={onAddProfile}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <Text style={styles.profileFooterBtnText}>+ Agregar perfil</Text>
+            </TouchableOpacity>
+          )}
+          {profiles.length > 1 && (
+            <TouchableOpacity
+              style={styles.profileFooterBtn}
+              onPress={onRemoveLastProfile}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <Text style={styles.disconnectBtnText}>Quitar último…</Text>
+            </TouchableOpacity>
+          )}
         </View>
         <TouchableOpacity
           style={styles.changeUserBtn}
           onPress={clearStoredUserAndShowPicker}
           activeOpacity={0.7}
         >
-          <Text style={styles.changeUserBtnText}>Cambiar usuario</Text>
+          <Text style={styles.changeUserBtnText}>Volver a la pantalla «¿Quién usa la app?»</Text>
         </TouchableOpacity>
       </View>
 
@@ -298,48 +471,6 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
           Ver o corregir suplementos tomados en cualquier fecha
         </Text>
       </TouchableOpacity>
-
-      <View style={styles.selectorCard}>
-        <Text style={styles.selectorLabel}>Nombres de perfil</Text>
-        {PROFILES.map((profile, index) => (
-          <View key={profile.id} style={styles.profileEditBlock}>
-            <Text style={styles.profileEditSlot}>Perfil {index + 1}</Text>
-            <View style={styles.profileEditRow}>
-              <View style={styles.profileEditField}>
-                <Text style={styles.profileEditFieldLabel}>Nombre en la app</Text>
-                <TextInput
-                  style={styles.profileEditInput}
-                  value={profileNameDrafts[profile.id]}
-                  onChangeText={(t) =>
-                    setProfileNameDrafts((prev) => ({ ...prev, [profile.id]: t }))
-                  }
-                  onEndEditing={() => commitProfileEdits(profile.id)}
-                  placeholder="p. ej. Diana"
-                  placeholderTextColor={theme.textMuted}
-                  accessibilityLabel={`Nombre en la app del perfil ${index + 1}`}
-                />
-              </View>
-              <View style={styles.profileEditField}>
-                <Text style={styles.profileEditFieldLabel}>Persona en Notion</Text>
-                <TextInput
-                  style={styles.profileEditInput}
-                  value={personaDrafts[profile.id]}
-                  onChangeText={(t) => setPersonaDrafts((prev) => ({ ...prev, [profile.id]: t }))}
-                  onEndEditing={() => commitProfileEdits(profile.id)}
-                  placeholder="p. ej. Diana"
-                  placeholderTextColor={theme.textMuted}
-                  autoCapitalize="none"
-                  accessibilityLabel={`Persona en Notion del perfil ${index + 1}`}
-                />
-              </View>
-            </View>
-          </View>
-        ))}
-        <Text style={styles.qaHint}>
-          «Persona en Notion» debe coincidir con la fila de tu tabla de fases y el select Persona de
-          la DB de suplementos. Reconectar Notion los vuelve a detectar solos.
-        </Text>
-      </View>
 
       <View style={styles.selectorCard}>
         <Text style={styles.selectorLabel}>Recordatorio de registro</Text>
@@ -424,21 +555,29 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
         )}
       </View>
 
-      <View style={[styles.phaseCard, { borderColor: phaseColor }]}>
-        <Text style={styles.phaseLabelSmall}>Fase actual</Text>
-        {loading ? (
-          <Text style={styles.phaseValue}>Cargando…</Text>
-        ) : error ? (
-          <Text style={styles.errorText}>Error al cargar fase</Text>
-        ) : (
-          <>
-            <Text style={[styles.phaseValue, { color: phaseColor }]}>{phaseLabel}</Text>
-            {cycleDay !== null && <Text style={styles.cycleDay}>Día {cycleDay} del ciclo</Text>}
-          </>
-        )}
-      </View>
+      {tracksCycle && (
+        <View style={[styles.phaseCard, { borderColor: phaseColor }]}>
+          <Text style={styles.phaseLabelSmall}>Fase actual</Text>
+          {loading ? (
+            <Text style={styles.phaseValue}>Cargando…</Text>
+          ) : error ? (
+            <Text style={styles.errorText}>Error al cargar fase</Text>
+          ) : (
+            <>
+              <Text style={[styles.phaseValue, { color: phaseColor }]}>{phaseLabel}</Text>
+              {cycleDay !== null && <Text style={styles.cycleDay}>Día {cycleDay} del ciclo</Text>}
+              <Text style={styles.qaHint}>
+                Estimación: día del ciclo desde tu último inicio de periodo en Apple Salud y
+                duración típica de tus ciclos (mediana de los registrados; 28 días si no hay datos).
+                Es orientativa, no un diagnóstico ni un método anticonceptivo.
+              </Text>
+            </>
+          )}
+        </View>
+      )}
 
-      {Platform.OS === 'ios' &&
+      {tracksCycle &&
+        Platform.OS === 'ios' &&
         !loading &&
         (healthKitIrregularCycleHint || healthKitLifecycleContext !== 'none') && (
           <View style={styles.healthContextCard}>
@@ -468,6 +607,39 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
           </View>
         )}
 
+      <View style={styles.selectorCard}>
+        <Text style={styles.selectorLabel}>Privacidad y datos</Text>
+        <View style={styles.reminderRow}>
+          <Text style={styles.reminderLabel}>Compartir diagnósticos anónimos</Text>
+          <Switch
+            value={diagnosticsOn}
+            onValueChange={onToggleDiagnostics}
+            accessibilityLabel="Compartir diagnósticos anónimos"
+          />
+        </View>
+        <Text style={styles.qaHint}>
+          Errores técnicos y uso de pantallas (sin datos de salud, sin contenido de tu Notion) para
+          mejorar la app. Apágalo cuando quieras.
+        </Text>
+        <TouchableOpacity
+          style={styles.inlineLink}
+          onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+          activeOpacity={0.7}
+          accessibilityRole="link"
+        >
+          <Text style={styles.inlineLinkText}>Política de privacidad</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.selectorCard}>
+        <Text style={styles.selectorLabel}>Aviso de salud</Text>
+        <Text style={styles.notionStatusText}>
+          La Comuna organiza lo que tú anotas en tu Notion; no es un dispositivo médico, no
+          prescribe suplementos ni dosis y no sustituye el consejo de un profesional de la salud.
+          Consulta a tu médico o médica antes de empezar, cambiar o dejar un suplemento.
+        </Text>
+      </View>
+
       <TouchableOpacity
         style={styles.linkCard}
         onPress={() => Linking.openURL(GITHUB_REPO_URL)}
@@ -477,7 +649,17 @@ export default function Profile({ onBackToTabs, onNotionDisconnected }: ProfileP
       >
         <Text style={styles.linkCardTitle}>Proyecto open source · GitHub</Text>
         <Text style={styles.linkCardSubtitle}>
-          Código, template de Notion y novedades del proyecto
+          Proyecto comunitario sin fines de lucro: código, template de Notion y novedades.
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.inlineLink}
+        onPress={() => Linking.openURL(LICENSE_URL)}
+        activeOpacity={0.7}
+        accessibilityRole="link"
+      >
+        <Text style={styles.licenseText}>
+          Software libre bajo licencia GNU GPL v3 · © Laboratorio de Sistemas Conscientes
         </Text>
       </TouchableOpacity>
 
@@ -572,26 +754,50 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 12,
   },
-  selectorRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  selectorUserStack: { flex: 1 },
-  selectorBtn: {
-    paddingVertical: 12,
+  profileRowBlock: { marginBottom: 10 },
+  profileRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  profileRowMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: theme.border,
     backgroundColor: theme.bgElevated,
-    alignItems: 'center',
-    width: '100%',
+    minHeight: 52,
   },
+  profileRowEmoji: { fontSize: 22 },
+  profileRowTextCol: { flex: 1 },
+  profileRowMeta: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  profileEditToggle: { paddingVertical: 12, paddingHorizontal: 10, minHeight: 44 },
+  profileEditToggleText: { fontSize: 14, fontWeight: '600', color: theme.accent },
+  profileEditPanel: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: theme.bgElevated,
+    gap: 12,
+  },
+  profileFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  profileFooterBtn: { paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
+  profileFooterBtnText: { fontSize: 14, fontWeight: '600', color: theme.accent },
+  inlineLink: { paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
+  inlineLinkText: { fontSize: 14, fontWeight: '600', color: theme.accent },
+  licenseText: { fontSize: 12, color: theme.textMuted, textAlign: 'center', lineHeight: 17 },
   selectorBtnActive: { borderColor: theme.accent, backgroundColor: theme.accentSoft },
   selectorBtnText: { fontSize: 16, fontWeight: '600', color: theme.textMuted },
   selectorBtnTextActive: { color: theme.text },
   emojiPickerRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
-    justifyContent: 'center',
-    marginTop: 10,
+    paddingHorizontal: 2,
   },
   emojiChip: {
     paddingVertical: 6,
@@ -613,8 +819,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   changeUserBtnText: { fontSize: 14, fontWeight: '600', color: theme.textSecondary },
-  profileEditBlock: { marginBottom: 12 },
-  profileEditSlot: { fontSize: 12, fontWeight: '700', color: theme.textSecondary, marginBottom: 6 },
   profileEditRow: { flexDirection: 'row', gap: 10 },
   profileEditField: { flex: 1 },
   profileEditFieldLabel: { fontSize: 11, color: theme.textMuted, marginBottom: 4 },

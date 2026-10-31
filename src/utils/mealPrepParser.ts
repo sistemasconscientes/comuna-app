@@ -9,7 +9,7 @@
  */
 
 /** Usuaria activa para columna de plato en tablas de 3 columnas (Diana / Estefanía). */
-import type { ProfileId } from '../config/profiles';
+import { profileIndex, type ProfileId } from '../config/profiles';
 
 export interface NotionRichText {
   plain_text?: string;
@@ -104,10 +104,16 @@ function findWeeklyPlanAnchorIndex(blocks: NotionBlock[]): number {
   return -1;
 }
 
-/** Columna del plato: exactamente 2 celdas → 1; 3+ → Diana col 1, Estefanía col 2. */
+/**
+ * Columna del plato: exactamente 2 celdas → 1 (plato común); 3+ → una columna
+ * por perfil en orden (perfil 1 → col 1…). Perfiles sin columna propia usan la 1.
+ */
 function dishColumnIndex(cellCount: number, user: MealPrepUser): number | null {
   if (cellCount === 2) return 1;
-  if (cellCount >= 3) return user === 'profile_2' ? 2 : 1;
+  if (cellCount >= 3) {
+    const col = profileIndex(user) + 1;
+    return col >= 1 && col < cellCount ? col : 1;
+  }
   return null;
 }
 

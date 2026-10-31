@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { eq } from 'drizzle-orm';
-import { getSharedStock } from '../api/sharedStock';
+import { getSharedStock, usesSharedStockBackend } from '../api/sharedStock';
 import type { SharedStock } from '../api/sharedStock';
 import { db, stock } from '../db';
 import type { StockEntry, Supplement } from '../types';
@@ -133,7 +133,7 @@ export function useStock() {
   };
 }
 
-/** Stock compartido (Persona = Ambas) desde el backend MongoDB. */
+/** Stock compartido (Persona compartida) desde el backend MongoDB. */
 export function useSharedStockMap(supplements: Supplement[]) {
   const [sharedByNotionId, setSharedByNotionId] = useState<Record<string, SharedStock | null>>({});
   const [loading, setLoading] = useState(true);
@@ -141,7 +141,7 @@ export function useSharedStockMap(supplements: Supplement[]) {
   const ambasKey = useMemo(
     () =>
       supplements
-        .filter((s) => s.persona === 'Ambas')
+        .filter((s) => usesSharedStockBackend(s.persona))
         .map((s) => s.notion_id)
         .sort()
         .join('|'),
@@ -172,7 +172,9 @@ export function useSharedStockMap(supplements: Supplement[]) {
   }, [ambasKey]);
 
   const refetchShared = useCallback(async () => {
-    const ids = supplements.filter((s) => s.persona === 'Ambas').map((s) => s.notion_id);
+    const ids = supplements
+      .filter((s) => usesSharedStockBackend(s.persona))
+      .map((s) => s.notion_id);
     if (ids.length === 0) {
       setSharedByNotionId({});
       return;

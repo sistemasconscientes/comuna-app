@@ -22,6 +22,7 @@ import {
   reviveSharedStockMapFromCache,
   sharedStockToStockEntry,
   updateSharedStock,
+  usesSharedStockBackend,
   type SharedStock,
 } from '../api/sharedStock';
 import { useCache } from '../hooks/useCache';
@@ -62,7 +63,7 @@ function resolveStockEntry(
   stockData: StockEntry[],
   sharedByNotionId: Record<string, SharedStock | null>,
 ): StockEntry | undefined {
-  if (sup.persona === 'Ambas') {
+  if (usesSharedStockBackend(sup.persona)) {
     const sh = sharedByNotionId[sup.notion_id];
     if (!sh) return undefined;
     return sharedStockToStockEntry(sh, localId ?? 0);
@@ -146,7 +147,7 @@ export default function Stock({ user }: Props) {
           try {
             await markForRestock(sup.notion_id);
             if (cancelled) return;
-            if (sup.persona === 'Ambas') {
+            if (usesSharedStockBackend(sup.persona)) {
               await updateSharedStock(sup.notion_id, { restockFlagged: true });
               await refreshStockBundle();
             } else if (localId != null) {
@@ -194,7 +195,7 @@ export default function Stock({ user }: Props) {
 
   const openModal = (sup: Supplement) => {
     const localId = idByNotionId[sup.notion_id];
-    if (sup.persona !== 'Ambas' && localId == null) {
+    if (!usesSharedStockBackend(sup.persona) && localId == null) {
       Alert.alert('Sin datos locales', 'Este suplemento aún no está sincronizado en la DB local.');
       return;
     }
@@ -217,7 +218,7 @@ export default function Stock({ user }: Props) {
       return;
     }
     try {
-      if (editState.supplement.persona === 'Ambas') {
+      if (usesSharedStockBackend(editState.supplement.persona)) {
         await updateSharedStock(editState.supplement.notion_id, {
           bottleOpenedAt: parseBottleDateInput(editState.bottleOpenedAt),
           totalPills: total,
@@ -248,7 +249,7 @@ export default function Stock({ user }: Props) {
     }
     const today = getLocalTodayISO();
     try {
-      if (editState.supplement.persona === 'Ambas') {
+      if (usesSharedStockBackend(editState.supplement.persona)) {
         await updateSharedStock(editState.supplement.notion_id, {
           bottleOpenedAt: parseBottleDateInput(today),
           totalPills: total,
@@ -288,7 +289,7 @@ export default function Stock({ user }: Props) {
 
   const lowCount = supplements.filter((sup) => {
     const localId = idByNotionId[sup.notion_id];
-    if (sup.persona !== 'Ambas' && localId == null) return false;
+    if (!usesSharedStockBackend(sup.persona) && localId == null) return false;
     const entry = getEntry(sup, localId);
     if (!entry) return false;
     const { daysRemaining } = calcDaysRemaining(entry);
@@ -355,7 +356,9 @@ export default function Stock({ user }: Props) {
         renderItem={({ item }) => {
           const localId = idByNotionId[item.notion_id];
           const entry =
-            item.persona === 'Ambas' || localId != null ? getEntry(item, localId) : undefined;
+            usesSharedStockBackend(item.persona) || localId != null
+              ? getEntry(item, localId)
+              : undefined;
           const { daysRemaining } = entry ? calcDaysRemaining(entry) : { daysRemaining: null };
           const isLow = daysRemaining != null && daysRemaining < 7;
 

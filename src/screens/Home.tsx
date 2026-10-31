@@ -9,7 +9,7 @@ import { useTeas } from '../hooks/useTeas';
 import TeaCard from '../components/TeaCard';
 import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
 import { reportDailyLogProgress } from '../api/localNotifications';
-import { getProfileLabel } from '../config/profiles';
+import { getNotionSupplementPersona, getProfileLabel } from '../config/profiles';
 import { useUser } from '../context/UserContext';
 import type { Phase } from '../types';
 import { DEFAULT_CYCLE_LENGTH_DAYS } from '../utils/phaseCalculator';
@@ -132,6 +132,7 @@ export default function Home({ onOpenSettings }: HomeProps) {
     cycleDay,
     loading: healthLoading,
     error: healthError,
+    tracksCycle,
   } = useHealthData(user, {
     calendarDayKey,
   });
@@ -155,7 +156,8 @@ export default function Home({ onOpenSettings }: HomeProps) {
 
   const currentPhase: Phase = cyclePhase ? cyclePhaseToPhase(cyclePhase) : 'menstrual';
 
-  const { teas, currentIndex, nextTea } = useTeas(currentPhase);
+  // Sin ciclo: tés en casa sin filtrar por fase.
+  const { teas, currentIndex, nextTea } = useTeas(tracksCycle ? currentPhase : null);
 
   const config = PHASE_CONFIG[currentPhase];
   const trackPercent =
@@ -204,12 +206,14 @@ export default function Home({ onOpenSettings }: HomeProps) {
             <Text style={styles.userName}>{getProfileLabel(user)}</Text>
           </View>
           <Text style={styles.dateLine}>{dateLine}</Text>
-          <View style={styles.phasePill}>
-            <View style={styles.phaseDot} />
-            <Text style={styles.phasePillText}>
-              {healthLoading ? 'Cargando fase…' : `Fase ${phaseLabel.toLowerCase()}`}
-            </Text>
-          </View>
+          {tracksCycle && (
+            <View style={styles.phasePill}>
+              <View style={styles.phaseDot} />
+              <Text style={styles.phasePillText}>
+                {healthLoading ? 'Cargando fase…' : `Fase ${phaseLabel.toLowerCase()}`}
+              </Text>
+            </View>
+          )}
         </View>
         <TouchableOpacity
           style={styles.settingsBtn}
@@ -222,38 +226,40 @@ export default function Home({ onOpenSettings }: HomeProps) {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.phaseCard}>
-        <View style={styles.phaseLabels}>
-          {(['menstrual', 'folicular', 'ovulatoria', 'lutea'] as const).map((p) => (
-            <Text
-              key={p}
+      {tracksCycle && (
+        <View style={styles.phaseCard}>
+          <View style={styles.phaseLabels}>
+            {(['menstrual', 'folicular', 'ovulatoria', 'lutea'] as const).map((p) => (
+              <Text
+                key={p}
+                style={[
+                  styles.phaseLbl,
+                  currentPhase === p && { color: config.color, fontWeight: '600' },
+                ]}
+              >
+                {PHASE_BAR_SHORT_LABELS[p]}
+              </Text>
+            ))}
+          </View>
+
+          <View style={styles.phaseTrack}>
+            <View
               style={[
-                styles.phaseLbl,
-                currentPhase === p && { color: config.color, fontWeight: '600' },
+                styles.phaseFill,
+                {
+                  width: `${trackPercent}%`,
+                  backgroundColor: config.fillColor,
+                },
               ]}
-            >
-              {PHASE_BAR_SHORT_LABELS[p]}
-            </Text>
-          ))}
-        </View>
+            />
+            <Text style={[styles.phaseMarker, { left: `${trackPercent}%` }]}>{config.emoji}</Text>
+          </View>
 
-        <View style={styles.phaseTrack}>
-          <View
-            style={[
-              styles.phaseFill,
-              {
-                width: `${trackPercent}%`,
-                backgroundColor: config.fillColor,
-              },
-            ]}
-          />
-          <Text style={[styles.phaseMarker, { left: `${trackPercent}%` }]}>{config.emoji}</Text>
+          <View style={styles.phaseFooter}>
+            <Text style={[styles.phaseMessage, { color: config.color }]}>{config.message}</Text>
+          </View>
         </View>
-
-        <View style={styles.phaseFooter}>
-          <Text style={[styles.phaseMessage, { color: config.color }]}>{config.message}</Text>
-        </View>
-      </View>
+      )}
 
       <TeaCard tea={teas[currentIndex] ?? null} onNext={nextTea} canCycle={teas.length > 1} />
 
@@ -281,7 +287,11 @@ export default function Home({ onOpenSettings }: HomeProps) {
 
       {showEmptySupplements ? (
         <EmptyState
-          message={cyclePhase ? 'Sin suplementos para esta fase.' : 'Sin datos de fase.'}
+          message={
+            !tracksCycle || cyclePhase
+              ? `No hay suplementos para hoy. En Notion, marca «Disponible» y elige «${getNotionSupplementPersona(user)}» o «Compartido» en Persona.`
+              : 'Aún no hay fase calculada. Revisa tu fila en la tabla de fases de Notion o el permiso de Apple Salud.'
+          }
         />
       ) : !fetchError && supplements.length > 0 ? (
         <View style={styles.checklistCard}>
@@ -298,6 +308,9 @@ export default function Home({ onOpenSettings }: HomeProps) {
                   markTaken(localId, !taken);
                 }}
                 activeOpacity={0.65}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: taken, disabled: !localId }}
+                accessibilityLabel={`${s.name}, ${s.dose}`}
               >
                 <View style={[styles.checkboxOuter, taken && styles.checkboxOuterTaken]}>
                   {taken ? <Text style={styles.checkboxMark}>✓</Text> : null}

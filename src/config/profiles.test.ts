@@ -1,9 +1,16 @@
 import {
+  MAX_PROFILES,
   __setRuntimeProfileOverridesForTests,
   getNotionPhaseRowLabel,
   getNotionSupplementPersona,
   getProfileLabel,
+  getProfiles,
+  isActiveProfileId,
+  isProfileId,
+  isSharedPersona,
+  overridesFromDetectedPersonas,
   overridesFromPhaseRowLabels,
+  profileTracksCycle,
   subscribeProfileOverrides,
   sanitizeProfileOverrides,
 } from './profiles';
@@ -58,9 +65,60 @@ describe('overridesFromPhaseRowLabels', () => {
     expect(o.notionByProfile?.profile_2).toBeUndefined();
   });
 
-  it('compacta labels vacíos y descarta filas extra más allá de los slots', () => {
+  it('compacta labels vacíos y crea un perfil por persona (más de 2)', () => {
     const o = overridesFromPhaseRowLabels(['', 'María', 'Tercera', 'Cuarta']);
-    expect(o.profileLabels).toEqual({ profile_1: 'María', profile_2: 'Tercera' });
+    expect(o.profileCount).toBe(3);
+    expect(o.profileLabels).toEqual({
+      profile_1: 'María',
+      profile_2: 'Tercera',
+      profile_3: 'Cuarta',
+    });
+  });
+
+  it('respeta el tope MAX_PROFILES', () => {
+    const many = Array.from({ length: MAX_PROFILES + 3 }, (_, i) => `P${i}`);
+    const o = overridesFromPhaseRowLabels(many);
+    expect(o.profileCount).toBe(MAX_PROFILES);
+  });
+});
+
+describe('perfiles sin ciclo y personas compartidas', () => {
+  it('agrega personas sin fila de fases como perfiles sin ciclo, al final', () => {
+    const o = overridesFromDetectedPersonas(['Ana', 'María'], ['Sol', 'ana', 'Compartido']);
+    expect(o.profileCount).toBe(3);
+    expect(o.profileLabels?.profile_3).toBe('Sol');
+    expect(o.cycleByProfile).toEqual({ profile_1: true, profile_2: true, profile_3: false });
+  });
+
+  it('profileTracksCycle por defecto es true y respeta overrides', () => {
+    expect(profileTracksCycle('profile_1')).toBe(true);
+    __setRuntimeProfileOverridesForTests({ cycleByProfile: { profile_2: false } });
+    expect(profileTracksCycle('profile_2')).toBe(false);
+  });
+
+  it('reconoce las opciones compartidas sin importar mayúsculas', () => {
+    expect(isSharedPersona('Ambas')).toBe(true);
+    expect(isSharedPersona('compartido')).toBe(true);
+    expect(isSharedPersona('Diana')).toBe(false);
+    expect(isSharedPersona('')).toBe(false);
+  });
+
+  it('getProfiles sigue a profileCount y los ids fuera de rango no están activos', () => {
+    expect(getProfiles().map((p) => p.id)).toEqual(['profile_1', 'profile_2']);
+    __setRuntimeProfileOverridesForTests({ profileCount: 4 });
+    expect(getProfiles()).toHaveLength(4);
+    expect(isActiveProfileId('profile_4')).toBe(true);
+    expect(isActiveProfileId('profile_5')).toBe(false);
+    expect(isProfileId('profile_0')).toBe(false);
+  });
+
+  it('perfiles sin mapeo usan su label como persona en Notion', () => {
+    __setRuntimeProfileOverridesForTests({
+      profileCount: 3,
+      profileLabels: { profile_3: 'Sol' },
+    });
+    expect(getNotionSupplementPersona('profile_3')).toBe('Sol');
+    expect(getNotionPhaseRowLabel('profile_3')).toBe('Sol');
   });
 });
 
@@ -75,6 +133,8 @@ describe('sanitizeProfileOverrides', () => {
     });
     expect(changed).toBe(true);
     expect(next.profileLabels).toEqual({ profile_1: 'Diana' });
+    // Sin profileCount explícito no se inventa uno.
+    expect(next.profileCount).toBeUndefined();
     expect(next.notionByProfile?.profile_1).toEqual({
       supplementPersona: 'Diana',
       phaseRowLabel: 'Diana',

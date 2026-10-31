@@ -10,6 +10,7 @@ import {
   backoffMs,
   NotionApiError,
   isPhaseHeaderRow,
+  isNoCyclePhaseText,
 } from './notion';
 
 const FAST = { retries: 3, baseDelayMs: 0 };
@@ -108,5 +109,22 @@ describe('isPhaseHeaderRow', () => {
 
   it('tolera celdas faltantes', () => {
     expect(isPhaseHeaderRow([''])).toBe(false);
+  });
+});
+
+describe('isNoCyclePhaseText', () => {
+  it('reconoce marcas de «sin ciclo» en la columna Fase (acentos, emoji, mayúsculas)', () => {
+    expect(
+      ['Sin ciclo', 'sin ciclo ⚪', 'No aplica', 'N/A', 'No menstrúa'].map(isNoCyclePhaseText),
+    ).toEqual([true, true, true, true, true]);
+  });
+
+  it('las fases reales no cuentan como sin ciclo', () => {
+    expect(['Folicular 🌸', 'Lútea 🦥', '', 'Menstrual'].map(isNoCyclePhaseText)).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
   });
 });

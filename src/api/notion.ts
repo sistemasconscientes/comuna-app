@@ -1,5 +1,10 @@
 import type { ProfileId } from '../config/profiles';
-import { getNotionPhaseRowLabel, getNotionSupplementPersona } from '../config/profiles';
+import {
+  SHARED_PERSONA_VALUES,
+  getNotionPhaseRowLabel,
+  getNotionSupplementPersona,
+  isSharedPersona,
+} from '../config/profiles';
 import { getNotionSettings, getNotionSettingsSource, isDemoMode } from '../config/notionSettings';
 import { demoCurrentPhase, demoSupplements, demoTeas } from './notionDemo';
 import {
@@ -216,11 +221,12 @@ function normalizePersonName(input: string): string {
 }
 
 /**
- * El filtro del query garantiza Persona == persona del perfil o 'Ambas', así
- * que el raw se respeta tal cual (nombres arbitrarios en workspaces ajenos).
+ * El filtro del query garantiza Persona == persona del perfil o una opción
+ * compartida, así que el raw se respeta tal cual (nombres arbitrarios en
+ * workspaces ajenos). Sin Persona = compartido.
  */
 function parseSupplementPersona(raw: string): SupplementPersona {
-  return raw.trim() || 'Ambas';
+  return raw.trim() || SHARED_PERSONA_VALUES[0];
 }
 
 function parseDateLoose(input: string): Date {
@@ -395,7 +401,7 @@ export async function getSupplements(
       {
         or: [
           { property: 'Persona', select: { equals: personaValue } },
-          { property: 'Persona', select: { equals: 'Ambas' } },
+          ...SHARED_PERSONA_VALUES.map((v) => ({ property: 'Persona', select: { equals: v } })),
         ],
       },
     ],
@@ -593,17 +599,19 @@ const TEA_HOLISTIC_PROPS = [
   'beneficios_holisticos',
 ];
 
-export async function getTeasForPhase(phase: Phase): Promise<Tea[]> {
+/** `phase = null` (perfil sin ciclo): todos los tés que hay en casa, sin filtrar por fase. */
+export async function getTeasForPhase(phase: Phase | null): Promise<Tea[]> {
   if (isDemoMode()) return demoTeas();
   const teasDbId = resolveTeasDbId();
   if (!teasDbId) return [];
-  const wantedLabels = TEA_PHASE_TO_LABELS[phase] ?? [];
+  const wantedLabels = phase ? (TEA_PHASE_TO_LABELS[phase] ?? []) : null;
   const pages = await queryDatabaseAll(teasDbId, {});
 
   return pages
     .filter((p) => {
       const inHouse = propCheckbox(p.properties, TEA_IN_HOUSE_PROPS, false);
       if (!inHouse) return false;
+      if (!wantedLabels) return true;
       const phaseLabels = propMultiSelect(p.properties, TEA_PHASE_PROPS);
       return phaseLabels.some((label) => wantedLabels.includes(label));
     })
@@ -695,8 +703,26 @@ export interface NotionTemplateDiscovery {
   phasesPageId: string;
   mealPrepHubPageId: string;
   teasDbId: string;
-  /** Personas de la tabla de fases (sin fila de header): para mapear perfiles. */
+  /** Personas de la tabla de fases (sin fila de header) que siguen ciclo. */
   phaseRowLabels: string[];
+  /**
+   * Personas sin ciclo: filas con fase «Sin ciclo» + opciones del select
+   * Persona de Suplementos que no tienen fila en la tabla de fases.
+   */
+  noCyclePersonas: string[];
+}
+
+/** Texto de la columna Fase que marca a una persona que no sigue ciclo. */
+export function isNoCyclePhaseText(text: string): boolean {
+  const n = normalizePersonName(text)
+    .replace(/[^a-z/ ]/g, '')
+    .trim();
+  return ['sin ciclo', 'no aplica', 'n/a', 'na', 'no menstrua', 'ninguna'].includes(n);
+}
+
+interface PhaseTableRows {
+  cycle: string[];
+  noCycle: string[];
 }
 
 /**
@@ -712,8 +738,15 @@ export function isPhaseHeaderRow(cellTexts: string[]): boolean {
   );
 }
 
-/** Filas persona de la tabla inline de una página de fases, o null si no la tiene. */
-async function phaseRowLabelsForPage(pageId: string): Promise<string[] | null> {
+/**
+ * Filas persona de la tabla inline de una página de fases, o null si no la
+ * tiene. `allowEmpty`: una tabla sin filas de datos cuenta (hogar donde nadie
+ * sigue ciclo) — solo para candidatas por título, no para el barrido ciego.
+ */
+async function phaseRowsForPage(
+  pageId: string,
+  allowEmpty = false,
+): Promise<PhaseTableRows | null> {
   let table: NotionTableBlock;
   try {
     table = await findInlineTableInPage(pageId);
@@ -723,13 +756,39 @@ async function phaseRowLabelsForPage(pageId: string): Promise<string[] | null> {
   const rows = (await listBlockChildrenAll(table.id)).filter(
     (b) => b.type === 'table_row',
   ) as NotionTableRowBlock[];
+  if (table.table.table_width < 3) return null;
   const dataRows = table.table.has_column_header ? rows.slice(1) : rows;
-  const labels = dataRows
-    .filter((r) => r.table_row.cells.length >= 3)
-    .filter((r) => !isPhaseHeaderRow(r.table_row.cells.map((c) => cellToText(c))))
-    .map((r) => cellToText(r.table_row.cells[0]).trim())
-    .filter(Boolean);
-  return labels.length ? labels : null;
+  const out: PhaseTableRows = { cycle: [], noCycle: [] };
+  for (const r of dataRows) {
+    if (r.table_row.cells.length < 3) continue;
+    const texts = r.table_row.cells.map((c) => cellToText(c).trim());
+    if (isPhaseHeaderRow(texts) || !texts[0]) continue;
+    (isNoCyclePhaseText(texts[1]) ? out.noCycle : out.cycle).push(texts[0]);
+  }
+  if (out.cycle.length || out.noCycle.length) return out;
+  return allowEmpty ? out : null;
+}
+
+/** Opciones del select Persona de la DB de suplementos (sin las compartidas). */
+async function supplementPersonaOptions(supplementsDbId: string): Promise<string[]> {
+  try {
+    const db = await notionFetch<{
+      properties?: Record<string, { type?: string; select?: { options?: { name?: string }[] } }>;
+    }>(`/databases/${encodeURIComponent(supplementsDbId)}`);
+    const prop = db.properties?.Persona;
+    if (prop?.type !== 'select') return [];
+    return (prop.select?.options ?? [])
+      .map((o) => (o.name ?? '').trim())
+      .filter((n) => n && !isSharedPersona(n) && !isPhaseHeaderWord(n));
+  } catch {
+    return [];
+  }
+}
+
+/** Personas sin ciclo = filas «Sin ciclo» + opciones Persona sin fila en la tabla. */
+function noCyclePersonasFrom(rows: PhaseTableRows, personaOptions: string[]): string[] {
+  const inTable = new Set([...rows.cycle, ...rows.noCycle].map(normalizePersonName));
+  return [...rows.noCycle, ...personaOptions.filter((o) => !inTable.has(normalizePersonName(o)))];
 }
 
 async function hubHasComidasActivas(pageId: string): Promise<boolean> {
@@ -762,18 +821,22 @@ export async function discoverNotionTemplate(apiKey: string): Promise<NotionTemp
     }
 
     let phasesPageId = '';
-    let phaseRowLabels: string[] = [];
+    let phaseRows: PhaseTableRows = { cycle: [], noCycle: [] };
     // Primero candidatas por título; si ninguna aplica, barrido acotado del
     // resto de páginas compartidas (títulos distintos a «Fases…»).
     const triedIds = new Set(matches.phasesPageCandidates.map((c) => c.id));
     const fallbackPages = pages
       .filter((p) => !triedIds.has(p.id))
       .slice(0, PHASES_FALLBACK_SCAN_CAP);
-    for (const candidate of [...matches.phasesPageCandidates, ...fallbackPages]) {
-      const labels = await phaseRowLabelsForPage(candidate.id);
-      if (labels) {
+    const candidates = [
+      ...matches.phasesPageCandidates.map((c) => ({ id: c.id, allowEmpty: true })),
+      ...fallbackPages.map((c) => ({ id: c.id, allowEmpty: false })),
+    ];
+    for (const candidate of candidates) {
+      const rows = await phaseRowsForPage(candidate.id, candidate.allowEmpty);
+      if (rows) {
         phasesPageId = candidate.id;
-        phaseRowLabels = labels;
+        phaseRows = rows;
         break;
       }
     }
@@ -791,12 +854,15 @@ export async function discoverNotionTemplate(apiKey: string): Promise<NotionTemp
       }
     }
 
+    const personaOptions = await supplementPersonaOptions(matches.supplementsDbId);
+
     return {
       supplementsDbId: matches.supplementsDbId,
       phasesPageId,
       mealPrepHubPageId,
       teasDbId: matches.teasDbId,
-      phaseRowLabels,
+      phaseRowLabels: phaseRows.cycle,
+      noCyclePersonas: noCyclePersonasFrom(phaseRows, personaOptions),
     };
   });
 }
@@ -809,16 +875,20 @@ export async function discoverNotionTemplate(apiKey: string): Promise<NotionTemp
 export async function verifyManualNotionIds(
   apiKey: string,
   ids: { supplementsDbId: string; phasesPageId: string },
-): Promise<{ phaseRowLabels: string[] }> {
+): Promise<{ phaseRowLabels: string[]; noCyclePersonas: string[] }> {
   return withNotionApiKey(apiKey, async () => {
     await notionFetch(`/databases/${encodeURIComponent(ids.supplementsDbId)}/query`, {
       method: 'POST',
       body: JSON.stringify({ page_size: 1 }),
     });
-    const labels = await phaseRowLabelsForPage(ids.phasesPageId);
-    if (!labels) {
+    const rows = await phaseRowsForPage(ids.phasesPageId, true);
+    if (!rows) {
       throw new Error('La página de fases no tiene una tabla con persona / fase / próximo ciclo.');
     }
-    return { phaseRowLabels: labels };
+    const personaOptions = await supplementPersonaOptions(ids.supplementsDbId);
+    return {
+      phaseRowLabels: rows.cycle,
+      noCyclePersonas: noCyclePersonasFrom(rows, personaOptions),
+    };
   });
 }

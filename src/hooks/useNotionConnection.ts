@@ -7,8 +7,8 @@ import {
   verifyManualNotionIds,
 } from '../api/notion';
 import { enableDemoMode, saveNotionSettings } from '../config/notionSettings';
-import { DEMO_PROFILE_LABELS } from '../api/notionDemo';
-import { overridesFromPhaseRowLabels, saveProfileOverrides } from '../config/profiles';
+import { DEMO_CYCLE_PROFILE_LABELS, DEMO_NO_CYCLE_PROFILE_LABELS } from '../api/notionDemo';
+import { overridesFromDetectedPersonas, saveProfileOverrides } from '../config/profiles';
 import { reportErrorToSentry } from '../utils/observability';
 
 export type NotionConnectStep = 'idle' | 'checking_token' | 'discovering' | 'saving';
@@ -34,7 +34,8 @@ function connectErrorMessage(e: unknown): string {
 /**
  * Conexión del workspace de Notion en runtime (onboarding y reconexión):
  * valida token, descubre el template (o verifica IDs manuales), persiste
- * settings y mapea perfiles según la tabla de fases.
+ * settings y mapea perfiles: filas de la tabla de fases (con ciclo) + personas
+ * del select Persona sin fila (sin ciclo).
  */
 export function useNotionConnection(onConnected: () => void) {
   const posthog = usePostHog();
@@ -52,15 +53,22 @@ export function useNotionConnection(onConnected: () => void) {
     async (
       token: string,
       ids: Required<ManualNotionIds>,
-      phaseRowLabels: string[],
+      personas: { phaseRowLabels: string[]; noCyclePersonas: string[] },
       mode: 'auto' | 'manual',
     ) => {
       setStep('saving');
       await saveNotionSettings({ apiKey: token, ...ids });
-      if (phaseRowLabels.length) {
-        await saveProfileOverrides(overridesFromPhaseRowLabels(phaseRowLabels));
+      const overrides = overridesFromDetectedPersonas(
+        personas.phaseRowLabels,
+        personas.noCyclePersonas,
+      );
+      if (overrides.profileCount) {
+        await saveProfileOverrides(overrides);
       }
-      posthog?.capture('notion_connected', { mode, profiles_detected: phaseRowLabels.length });
+      posthog?.capture('notion_connected', {
+        mode,
+        profiles_detected: overrides.profileCount ?? 0,
+      });
       onConnected();
     },
     [onConnected, posthog],
@@ -103,7 +111,7 @@ export function useNotionConnection(onConnected: () => void) {
               mealPrepHubPageId: found.mealPrepHubPageId,
               teasDbId: found.teasDbId,
             },
-            found.phaseRowLabels,
+            found,
             'auto',
           );
         },
@@ -120,7 +128,7 @@ export function useNotionConnection(onConnected: () => void) {
         'manual',
         async (t) => {
           setStep('discovering');
-          const { phaseRowLabels } = await verifyManualNotionIds(t, {
+          const personas = await verifyManualNotionIds(t, {
             supplementsDbId: ids.supplementsDbId.trim(),
             phasesPageId: ids.phasesPageId.trim(),
           });
@@ -132,7 +140,7 @@ export function useNotionConnection(onConnected: () => void) {
               mealPrepHubPageId: (ids.mealPrepHubPageId ?? '').trim(),
               teasDbId: (ids.teasDbId ?? '').trim(),
             },
-            phaseRowLabels,
+            personas,
             'manual',
           );
         },
@@ -148,7 +156,12 @@ export function useNotionConnection(onConnected: () => void) {
     void (async () => {
       try {
         await enableDemoMode();
-        await saveProfileOverrides(overridesFromPhaseRowLabels([...DEMO_PROFILE_LABELS]));
+        await saveProfileOverrides(
+          overridesFromDetectedPersonas(
+            [...DEMO_CYCLE_PROFILE_LABELS],
+            [...DEMO_NO_CYCLE_PROFILE_LABELS],
+          ),
+        );
         posthog?.capture('notion_demo_mode_entered');
         onConnected();
       } catch (e) {

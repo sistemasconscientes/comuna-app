@@ -1,9 +1,24 @@
 import { BACKEND_API_KEY } from '@env';
 import type { StockEntry } from '../types';
 import { reportErrorToSentry } from '../utils/observability';
+import { isSharedPersona } from '../config/profiles';
 
 function sharedStockBackendBaseUrl(): string {
   return (process.env.EXPO_PUBLIC_BACKEND_URL ?? '').trim().replace(/\/$/, '');
+}
+
+/** Backend de stock compartido disponible (URL + API key en el build). */
+export function isSharedStockBackendConfigured(): boolean {
+  return Boolean(BACKEND_API_KEY?.trim() && sharedStockBackendBaseUrl());
+}
+
+/**
+ * ¿El stock de este suplemento vive en el backend compartido? Solo si es de
+ * Persona compartida **y** hay backend; si no (p. ej. build de App Store sin
+ * servidor propio), se guarda en SQLite local como cualquier otro.
+ */
+export function usesSharedStockBackend(persona: string): boolean {
+  return isSharedPersona(persona) && isSharedStockBackendConfigured();
 }
 
 export interface SharedStock {

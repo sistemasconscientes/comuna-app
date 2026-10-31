@@ -4,42 +4,45 @@ Borradores listos para pegar al crear la ficha en App Store Connect. Complementa
 
 ## Ficha
 
-| Campo                    | Valor propuesto                                                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| **Nombre** (máx. 30)     | `La Comuna — Ciclo y tomas`                                                                                              |
-| **Subtítulo** (máx. 30)  | `Suplementos según tu fase`                                                                                              |
-| **Categoría primaria**   | Salud y forma física (Health & Fitness)                                                                                  |
-| **Categoría secundaria** | Estilo de vida (opcional)                                                                                                |
-| **Age rating**           | 12+ (información médica/de tratamiento infrecuente y leve — suplementos)                                                 |
-| **Precio**               | Gratis. Sin compras in-app. Donaciones **solo** vía GitHub Sponsors en el repo, nunca dentro de la app (guideline 3.2.2) |
-| **URL de soporte**       | <https://github.com/sistemasconscientes/comuna-app/issues>                                                               |
-| **URL de privacidad**    | <https://github.com/sistemasconscientes/comuna-app/blob/main/docs/PRIVACY.md>                                            |
-| **Copyright**            | © 2026 Sistemas Conscientes                                                                                              |
+| Campo                    | Valor propuesto                                                                                                                                                                                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nombre** (máx. 30)     | `La Comuna — Ciclo y tomas`                                                                                                                                                                                                                        |
+| **Subtítulo** (máx. 30)  | `Suplementos según tu fase`                                                                                                                                                                                                                        |
+| **Categoría primaria**   | Salud y forma física (Health & Fitness)                                                                                                                                                                                                            |
+| **Categoría secundaria** | Estilo de vida (opcional)                                                                                                                                                                                                                          |
+| **Age rating**           | **18+** (decisión de producto, oct 2026). En el cuestionario nuevo (4+/9+/13+/16+/18+): contestar «Medical or Treatment-Focused Content» y «Health or Wellness Topics» con honestidad y fijar la edad mínima en 18+ con el override de edad de ASC |
+| **Precio**               | Gratis. Sin compras in-app. Proyecto open source (GPL-3.0) sin fines de lucro; donaciones **solo** vía GitHub Sponsors en el repo, nunca dentro de la app (guideline 3.2.2)                                                                        |
+| **URL de soporte**       | <https://github.com/sistemasconscientes/comuna-app/issues>                                                                                                                                                                                         |
+| **URL de privacidad**    | <https://github.com/sistemasconscientes/comuna-app/blob/main/docs/PRIVACY.md>                                                                                                                                                                      |
+| **Copyright**            | © 2026 Sistemas Conscientes                                                                                                                                                                                                                        |
 
 > El nombre en App Store debe ser único globalmente; si `La Comuna` está tomado, alternativas: `La Comuna: suplementos y ciclo`, `Comuna — ciclo menstrual`.
 
 ## Descripción (borrador)
 
 ```
-La Comuna te acompaña a tomar tus suplementos según la fase de tu ciclo menstrual.
+La Comuna organiza los suplementos de tu casa: uno o varios perfiles (pareja, familia, roomies), cada quien con su lista del día. Quien sigue su ciclo menstrual puede alinear sus suplementos a sus fases; quien no, simplemente los ve por día.
 
-Conecta tu propio workspace de Notion —tus datos viven contigo, no en nuestros servidores— y la app organiza tus suplementos, tés y plan de comidas por fase: menstrual, folicular, ovulatoria y lútea.
+Conecta tu propio workspace de Notion —tus datos viven contigo, no en nuestros servidores— y la app organiza tus suplementos, tés y plan de comidas.
 
+• Hasta 8 perfiles por teléfono, con o sin seguimiento de ciclo
 • Registro diario de tomas con recordatorios locales
-• Fase del ciclo calculada con datos de Apple Salud (con tu permiso, solo en tu dispositivo)
+• Fase estimada con datos de Apple Salud (opcional, con tu permiso, solo en tu dispositivo)
 • Control de stock con aviso de recompra
 • Plan de comidas de la semana desde tu Notion
 • Sección Salud: sueño, frecuencia cardiaca, HRV y más señales de Apple Salud, en modo observación
 
 Sin cuenta, sin registro, sin anuncios. La app funciona con el token de una integración interna de Notion que tú creas y controlas; también puedes explorarla con datos de ejemplo sin conectar nada.
 
-Código abierto (GPL-3.0): audita exactamente qué hace la app en github.com/sistemasconscientes/comuna-app
+Proyecto open source (GPL-3.0) y sin fines de lucro: audita exactamente qué hace la app en github.com/sistemasconscientes/comuna-app
+
+La Comuna no es un dispositivo médico: no prescribe suplementos ni dosis y no sustituye el consejo de un profesional de la salud.
 ```
 
 ## Keywords (máx. 100 caracteres)
 
 ```
-ciclo,menstrual,suplementos,fases,notion,ovulación,lútea,seguimiento,tomas,hábitos,salud
+ciclo,menstrual,suplementos,vitaminas,notion,fases,hogar,roomies,tomas,hábitos,recordatorio
 ```
 
 (91 caracteres; no repetir palabras que ya están en nombre/subtítulo si se necesita espacio.)
@@ -53,8 +56,9 @@ La Comuna is a supplement-tracking app organized around menstrual cycle phases.
 It does NOT require an account. To review all functionality without any setup:
 
 1. On first launch, tap "Explorar con datos de ejemplo" (Explore with sample data)
-   on the onboarding screen. This enables a fully offline demo mode with two
-   sample profiles (Luna and Mar), sample supplements, teas and cycle phases.
+   on the onboarding screen. This enables a fully offline demo mode with three
+   sample profiles: Luna and Mar (cycle tracking on) and Sol (cycle tracking off,
+   for people who don't menstruate), plus sample supplements and teas.
 2. All tabs work in demo mode: Home (daily check-off), Stock, Meals, Health, Profile.
 3. Demo mode persists across launches; it can be turned off from Profile.
 
@@ -66,6 +70,11 @@ Notes:
   review device/simulator without Health data, the tab will show empty/permission
   states — this is expected. Health data never leaves the device.
 - No account creation, no purchases, no ads, no tracking (no ATT prompt).
+- Diagnostics (Sentry/PostHog, no health data) can be turned off in Profile →
+  "Privacidad y datos". The privacy policy and a medical disclaimer are linked
+  in Profile.
+- The app never writes to HealthKit; the update usage string only states that.
+- Non-profit open-source project (GPL-3.0); no in-app donations.
 ```
 
 **Contacto de review:** nombre, email y teléfono de Diana (se rellenan en el formulario, no aquí).
@@ -92,14 +101,14 @@ Coherentes con [`docs/PRIVACY.md`](../PRIVACY.md). «Collect» para Apple = dato
 
 **Si el build de producción lleva Sentry + PostHog** (lo esperado; ver paso 2 del flujo):
 
-| Pregunta                                                                                                                    | Respuesta                                                                                   |
-| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Do you collect data from this app?                                                                                          | **Yes**                                                                                     |
-| **Usage Data → Product Interaction** (PostHog: eventos tipo «abrió pestaña Stock», perfil genérico `profile_1`/`profile_2`) | Collected. **Not linked** to user's identity. **Not used for tracking**. Purpose: Analytics |
-| **Diagnostics → Crash Data** (Sentry: stack traces técnicos)                                                                | Collected. **Not linked**. **Not used for tracking**. Purpose: App Functionality            |
-| Health & Fitness                                                                                                            | **Not collected** (HealthKit se procesa solo en el dispositivo)                             |
-| Identifiers, Contact Info, Location, Financial, etc.                                                                        | Not collected                                                                               |
-| Tracking (ATT)                                                                                                              | **No** — no hay tracking entre apps ni data brokers                                         |
+| Pregunta                                                                                                        | Respuesta                                                                                   |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Do you collect data from this app?                                                                              | **Yes**                                                                                     |
+| **Usage Data → Product Interaction** (PostHog: eventos tipo «abrió pestaña Stock», perfil genérico `profile_N`) | Collected. **Not linked** to user's identity. **Not used for tracking**. Purpose: Analytics |
+| **Diagnostics → Crash Data** (Sentry: stack traces técnicos)                                                    | Collected. **Not linked**. **Not used for tracking**. Purpose: App Functionality            |
+| Health & Fitness                                                                                                | **Not collected** (HealthKit se procesa solo en el dispositivo)                             |
+| Identifiers, Contact Info, Location, Financial, etc. (Sentry con `sendDefaultPii: false`: sin IP)               | Not collected                                                                               |
+| Tracking (ATT)                                                                                                  | **No** — no hay tracking entre apps ni data brokers                                         |
 
 **Si el build sale sin `SENTRY_DSN` ni `POSTHOG_API_KEY`:** declarar **«Data Not Collected»** en todo.
 

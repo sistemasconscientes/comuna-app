@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { inArray } from 'drizzle-orm';
-import { getSharedStock, type SharedStock } from '../api/sharedStock';
+import { getSharedStock, usesSharedStockBackend, type SharedStock } from '../api/sharedStock';
 import { getSupplements } from '../api/notion';
 import type { Supplement } from '../types';
 import { db, supplements as supplementsTable } from '../db';
@@ -83,7 +83,7 @@ export async function syncSupplementsFromNotion(
   }
 }
 
-/** Stock: suplementos + mapping local + stock compartido (Persona Ambas). */
+/** Stock: suplementos + mapping local + stock compartido (Persona compartida). */
 export async function fetchSupplementsWithStock(
   user: User,
   currentPhase: string,
@@ -96,7 +96,9 @@ export async function fetchSupplementsWithStock(
       currentPhase,
       false,
     );
-    const ambasIds = supplements.filter((s) => s.persona === 'Ambas').map((s) => s.notion_id);
+    const ambasIds = supplements
+      .filter((s) => usesSharedStockBackend(s.persona))
+      .map((s) => s.notion_id);
     const pairs = await Promise.all(
       ambasIds.map(async (id) => [id, await getSharedStock(id)] as const),
     );

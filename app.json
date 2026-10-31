@@ -15,8 +15,8 @@
         "com.apple.developer.healthkit.access": []
       },
       "infoPlist": {
-        "NSHealthShareUsageDescription": "La Comuna lee de Apple Salud datos de tu ciclo menstrual y señales relacionadas (sueño, frecuencia cardiaca, temperatura) para calcular tu fase y adaptar tus suplementos. Estos datos no salen de tu dispositivo.",
-        "NSHealthUpdateUsageDescription": "La Comuna puede registrar datos de tu ciclo en Apple Salud si activas esa función.",
+        "NSHealthShareUsageDescription": "La Comuna lee de Apple Salud tu ciclo menstrual y señales relacionadas (sueño, frecuencia cardiaca, temperatura) para estimar tu fase y mostrar tus suplementos. Los datos de Salud se quedan en tu teléfono; solo la fase estimada y la fecha de tu próximo ciclo pueden guardarse en tu propio Notion.",
+        "NSHealthUpdateUsageDescription": "La Comuna no escribe datos en Apple Salud.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -45,8 +45,8 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "La Comuna lee de Apple Salud datos de tu ciclo menstrual y señales relacionadas (sueño, frecuencia cardiaca, temperatura) para calcular tu fase y adaptar tus suplementos. Estos datos no salen de tu dispositivo.",
-          "NSHealthUpdateUsageDescription": "La Comuna puede registrar datos de tu ciclo en Apple Salud si activas esa función.",
+          "NSHealthShareUsageDescription": "La Comuna lee de Apple Salud tu ciclo menstrual y señales relacionadas (sueño, frecuencia cardiaca, temperatura) para estimar tu fase y mostrar tus suplementos. Los datos de Salud se quedan en tu teléfono; solo la fase estimada y la fecha de tu próximo ciclo pueden guardarse en tu propio Notion.",
+          "NSHealthUpdateUsageDescription": "La Comuna no escribe datos en Apple Salud.",
           "background": false
         }
       ],

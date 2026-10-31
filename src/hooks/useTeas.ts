@@ -5,9 +5,10 @@ import { reportErrorToSentry } from '../utils/observability';
 
 /**
  * Tés recomendados para la fase del ciclo (directo de Notion, sin caché local).
+ * `phase = null` (perfil sin ciclo): todos los tés en casa.
  * Expone rotación local con `nextTea` para mostrar uno a la vez.
  */
-export function useTeas(phase: Phase) {
+export function useTeas(phase: Phase | null) {
   const [teas, setTeas] = useState<Tea[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);

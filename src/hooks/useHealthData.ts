@@ -24,6 +24,7 @@ import type {
 import { NOTION_SKIP_PHASE_WRITE } from '@env';
 import type { User } from '../context/UserContext';
 import { reportErrorToSentry } from '../utils/observability';
+import { profileTracksCycle, subscribeProfileOverrides } from '../config/profiles';
 
 /** Solo en __DEV__: si NOTION_SKIP_PHASE_WRITE es truthy, no escribir fase en Notion (QA sin pisar filas reales). */
 function isDevSkipNotionPhaseWrite(): boolean {
@@ -44,6 +45,8 @@ export type UseHealthDataResult = HealthData & {
   error: Error | null;
   cycleDataSource: CycleDataSource;
   healthKitDiagnostics: HealthKitDiagnostics | null;
+  /** `false` = perfil sin ciclo: no hay fase ni lectura de ciclo en HealthKit. */
+  tracksCycle: boolean;
   refetch: () => void;
 };
 
@@ -79,6 +82,13 @@ export function useHealthData(user: User, options?: UseHealthDataOptions): UseHe
     null,
   );
   const [refreshToken, setRefreshToken] = useState(0);
+  const [tracksCycle, setTracksCycle] = useState(() => profileTracksCycle(user));
+
+  // El switch «Sigue ciclo menstrual» de Perfil cambia los overrides por fuera.
+  useEffect(() => {
+    setTracksCycle(profileTracksCycle(user));
+    return subscribeProfileOverrides(() => setTracksCycle(profileTracksCycle(user)));
+  }, [user]);
 
   const refetch = useCallback(() => {
     resetHealthKitInitForQA();
@@ -121,6 +131,19 @@ export function useHealthData(user: User, options?: UseHealthDataOptions): UseHe
     async function fetchHealthData() {
       setLoading(true);
       setError(null);
+
+      if (!tracksCycle) {
+        setState({
+          cyclePhase: null,
+          cycleDay: null,
+          lastPeriodStart: null,
+          healthKitIrregularCycleHint: false,
+          healthKitLifecycleContext: 'none',
+        });
+        setCycleDataSource('notion');
+        setLoading(false);
+        return;
+      }
 
       const notionUser = user;
       let source: CycleDataSource = 'notion';
@@ -250,7 +273,7 @@ export function useHealthData(user: User, options?: UseHealthDataOptions): UseHe
     return () => {
       cancelled = true;
     };
-  }, [user, refreshToken, options?.calendarDayKey]);
+  }, [user, refreshToken, options?.calendarDayKey, tracksCycle]);
 
   return {
     ...state,
@@ -258,6 +281,7 @@ export function useHealthData(user: User, options?: UseHealthDataOptions): UseHe
     error,
     cycleDataSource,
     healthKitDiagnostics,
+    tracksCycle,
     refetch,
   };
 }
