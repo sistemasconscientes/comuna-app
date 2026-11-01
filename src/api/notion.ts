@@ -611,7 +611,8 @@ export const CHORE_PROPS = {
   everyNDays: 'Cada (días)',
   weekdays: 'Días',
   persona: 'Persona',
-  active: 'Activa',
+  /** Casilla marcada = oculta. Al revés que «Activa», una fila nueva ya cuenta (Notion no tiene casillas marcadas por defecto). */
+  paused: 'Pausada',
   lastDone: 'Última vez',
   doneBy: 'Hecha por',
   notes: 'Notas',
@@ -641,7 +642,7 @@ export async function getChores(): Promise<ChoresResult> {
   const chores: Chore[] = [];
   for (const p of pages) {
     const props = p.properties;
-    if (propCheckbox(props, [CHORE_PROPS.active], true) === false) continue;
+    if (propCheckbox(props, [CHORE_PROPS.paused], false)) continue;
     const name = titleOf(props);
     if (!name) continue;
     const freqRaw = propText(props, [CHORE_PROPS.frequency]);

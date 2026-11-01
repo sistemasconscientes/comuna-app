@@ -31,6 +31,20 @@ Vitamina B12 (metilcobalamina) 500 µg`;
     expect(out.map(formatNutrient)).toEqual(['Magnesio 100 mg']);
   });
 
+  it('lee varios nutrientes en el mismo segmento (comas o «y»)', () => {
+    const out = parseNutrients('Vitamina D 50 µg, Vitamina K 100 µg y Calcio 0,5 g');
+    expect(out.map(formatNutrient)).toEqual([
+      'Vitamina D 50 µg',
+      'Vitamina K 100 µg',
+      'Calcio 500 mg',
+    ]);
+  });
+
+  it('no le asigna a un nutriente sin cantidad la del siguiente', () => {
+    const out = parseNutrients('Calcio y magnesio 300 mg');
+    expect(out.map(formatNutrient)).toEqual(['Magnesio 300 mg']);
+  });
+
   it('no confunde «b12» con «b1» ni toma la línea de porcentaje', () => {
     const out = parseNutrients('Vitamina B12 2,4 mcg');
     expect(out).toHaveLength(1);

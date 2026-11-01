@@ -283,22 +283,38 @@ function parseAmount(raw: string): number {
 
 const AMOUNT_RE = /(\d+(?:[.,]\d+)*)\s*(mg|mcg|ug|g|gr|ui|iu)\b\.?/;
 
+/** Primera aparición de un alias del nutriente en el segmento (palabra completa). */
+function findAlias(def: NutrientDef, seg: string): { start: number; end: number } | null {
+  let best: { start: number; end: number } | null = null;
+  for (const a of def.aliases) {
+    const m = new RegExp(`(^|[^a-z0-9])${a}(?=[^a-z0-9]|$)`).exec(seg);
+    if (!m) continue;
+    const start = m.index + m[1].length;
+    if (!best || start < best.start) best = { start, end: start + a.length };
+  }
+  return best;
+}
+
 /**
- * Busca en cada línea (o segmento separado por «;») un nutriente conocido y la
- * primera cantidad+unidad que le sigue. Ignora porcentajes (%VD) y líneas sin
- * unidad. Un nutriente aparece una sola vez (gana la primera línea).
+ * Busca en cada línea (o segmento separado por «;») los nutrientes conocidos y,
+ * para cada uno, la primera cantidad+unidad entre su nombre y el siguiente
+ * nutriente: así «Vitamina D 50 µg, Vitamina K 100 µg» da dos. Ignora
+ * porcentajes (%VD) y nombres sin unidad. Un nutriente aparece una sola vez
+ * (gana la primera línea).
  */
 export function parseNutrients(text: string): ParsedNutrient[] {
   const out: ParsedNutrient[] = [];
   const seen = new Set<string>();
   const segments = normalize(text).split(/[\n;]+/);
   for (const seg of segments) {
-    for (const def of NUTRIENTS) {
-      if (seen.has(def.key)) continue;
-      const alias = def.aliases.find((a) => new RegExp(`(^|[^a-z0-9])${a}([^a-z0-9]|$)`).test(seg));
-      if (!alias) continue;
-      const after = seg.slice(seg.indexOf(alias) + alias.length);
-      const m = AMOUNT_RE.exec(after);
+    const hits = NUTRIENTS.filter((def) => !seen.has(def.key))
+      .map((def) => ({ def, pos: findAlias(def, seg) }))
+      .filter((h): h is { def: NutrientDef; pos: { start: number; end: number } } => !!h.pos)
+      .sort((a, b) => a.pos.start - b.pos.start);
+    for (let i = 0; i < hits.length; i++) {
+      const { def, pos } = hits[i];
+      const next = hits.slice(i + 1).find((h) => h.pos.start >= pos.end);
+      const m = AMOUNT_RE.exec(seg.slice(pos.end, next ? next.pos.start : seg.length));
       if (!m) continue;
       const value = parseAmount(m[1]);
       const unit = canonicalUnit(m[2]);
@@ -318,7 +334,6 @@ export function parseNutrients(text: string): ParsedNutrient[] {
         amount,
         unit: def.unit,
       });
-      break;
     }
   }
   return out;
