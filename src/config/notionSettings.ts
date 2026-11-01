@@ -5,6 +5,7 @@ import {
   NOTION_MEAL_PREP_HUB_PAGE_ID,
   NOTION_PHASES_PAGE_ID,
   NOTION_SUPPLEMENTS_DB_ID,
+  NOTION_TEAS_DB_ID,
 } from '@env';
 
 /**
@@ -18,7 +19,7 @@ export interface NotionSettings {
   phasesPageId: string;
   /** Vacío ⇒ pestaña Comidas sin plan (`getMealPrep` → null). */
   mealPrepHubPageId: string;
-  /** Vacío ⇒ sin tés (o el default de env para el setup del maintainer). */
+  /** Vacío ⇒ sin tés. */
   teasDbId: string;
   /** Vacío ⇒ pestaña Casa sin tareas (se puede detectar después sin reconectar). */
   choresDbId: string;
@@ -38,7 +39,7 @@ function envSettings(): NotionSettings {
     supplementsDbId: (NOTION_SUPPLEMENTS_DB_ID ?? '').trim(),
     phasesPageId: (NOTION_PHASES_PAGE_ID ?? '').trim(),
     mealPrepHubPageId: (NOTION_MEAL_PREP_HUB_PAGE_ID ?? '').trim(),
-    teasDbId: '',
+    teasDbId: (NOTION_TEAS_DB_ID ?? '').trim(),
     choresDbId: '',
   };
 }

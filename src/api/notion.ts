@@ -5,7 +5,7 @@ import {
   getNotionSupplementPersona,
   isSharedPersona,
 } from '../config/profiles';
-import { getNotionSettings, getNotionSettingsSource, isDemoMode } from '../config/notionSettings';
+import { getNotionSettings, isDemoMode } from '../config/notionSettings';
 import { demoChores, demoCurrentPhase, demoSupplements, demoTeas } from './notionDemo';
 import {
   isPhaseHeaderWord,
@@ -826,17 +826,9 @@ export async function getCurrentPhase(
 // Tés (BD de Notion: té recomendado por fase del ciclo)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * BD de Tés del maintainer: fallback cuando la config viene de `.env` y no
- * define una propia. Con settings de onboarding se usa solo `teasDbId`
- * detectado (otro token no puede leer esta BD).
- */
-const DEFAULT_TEAS_DB_ID = '235d8880-2045-81af-93a9-c0b96040f14d';
-
+/** BD de Tés: detectada en el onboarding o `NOTION_TEAS_DB_ID` en `.env`. Vacía ⇒ sin tés. */
 function resolveTeasDbId(): string {
-  const { teasDbId, apiKey } = getNotionSettings();
-  if (teasDbId) return teasDbId;
-  return apiKey && getNotionSettingsSource() === 'env' ? DEFAULT_TEAS_DB_ID : '';
+  return getNotionSettings().teasDbId;
 }
 
 /** Etiquetas de "Fase del ciclo recomendada" en la BD de Tés (emojis propios de esa BD). */

@@ -68,6 +68,7 @@ cd backend && npm install && npm run dev
 | `NOTION_SUPPLEMENTS_DB_ID`     | Sí        | DB de suplementos                     |
 | `NOTION_PHASES_PAGE_ID`        | Sí        | Página con tabla de fases             |
 | `NOTION_MEAL_PREP_HUB_PAGE_ID` | No        | Hub **Comidas Activas**               |
+| `NOTION_TEAS_DB_ID`            | No        | Base de **Tés**                       |
 | `EXPO_PUBLIC_BACKEND_URL`      | No        | API stock compartido                  |
 | `BACKEND_API_KEY`              | No        | Mismo valor que `API_KEY` del backend |
 | `SENTRY_DSN`                   | No        | Errores en release                    |

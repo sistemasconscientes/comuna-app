@@ -18,6 +18,8 @@ declare module '@env' {
   export const NOTION_SKIP_PHASE_WRITE: string | undefined;
   /** Página hub con sección "Comidas Activas" (p. ej. Cocina y Comida) */
   export const NOTION_MEAL_PREP_HUB_PAGE_ID: string;
+  /** Opcional: base de Tés (sugerencia de té por fase). */
+  export const NOTION_TEAS_DB_ID: string | undefined;
   /** Opcional: analítica y error tracking (si falta, PostHog queda desactivado) */
   export const POSTHOG_API_KEY: string;
   /** Ej. https://us.i.posthog.com */

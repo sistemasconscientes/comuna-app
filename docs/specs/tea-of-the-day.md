@@ -12,7 +12,7 @@ No toca la lógica de suplementos ni `daily_logs`, y no agrega tablas a SQLite.
 
 ## BD de Notion
 
-- ID de la base de Tés: `235d8880-2045-81af-93a9-c0b96040f14d` (accesible vía la integración con `NOTION_API_KEY`; no requiere variable de entorno propia).
+- Base de Tés: se detecta en el onboarding por título («Té» / «Tés»); con config por `.env`, `NOTION_TEAS_DB_ID` (opcional; sin ella no hay sugerencia de té).
 - Propiedades leídas (matching de nombres **resiliente**, varios candidatos, igual que `getSupplements`):
   - "¿Tengo en casa?" (checkbox) — candidatos `['¿Tengo en casa?', 'Tengo en casa?', 'Tengo en casa', '¿Tengo en casa']`.
   - "Fase del ciclo recomendada" (multi-select) — candidatos `['Fase del ciclo recomendada', 'Fase del ciclo', 'Fase recomendada', 'Fase']`.
