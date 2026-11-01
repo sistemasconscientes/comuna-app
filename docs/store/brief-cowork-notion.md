@@ -8,6 +8,7 @@ La Comuna App (iOS) lee de Notion los suplementos, las fases del ciclo y el plan
 
 - Hogares de hasta 8 personas, con o sin ciclo menstrual.
 - Stock compartido entre teléfonos guardado en Notion (sin servidor).
+- Tareas del hogar por día (pestaña Casa), desde una base de Notion con frecuencia y persona.
 - Nutrientes por toma, que la app puede registrar en Apple Salud.
 - Agrupación de la lista del día por momento, según el texto de Dosis.
 
@@ -56,6 +57,32 @@ La app sigue funcionando con el template viejo, así que todos los cambios son a
 
 En las tablas por día: si los platos cambian por persona, una columna de plato por persona en el mismo orden que la tabla de Fases (col 1 = primera fila de Fases; las personas que solo están en el select Persona van al final, en el orden del select). Si hay una sola columna de plato, es para todo el hogar. Agrega una nota corta explicando esto.
 
+### A3b. Base «Tareas del hogar» (nueva)
+
+Créala junto a Suplementos. Nombres exactos:
+
+- Título de la base: **«Tareas del hogar»** (la app la busca por la palabra «Tareas»).
+- `Tarea`: Título
+- `Frecuencia`: Select con las opciones `Diaria`, `Semanal`, `Cada 2 semanas`, `Mensual`, `Cada N días`
+- `Cada (días)`: Número (solo para «Cada N días»)
+- `Días`: Multi-select con `Lun`, `Mar`, `Mié`, `Jue`, `Vie`, `Sáb`, `Dom` (opcional: días fijos)
+- `Persona`: Select con las mismas opciones que en Suplementos (`Luna`, `Mar`, `Sol`, `Compartido`)
+- `Activa`: Casilla (✓ por defecto)
+- `Última vez`: Fecha (la escribe la app; déjala vacía)
+- `Hecha por`: Texto (la escribe la app; déjalo vacío)
+- `Notas`: Texto (opcional)
+
+Ejemplos (6 a 8):
+
+- «Lavar trastes»: Diaria, Compartido
+- «Sacar la basura»: Semanal, Días Lun + Jue, Luna
+- «Regar plantas»: Cada N días, `Cada (días)` = 3, Mar
+- «Limpiar baño»: Semanal, Sol
+- «Cambiar sábanas»: Cada 2 semanas, Compartido
+- «Limpiar refri»: Mensual, Compartido
+
+Descripción de la base: «Lo que toca cada día aparece en la pestaña Casa de la app; al marcarla se llena Última vez para todo el hogar.»
+
 ### A4. Portada del template
 
 Agrega una sección «Cómo se usa en casa» con 4 viñetas:
@@ -73,7 +100,7 @@ Actualiza la descripción: hogares y roomies, perfiles sin ciclo, stock comparti
 
 ## B. Notion personal de Diana (workspace «Hadas»)
 
-Alcance: **solo** la base «Suplementos» dentro de «💊 Salud del hogar» (id `2ac350d3-d7a3-4a6d-b7d0-eda8c2e03f76`). No tocar finanzas, meal plans, guías ni otras páginas.
+Alcance: **solo** la base «Suplementos» dentro de «💊 Salud del hogar» (id `2ac350d3-d7a3-4a6d-b7d0-eda8c2e03f76`) y la **nueva** base de tareas del punto 9. No tocar finanzas, meal plans, guías ni otras páginas (tampoco la página de texto «Tareas del hogar»).
 
 1. **No** renombres `Ambas` ni los títulos de páginas o bases: la app acepta `Ambas`, y puede haber prompts o automatizaciones que lo usen.
 2. Agrega las mismas propiedades que en A1.2: `Frasco abierto`, `Pastillas por frasco`, `Pastillas al día`, `Nutrientes`. Revisa que `Recompra?` exista con ese nombre exacto.
@@ -83,4 +110,11 @@ Alcance: **solo** la base «Suplementos» dentro de «💊 Salud del hogar» (id
 6. Tabla de Fases: sin cambios (Diana y Estefanía ya están). No escribas «Sin ciclo» en ninguna fila.
 7. **Revisa Temporada:** lista los suplementos con `Disponible` = ✓ y Temporada vacía (hoy no se ven en la app). No la llenes tú; repórtalos para que Diana decida.
 8. **Opciones de Persona:** si el select Persona tiene opciones que ya no son personas del hogar (p. ej. nombres viejos), repórtalas sin borrarlas. La app crearía un perfil «sin ciclo» por cada opción sin fila en Fases.
-9. Al terminar, reporta una tabla: suplemento · nutrientes agregados (con fuente) · dosis modificada (sí/no) · Temporada vacía (sí/no) · pendientes para Diana. Agrega la lista de opciones de Persona.
+9. **Tareas del hogar:** ya existe una _página_ «Tareas del hogar» en Hogarsz y Cuidados (texto con tareas y frecuencias). No la borres ni la edites.
+   - Crea al lado una **base** con el esquema de A3b, titulada «Tareas del hogar — app» (debe contener la palabra «Tareas»).
+   - Pasa cada tarea de la página a una fila, con la frecuencia que diga el texto.
+   - `Persona`: `Diana`, `Estefanía`, o `Ambas` si es de cualquiera. Si menciona a otra persona (por ejemplo, quien ayuda en casa), pon `Ambas` y anota el nombre en `Notas`.
+   - Deja `Última vez` y `Hecha por` vacíos.
+   - Conecta la base a la misma integración que Suplementos (··· → Conexiones).
+   - Lista las tareas cuya frecuencia o persona no estaba clara.
+10. Al terminar, reporta una tabla: suplemento · nutrientes agregados (con fuente) · dosis modificada (sí/no) · Temporada vacía (sí/no) · pendientes para Diana. Agrega la lista de opciones de Persona.

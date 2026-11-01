@@ -20,6 +20,8 @@ export interface NotionSettings {
   mealPrepHubPageId: string;
   /** Vacío ⇒ sin tés (o el default de env para el setup del maintainer). */
   teasDbId: string;
+  /** Vacío ⇒ pestaña Casa sin tareas (se puede detectar después sin reconectar). */
+  choresDbId: string;
 }
 
 export type NotionSettingsSource = 'stored' | 'env' | 'demo' | 'none';
@@ -37,6 +39,7 @@ function envSettings(): NotionSettings {
     phasesPageId: (NOTION_PHASES_PAGE_ID ?? '').trim(),
     mealPrepHubPageId: (NOTION_MEAL_PREP_HUB_PAGE_ID ?? '').trim(),
     teasDbId: '',
+    choresDbId: '',
   };
 }
 
@@ -73,6 +76,7 @@ export async function loadNotionSettings(): Promise<NotionSettingsSource> {
         phasesPageId: (ids.phasesPageId ?? '').trim(),
         mealPrepHubPageId: (ids.mealPrepHubPageId ?? '').trim(),
         teasDbId: (ids.teasDbId ?? '').trim(),
+        choresDbId: (ids.choresDbId ?? '').trim(),
       };
       if (isComplete(stored)) {
         snapshot = stored;
@@ -108,13 +112,16 @@ export function isNotionConfigured(): boolean {
 }
 
 /** Persiste settings del onboarding y actualiza el snapshot en memoria. */
-export async function saveNotionSettings(settings: NotionSettings): Promise<void> {
+export async function saveNotionSettings(
+  settings: Omit<NotionSettings, 'choresDbId'> & { choresDbId?: string },
+): Promise<void> {
   const clean: NotionSettings = {
     apiKey: settings.apiKey.trim(),
     supplementsDbId: settings.supplementsDbId.trim(),
     phasesPageId: settings.phasesPageId.trim(),
     mealPrepHubPageId: settings.mealPrepHubPageId.trim(),
     teasDbId: settings.teasDbId.trim(),
+    choresDbId: (settings.choresDbId ?? '').trim(),
   };
   if (!isComplete(clean)) throw new Error('Notion settings incompletos');
   const ids: StoredIds = {
@@ -122,12 +129,26 @@ export async function saveNotionSettings(settings: NotionSettings): Promise<void
     phasesPageId: clean.phasesPageId,
     mealPrepHubPageId: clean.mealPrepHubPageId,
     teasDbId: clean.teasDbId,
+    choresDbId: clean.choresDbId,
   };
   await SecureStore.setItemAsync(SECURE_TOKEN_KEY, clean.apiKey);
   await AsyncStorage.setItem(STORAGE_IDS_KEY, JSON.stringify(ids));
   await AsyncStorage.removeItem(DEMO_FLAG_KEY).catch(() => {});
   snapshot = clean;
   snapshotSource = 'stored';
+}
+
+/**
+ * Guarda un ID opcional detectado después del onboarding (p. ej. la base de
+ * tareas en una cuenta ya conectada) sin pedir el token otra vez.
+ */
+export async function updateStoredNotionIds(
+  partial: Pick<NotionSettings, 'choresDbId'>,
+): Promise<void> {
+  if (snapshotSource !== 'stored') return;
+  snapshot = { ...snapshot, ...partial };
+  const { apiKey: _token, ...ids } = snapshot;
+  await AsyncStorage.setItem(STORAGE_IDS_KEY, JSON.stringify(ids));
 }
 
 /** Activa el modo demo (datos de ejemplo, sin Notion). Persiste entre arranques. */

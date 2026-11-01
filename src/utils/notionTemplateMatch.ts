@@ -38,6 +38,8 @@ export function isPhaseHeaderWord(text: string): boolean {
 export interface NotionTemplateMatches {
   supplementsDbId: string;
   teasDbId: string;
+  /** Base «Tareas del hogar» (opcional). */
+  choresDbId: string;
   /** Candidatas ordenadas; el caller verifica cuál tiene la tabla inline. */
   phasesPageCandidates: NotionSearchItem[];
   /** Candidatas ordenadas; el caller verifica el heading "Comidas Activas". */
@@ -75,6 +77,7 @@ export function matchNotionTemplate(
 ): NotionTemplateMatches {
   const supplementsDb = pickBest(databases.filter((d) => hasTokenPrefix(d.title, 'suplement')));
   const teasDb = pickBest(databases.filter((d) => hasExactToken(d.title, ['te', 'tes'])));
+  const choresDb = pickBest(databases.filter((d) => hasTokenPrefix(d.title, 'tarea')));
 
   const phasesPageCandidates = pages.filter((p) => hasTokenPrefix(p.title, 'fase'));
   const mealPrepHubCandidates = pages.filter(
@@ -84,6 +87,7 @@ export function matchNotionTemplate(
   return {
     supplementsDbId: supplementsDb?.id ?? '',
     teasDbId: teasDb?.id ?? '',
+    choresDbId: choresDb?.id ?? '',
     phasesPageCandidates,
     mealPrepHubCandidates,
   };

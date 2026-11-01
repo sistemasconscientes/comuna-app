@@ -13,6 +13,7 @@ import {
   isNotionConfigured,
   loadNotionSettings,
   saveNotionSettings,
+  updateStoredNotionIds,
 } from './notionSettings';
 
 const mockSecureStore = new Map<string, string>();
@@ -47,6 +48,7 @@ const SETTINGS = {
   phasesPageId: 'pg-fases',
   mealPrepHubPageId: 'pg-hub',
   teasDbId: 'db-teas',
+  choresDbId: 'db-tareas',
 };
 
 beforeEach(() => {
@@ -124,5 +126,23 @@ describe('notionSettings', () => {
     await expect(saveNotionSettings({ ...SETTINGS, supplementsDbId: '  ' })).rejects.toThrow(
       'incompletos',
     );
+  });
+});
+
+describe('updateStoredNotionIds', () => {
+  it('agrega la base de tareas a una cuenta ya conectada y sobrevive al reinicio', async () => {
+    await saveNotionSettings({ ...SETTINGS, choresDbId: '' });
+    await updateStoredNotionIds({ choresDbId: 'db-nueva' });
+    expect(getNotionSettings().choresDbId).toBe('db-nueva');
+    __resetNotionSettingsForTests();
+    await loadNotionSettings();
+    expect(getNotionSettings().choresDbId).toBe('db-nueva');
+    expect(getNotionSettings().apiKey).toBe('ntn_token');
+  });
+
+  it('no hace nada en modo demo', async () => {
+    await enableDemoMode();
+    await updateStoredNotionIds({ choresDbId: 'x' });
+    expect(getNotionSettings().choresDbId).toBe('');
   });
 });

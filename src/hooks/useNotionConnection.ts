@@ -25,6 +25,7 @@ export interface ManualNotionIds {
   phasesPageId: string;
   mealPrepHubPageId?: string;
   teasDbId?: string;
+  choresDbId?: string;
 }
 
 function connectErrorMessage(e: unknown): string {
@@ -118,6 +119,7 @@ export function useNotionConnection(onConnected: () => void) {
               phasesPageId: found.phasesPageId,
               mealPrepHubPageId: found.mealPrepHubPageId,
               teasDbId: found.teasDbId,
+              choresDbId: found.choresDbId,
             },
             found.personas,
             'auto',
@@ -147,6 +149,7 @@ export function useNotionConnection(onConnected: () => void) {
               phasesPageId: ids.phasesPageId.trim(),
               mealPrepHubPageId: (ids.mealPrepHubPageId ?? '').trim(),
               teasDbId: (ids.teasDbId ?? '').trim(),
+              choresDbId: (ids.choresDbId ?? '').trim(),
             },
             personas.personas,
             'manual',

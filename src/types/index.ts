@@ -43,6 +43,28 @@ export interface Supplement {
   } | null;
 }
 
+/** Frecuencia de una tarea del hogar (select `Frecuencia` en Notion). */
+export type ChoreFrequency = 'diaria' | 'semanal' | 'quincenal' | 'mensual' | 'cada_n_dias';
+
+/** Tarea del hogar (DB «Tareas del hogar» en Notion). */
+export interface Chore {
+  notion_id: string;
+  name: string;
+  frequency: ChoreFrequency;
+  /** Solo para `cada_n_dias` (propiedad `Cada (días)`). */
+  everyNDays: number | null;
+  /** Días fijos de la semana (0 = domingo … 6 = sábado); vacío = por intervalo. */
+  weekdays: number[];
+  /** Select `Persona`; compartida o vacía = cualquiera del hogar. */
+  persona: string;
+  /** Última vez hecha (`YYYY-MM-DD`, día civil local) o null. */
+  lastDone: string | null;
+  /** Quién la marcó la última vez (texto libre). */
+  doneBy: string;
+  /** Notas cortas opcionales (propiedad `Notas`). */
+  notes: string;
+}
+
 /** Persona detectada en el template de Notion (orden = tabla de Fases, luego select Persona). */
 export interface DetectedPersona {
   label: string;

@@ -11,6 +11,7 @@ import { db } from './src/db';
 import migrations from './src/db/migrations/migrations';
 import Home from './src/screens/Home';
 import Stock from './src/screens/Stock';
+import Chores from './src/screens/Chores';
 import MealPrep from './src/screens/MealPrep';
 import HealthKitData from './src/screens/HealthKitData';
 import Profile from './src/screens/Profile';
@@ -106,7 +107,7 @@ function MigrationFailureReporter({ error }: { error: Error }) {
 }
 
 /** Pestañas visibles en la barra inferior (Perfil se abre solo desde ⚙️ en Inicio). */
-type TabBarTab = 'home' | 'stock' | 'comidas' | 'salud';
+type TabBarTab = 'home' | 'casa' | 'stock' | 'comidas' | 'salud';
 type Tab = TabBarTab | 'perfil';
 
 type IoniconName = NonNullable<ComponentProps<typeof Ionicons>['name']>;
@@ -119,7 +120,8 @@ const TABS: {
   icon: IoniconName;
   iconActive: IoniconName;
 }[] = [
-  { key: 'home', label: 'Inicio', icon: 'home-outline', iconActive: 'home' },
+  { key: 'home', label: 'Inicio', icon: 'sunny-outline', iconActive: 'sunny' },
+  { key: 'casa', label: 'Casa', icon: 'home-outline', iconActive: 'home' },
   { key: 'stock', label: 'Stock', icon: 'cube-outline', iconActive: 'cube' },
   { key: 'comidas', label: 'Comidas', icon: 'restaurant-outline', iconActive: 'restaurant' },
   { key: 'salud', label: 'Salud', icon: 'heart-outline', iconActive: 'heart' },
@@ -465,6 +467,7 @@ function App() {
           <View style={styles.tabbedRoot}>
             <View style={styles.screen}>
               {activeTab === 'home' && <Home onOpenSettings={() => setActiveTab('perfil')} />}
+              {activeTab === 'casa' && <Chores />}
               {activeTab === 'stock' && <Stock user={user} />}
               {activeTab === 'comidas' && <MealPrep />}
               {activeTab === 'salud' && <HealthKitData />}

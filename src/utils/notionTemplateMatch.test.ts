@@ -51,3 +51,21 @@ describe('matchNotionTemplate', () => {
     expect(m.phasesPageCandidates).toEqual([]);
   });
 });
+
+describe('base de tareas del hogar', () => {
+  it('detecta «Tareas del hogar» como choresDb y no la confunde con suplementos', () => {
+    const m = matchNotionTemplate(
+      [
+        { id: 'sup', title: 'Suplementos' },
+        { id: 'tar', title: 'Tareas del hogar' },
+      ],
+      [],
+    );
+    expect(m.choresDbId).toBe('tar');
+    expect(m.supplementsDbId).toBe('sup');
+  });
+
+  it('sin base de tareas queda vacío (es opcional)', () => {
+    expect(matchNotionTemplate([{ id: 'sup', title: 'Suplementos' }], []).choresDbId).toBe('');
+  });
+});

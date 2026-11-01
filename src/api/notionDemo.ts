@@ -1,6 +1,6 @@
 import type { ProfileId } from '../config/profiles';
 import { getNotionSupplementPersona, isSharedPersona, profileIndex } from '../config/profiles';
-import type { Supplement, Tea } from '../types';
+import type { Chore, Supplement, Tea } from '../types';
 
 /**
  * Datos de ejemplo del modo demo (sin Notion): dejan probar la app —y pasar
@@ -111,4 +111,63 @@ const DEMO_TEAS: Tea[] = [
 
 export function demoTeas(): Tea[] {
   return DEMO_TEAS;
+}
+
+function isoDaysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/** Tareas de ejemplo: diaria compartida, por persona, atrasada y de días fijos. */
+export function demoChores(): Chore[] {
+  const todayDow = new Date().getDay();
+  const base = { everyNDays: null, weekdays: [] as number[], doneBy: '', notes: '' };
+  return [
+    {
+      ...base,
+      notion_id: 'demo-trastes',
+      name: 'Lavar trastes',
+      frequency: 'diaria',
+      persona: 'Compartido',
+      lastDone: isoDaysAgo(1),
+    },
+    {
+      ...base,
+      notion_id: 'demo-basura',
+      name: 'Sacar la basura',
+      frequency: 'semanal',
+      persona: 'Luna',
+      lastDone: null,
+      weekdays: [todayDow],
+    },
+    {
+      ...base,
+      notion_id: 'demo-plantas',
+      name: 'Regar plantas',
+      frequency: 'cada_n_dias',
+      everyNDays: 3,
+      persona: 'Mar',
+      lastDone: isoDaysAgo(4),
+    },
+    {
+      ...base,
+      notion_id: 'demo-banio',
+      name: 'Limpiar baño',
+      frequency: 'semanal',
+      persona: 'Sol',
+      lastDone: isoDaysAgo(9),
+      notes: 'Productos bajo el lavabo',
+    },
+    {
+      ...base,
+      notion_id: 'demo-sabanas',
+      name: 'Cambiar sábanas',
+      frequency: 'quincenal',
+      persona: 'Compartido',
+      lastDone: isoDaysAgo(3),
+    },
+  ];
 }

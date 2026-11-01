@@ -26,6 +26,7 @@ Documentos de comportamiento esperado. Los agentes y el equipo deben alinear imp
 | [backend-stock-api.md](./backend-stock-api.md)                         | Backend Express + Mongoose: `GET`/`PUT /stock/:notionId`, MongoDB, variables `MONGODB_URI` / `PORT` / `appName`                   |
 | [multi-profile-cycle-optional.md](./multi-profile-cycle-optional.md)   | Hasta 8 perfiles por teléfono, ciclo opcional por perfil, detección en onboarding, Persona «Compartido»                           |
 | [energy-nutrients-nd-ui.md](./energy-nutrients-nd-ui.md)               | Energía según sueño, nutrientes → Apple Salud (Live Text), stock compartido vía Notion, UI neurodivergente                        |
+| [household-chores.md](./household-chores.md)                           | Pestaña Casa: tareas del hogar desde Notion (frecuencia, persona, «Última vez» compartida)                                        |
 
 Añadir aquí una fila al crear un spec nuevo.
 

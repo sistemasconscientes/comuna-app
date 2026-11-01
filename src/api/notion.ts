@@ -6,13 +6,14 @@ import {
   isSharedPersona,
 } from '../config/profiles';
 import { getNotionSettings, getNotionSettingsSource, isDemoMode } from '../config/notionSettings';
-import { demoCurrentPhase, demoSupplements, demoTeas } from './notionDemo';
+import { demoChores, demoCurrentPhase, demoSupplements, demoTeas } from './notionDemo';
 import {
   isPhaseHeaderWord,
   matchNotionTemplate,
   type NotionSearchItem,
 } from '../utils/notionTemplateMatch';
-import type { DetectedPersona, Phase, Supplement, SupplementPersona, Tea } from '../types';
+import type { Chore, DetectedPersona, Phase, Supplement, SupplementPersona, Tea } from '../types';
+import { everyNFromText, parseFrequency, parseWeekdays } from '../utils/choreSchedule';
 import { normalizePhase } from '../utils/phaseUtils';
 import { supplementMatchesCurrentTemporada } from '../utils/temporadaFilter';
 
@@ -601,6 +602,98 @@ export async function updateSupplementStockInNotion(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Tareas del hogar (DB «Tareas del hogar»)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Propiedades de la DB de tareas (nombres del template). */
+export const CHORE_PROPS = {
+  frequency: 'Frecuencia',
+  everyNDays: 'Cada (días)',
+  weekdays: 'Días',
+  persona: 'Persona',
+  active: 'Activa',
+  lastDone: 'Última vez',
+  doneBy: 'Hecha por',
+  notes: 'Notas',
+} as const;
+
+function titleOf(props: Record<string, NotionPropertyValue>): string {
+  const t = Object.values(props).find((p) => p.type === 'title');
+  return richTextToPlainText(t?.title).trim();
+}
+
+export interface ChoresResult {
+  chores: Chore[];
+  /** La DB tiene `Última vez`: el «hecho» se comparte entre teléfonos vía Notion. */
+  syncsLastDone: boolean;
+}
+
+/**
+ * Tareas activas de la DB. Frecuencia no reconocida ⇒ semanal (visible y
+ * corregible en Notion antes que perdida en silencio).
+ */
+export async function getChores(): Promise<ChoresResult> {
+  if (isDemoMode()) return { chores: demoChores(), syncsLastDone: false };
+  const dbId = getNotionSettings().choresDbId;
+  if (!dbId) return { chores: [], syncsLastDone: false };
+  const pages = await queryDatabaseAll(dbId, {});
+  const syncsLastDone = pages.length > 0 && CHORE_PROPS.lastDone in pages[0].properties;
+  const chores: Chore[] = [];
+  for (const p of pages) {
+    const props = p.properties;
+    if (propCheckbox(props, [CHORE_PROPS.active], true) === false) continue;
+    const name = titleOf(props);
+    if (!name) continue;
+    const freqRaw = propText(props, [CHORE_PROPS.frequency]);
+    const frequency = parseFrequency(freqRaw) ?? 'semanal';
+    const everyN = props[CHORE_PROPS.everyNDays]?.number ?? everyNFromText(freqRaw);
+    const lastDoneRaw = props[CHORE_PROPS.lastDone]?.date?.start ?? '';
+    chores.push({
+      notion_id: p.id,
+      name,
+      frequency,
+      everyNDays: everyN != null && Number.isFinite(everyN) ? everyN : null,
+      weekdays: parseWeekdays(propMultiSelect(props, [CHORE_PROPS.weekdays])),
+      persona: propText(props, [CHORE_PROPS.persona]).trim(),
+      lastDone: lastDoneRaw ? lastDoneRaw.slice(0, 10) : null,
+      doneBy: propText(props, [CHORE_PROPS.doneBy]).trim(),
+      notes: propText(props, [CHORE_PROPS.notes]).trim(),
+    });
+  }
+  return { chores, syncsLastDone };
+}
+
+/** Escribe (o restaura) `Última vez` y `Hecha por` en la página de la tarea. */
+export async function setChoreLastDone(
+  notionId: string,
+  lastDone: string | null,
+  doneBy: string,
+): Promise<void> {
+  if (isDemoMode()) return;
+  await notionFetch(`/pages/${encodeURIComponent(notionId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      properties: {
+        [CHORE_PROPS.lastDone]: { date: lastDone ? { start: lastDone } : null },
+        [CHORE_PROPS.doneBy]: {
+          rich_text: doneBy ? [{ type: 'text', text: { content: doneBy } }] : [],
+        },
+      },
+    }),
+  });
+}
+
+/**
+ * Cuentas conectadas antes de que existiera la pestaña Casa: busca la DB de
+ * tareas sin pedir el token otra vez. Devuelve el id o '' si no la ve.
+ */
+export async function discoverChoresDbId(): Promise<string> {
+  if (isDemoMode() || !getNotionSettings().apiKey) return '';
+  const databases = await searchAllByObject('database');
+  return matchNotionTemplate(databases, []).choresDbId;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Nutrientes por toma (texto libre, p. ej. escaneado de la tabla nutricional)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -877,6 +970,7 @@ export interface NotionTemplateDiscovery {
   phasesPageId: string;
   mealPrepHubPageId: string;
   teasDbId: string;
+  choresDbId: string;
   /** Personas de la tabla de fases (sin fila de header) que siguen ciclo. */
   phaseRowLabels: string[];
   /**
@@ -1052,6 +1146,7 @@ export async function discoverNotionTemplate(apiKey: string): Promise<NotionTemp
       phasesPageId,
       mealPrepHubPageId,
       teasDbId: matches.teasDbId,
+      choresDbId: matches.choresDbId,
       phaseRowLabels: phaseRows.cycle,
       noCyclePersonas: noCyclePersonasFrom(phaseRows, personaOptions),
       personas: orderedPersonasFrom(phaseRows, personaOptions),
