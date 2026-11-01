@@ -33,6 +33,10 @@ export function getSentryDist(): string | undefined {
 
 const DIAGNOSTICS_OPT_OUT_KEY = 'diagnostics_opt_out_v1';
 let diagnosticsOptedOut = false;
+/** Hasta leer la preferencia, los eventos esperan aquí (no se envían a ciegas). */
+let preferenceLoaded = false;
+const MAX_PENDING_EVENTS = 10;
+let pendingEvents: unknown[] = [];
 
 export function isDiagnosticsOptedOut(): boolean {
   return diagnosticsOptedOut;
@@ -46,6 +50,12 @@ export async function loadDiagnosticsPreference(): Promise<boolean> {
   } catch {
     diagnosticsOptedOut = false;
   }
+  preferenceLoaded = true;
+  const held = pendingEvents;
+  pendingEvents = [];
+  if (!diagnosticsOptedOut) {
+    for (const event of held) Sentry.captureEvent(event as Sentry.Event);
+  }
   return diagnosticsOptedOut;
 }
 
@@ -56,8 +66,16 @@ export async function setDiagnosticsOptedOut(optedOut: boolean): Promise<void> {
   await AsyncStorage.setItem(DIAGNOSTICS_OPT_OUT_KEY, optedOut ? 'true' : 'false');
 }
 
-/** `beforeSend` de Sentry: descarta todo si la persona apagó los diagnósticos. */
+/**
+ * `beforeSend` de Sentry: descarta todo si la persona apagó los diagnósticos.
+ * Antes de leer la preferencia (arranque) retiene los eventos y los reenvía
+ * solo si no hay opt-out.
+ */
 export function sentryBeforeSend<T>(event: T): T | null {
+  if (!preferenceLoaded) {
+    if (pendingEvents.length < MAX_PENDING_EVENTS) pendingEvents.push(event);
+    return null;
+  }
   return diagnosticsOptedOut ? null : event;
 }
 

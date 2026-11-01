@@ -47,6 +47,8 @@ export type UseHealthDataResult = HealthData & {
   healthKitDiagnostics: HealthKitDiagnostics | null;
   /** `false` = perfil sin ciclo: no hay fase ni lectura de ciclo en HealthKit. */
   tracksCycle: boolean;
+  /** Duración de ciclo usada (estimada desde Salud o 28). */
+  cycleLengthDays: number;
   refetch: () => void;
 };
 
@@ -83,6 +85,7 @@ export function useHealthData(user: User, options?: UseHealthDataOptions): UseHe
   );
   const [refreshToken, setRefreshToken] = useState(0);
   const [tracksCycle, setTracksCycle] = useState(() => profileTracksCycle(user));
+  const [cycleLengthDays, setCycleLengthDays] = useState(DEFAULT_CYCLE_LENGTH_DAYS);
 
   // El switch «Sigue ciclo menstrual» de Perfil cambia los overrides por fuera.
   useEffect(() => {
@@ -191,6 +194,9 @@ export function useHealthData(user: User, options?: UseHealthDataOptions): UseHe
           source = 'sqlite';
         }
 
+        const cycleLength = hkSignals.estimatedCycleLengthDays ?? DEFAULT_CYCLE_LENGTH_DAYS;
+        if (!cancelled) setCycleLengthDays(cycleLength);
+
         if (lastPeriod) {
           const { phase, day } = getCurrentCycleInfoWithHealthKitRefinements(
             lastPeriod,
@@ -217,7 +223,7 @@ export function useHealthData(user: User, options?: UseHealthDataOptions): UseHe
             hkSignals.lifecycleContext !== 'lactation'
           ) {
             try {
-              const nextCycleDate = addLocalCalendarDays(lastPeriod, DEFAULT_CYCLE_LENGTH_DAYS);
+              const nextCycleDate = addLocalCalendarDays(lastPeriod, cycleLength);
               const notionRow = await getCurrentPhase(notionUser);
               if (!cancelled) {
                 const notionNorm = normalizePhase(notionRow.phase);
@@ -282,6 +288,7 @@ export function useHealthData(user: User, options?: UseHealthDataOptions): UseHe
     cycleDataSource,
     healthKitDiagnostics,
     tracksCycle,
+    cycleLengthDays,
     refetch,
   };
 }

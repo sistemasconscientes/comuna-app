@@ -99,8 +99,15 @@ export async function fetchSupplementsWithStock(
     const ambasIds = supplements
       .filter((s) => usesSharedStockBackend(s.persona))
       .map((s) => s.notion_id);
+    // Stock en Notion: ya vino en la consulta (`notionStock`); backend: un GET por id.
     const pairs = await Promise.all(
-      ambasIds.map(async (id) => [id, await getSharedStock(id)] as const),
+      ambasIds.map(async (id) => {
+        const sup = supplements.find((s) => s.notion_id === id);
+        if (sup && sup.notionStock !== undefined) {
+          return [id, sup.notionStock ? { notionId: id, ...sup.notionStock } : null] as const;
+        }
+        return [id, await getSharedStock(id)] as const;
+      }),
     );
     const sharedByNotionId = Object.fromEntries(pairs);
     return { supplements, idByNotionId, sharedByNotionId };

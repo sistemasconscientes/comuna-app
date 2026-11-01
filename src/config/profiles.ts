@@ -1,4 +1,4 @@
-import type { SupplementPersona } from '../types';
+import type { DetectedPersona, SupplementPersona } from '../types';
 import { isPhaseHeaderWord } from '../utils/notionTemplateMatch';
 
 /** Tope de perfiles por dispositivo (hogar / roomies). */
@@ -242,22 +242,61 @@ function cleanPersonaLabels(labels: string[]): string[] {
 }
 
 /**
- * Overrides derivados de las personas detectadas en Notion: primero las filas
- * de la tabla de fases (siguen ciclo), luego las personas que solo aparecen en
- * el select Persona de Suplementos (sin ciclo). Label mostrado = persona.
+ * Overrides desde personas detectadas **en orden** (tabla de Fases tal cual,
+ * luego opciones del select Persona sin fila). El orden define los ids de
+ * perfil y la columna de plato en Comidas. Label mostrado = persona.
  */
+export function overridesFromPersonaList(personas: DetectedPersona[]): ProfileOverrides {
+  const seen = new Set<string>();
+  const slots: SlotData[] = [];
+  for (const p of personas) {
+    const [label] = cleanPersonaLabels([p.label]);
+    if (!label || seen.has(label.toLowerCase())) continue;
+    seen.add(label.toLowerCase());
+    slots.push({ label, persona: label, phaseRow: label, cycle: p.tracksCycle });
+  }
+  const capped = slots.slice(0, MAX_PROFILES);
+  return overridesFromSlots(capped, capped.length ? capped.length : undefined);
+}
+
+/** Variante por listas: primero quienes siguen ciclo, luego quienes no. */
 export function overridesFromDetectedPersonas(
   cycleLabels: string[],
   noCycleLabels: string[] = [],
 ): ProfileOverrides {
-  const cycle = cleanPersonaLabels(cycleLabels);
-  const cycleKeys = new Set(cycle.map((l) => l.toLowerCase()));
-  const noCycle = cleanPersonaLabels(noCycleLabels).filter((l) => !cycleKeys.has(l.toLowerCase()));
-  const slots: SlotData[] = [
-    ...cycle.map((l) => ({ label: l, persona: l, phaseRow: l, cycle: true })),
-    ...noCycle.map((l) => ({ label: l, persona: l, phaseRow: l, cycle: false })),
-  ].slice(0, MAX_PROFILES);
-  return overridesFromSlots(slots, slots.length ? slots.length : undefined);
+  return overridesFromPersonaList([
+    ...cycleLabels.map((label) => ({ label, tracksCycle: true })),
+    ...noCycleLabels.map((label) => ({ label, tracksCycle: false })),
+  ]);
+}
+
+/**
+ * Reconexión: respeta lo que la persona editó en Perfil para cada persona de
+ * Notion que sigue existiendo (nombre mostrado y «Sigue ciclo»). Se empareja
+ * por la persona en Notion, no por posición.
+ */
+export function mergeDetectedOverrides(
+  prev: ProfileOverrides,
+  detected: ProfileOverrides,
+): ProfileOverrides {
+  const prevByPersona = new Map<string, SlotData>();
+  for (let i = 0; i < MAX_PROFILES; i++) {
+    const s = slotData(prev, profileIdAt(i));
+    const key = (s?.persona ?? s?.phaseRow)?.trim().toLowerCase();
+    if (s && key) prevByPersona.set(key, s);
+  }
+  const count = detected.profileCount ?? 0;
+  const slots: SlotData[] = [];
+  for (let i = 0; i < count; i++) {
+    const d = slotData(detected, profileIdAt(i)) ?? {};
+    const old = d.persona ? prevByPersona.get(d.persona.trim().toLowerCase()) : undefined;
+    slots.push({
+      ...d,
+      label: old?.label ?? d.label,
+      cycle: old?.cycle ?? d.cycle,
+    });
+  }
+  return overridesFromSlots(slots, count || undefined);
 }
 
 /** Compat: solo filas de la tabla de fases. */

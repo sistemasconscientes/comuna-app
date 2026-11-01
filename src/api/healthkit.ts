@@ -1308,13 +1308,19 @@ export async function deleteHealthSamples(samples: WrittenHealthSample[]): Promi
  */
 export async function fetchSleepIntervals(nights = 15): Promise<MsInterval[]> {
   if (Platform.OS !== 'ios') return [];
-  await initHealthKit();
   const hk = await ensureHealthKit();
   if (!hk) return [];
+  // Solo sueño: un perfil sin ciclo no debe ver la solicitud de datos menstruales
+  // que hace `initHealthKit` (minimización, guideline 5.1.1(iii)).
+  try {
+    await hk.requestAuthorization({ toShare: [] as any, toRead: [HK_SLEEP] as any });
+  } catch (e) {
+    logHealthKitError('requestAuthorization(sleep)', e);
+  }
   const sinceMs = Date.now() - (nights + 1) * 24 * 60 * 60 * 1000;
   try {
     const samples = await queryCategorySamplesRaw(hk, HK_SLEEP, {
-      limit: 5000,
+      limit: 10000,
       ascending: false,
       filter: { date: { startDate: new Date(sinceMs) } },
     });

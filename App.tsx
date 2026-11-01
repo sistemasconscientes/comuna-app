@@ -33,6 +33,7 @@ import {
 } from './src/config/notionSettings';
 import { configureNotificationHandler } from './src/api/localNotifications';
 import { loadUiPrefs } from './src/config/uiPrefs';
+import { loadNotionSharedStockFlag } from './src/api/notion';
 import { UserContext } from './src/context/UserContext';
 import type { User } from './src/context/UserContext';
 import {
@@ -145,6 +146,7 @@ function App() {
     void (async () => {
       await loadProfileOverrides().catch(() => {});
       await loadUiPrefs().catch(() => {});
+      await loadNotionSharedStockFlag().catch(() => {});
       // PostHog guarda su propio opt-out; aquí lo re-sincronizamos con la preferencia.
       if (await loadDiagnosticsPreference().catch(() => false)) {
         void posthogRef.current?.optOut();

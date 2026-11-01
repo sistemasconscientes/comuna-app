@@ -30,6 +30,23 @@ export interface Supplement {
    * no tiene la propiedad (se usa el respaldo local).
    */
   nutrientsText?: string;
+  /**
+   * Stock compartido leído de las propiedades de la página (solo si la DB las
+   * tiene); null = aún sin conteo.
+   */
+  notionStock?: {
+    bottleOpenedAt: Date | null;
+    totalPills: number;
+    pillsPerDay: number;
+    restockFlagged: boolean;
+    updatedAt: Date;
+  } | null;
+}
+
+/** Persona detectada en el template de Notion (orden = tabla de Fases, luego select Persona). */
+export interface DetectedPersona {
+  label: string;
+  tracksCycle: boolean;
 }
 
 /** Té recomendado por fase del ciclo (BD de Tés en Notion; sin caché local). */

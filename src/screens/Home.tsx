@@ -10,14 +10,13 @@ import TeaCard from '../components/TeaCard';
 import EnergyCard from '../components/EnergyCard';
 import { Ionicons } from '@expo/vector-icons';
 import { useEnergy } from '../hooks/useEnergy';
-import { useUiPrefs } from '../config/uiPrefs';
+import { useUiPrefs } from '../hooks/useUiPrefs';
 import { DOSE_MOMENT_LABEL, currentMoment, groupByMoment } from '../utils/doseMoment';
 import { useCalendarDayLocal } from '../hooks/useSelectableLogDate';
 import { reportDailyLogProgress } from '../api/localNotifications';
 import { getNotionSupplementPersona, getProfileLabel } from '../config/profiles';
 import { useUser } from '../context/UserContext';
 import type { Phase } from '../types';
-import { DEFAULT_CYCLE_LENGTH_DAYS } from '../utils/phaseCalculator';
 import { cyclePhaseToPhase } from '../utils/phaseUtils';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { LoadingRow } from '../components/LoadingRow';
@@ -138,6 +137,9 @@ export default function Home({ onOpenSettings }: HomeProps) {
     loading: healthLoading,
     error: healthError,
     tracksCycle,
+    lastPeriodStart,
+    cycleLengthDays,
+    healthKitLifecycleContext,
   } = useHealthData(user, {
     calendarDayKey,
   });
@@ -166,9 +168,7 @@ export default function Home({ onOpenSettings }: HomeProps) {
 
   const config = PHASE_CONFIG[currentPhase];
   const trackPercent =
-    cycleDay !== null
-      ? Math.min(100, (cycleDay / DEFAULT_CYCLE_LENGTH_DAYS) * 100)
-      : config.fillPercent;
+    cycleDay !== null ? Math.min(100, (cycleDay / cycleLengthDays) * 100) : config.fillPercent;
 
   const takenCount = supplements.reduce((count, s) => {
     const localId = idByNotionId[s.notion_id];
@@ -190,8 +190,16 @@ export default function Home({ onOpenSettings }: HomeProps) {
   const nowMoment = currentMoment();
   const { simpleMode } = useUiPrefs();
   const { estimate: energy, loading: energyLoading } = useEnergy(
-    tracksCycle ? cyclePhase : null,
+    tracksCycle && cyclePhase
+      ? {
+          phase: cyclePhase,
+          lastPeriodStart,
+          cycleLengthDays,
+          lifecycleContext: healthKitLifecycleContext,
+        }
+      : null,
     calendarDayKey,
+    !healthLoading,
   );
 
   return (

@@ -8,7 +8,14 @@ import {
 } from '../api/notion';
 import { enableDemoMode, saveNotionSettings } from '../config/notionSettings';
 import { DEMO_CYCLE_PROFILE_LABELS, DEMO_NO_CYCLE_PROFILE_LABELS } from '../api/notionDemo';
-import { overridesFromDetectedPersonas, saveProfileOverrides } from '../config/profiles';
+import {
+  getProfileOverrides,
+  mergeDetectedOverrides,
+  overridesFromDetectedPersonas,
+  overridesFromPersonaList,
+  saveProfileOverrides,
+} from '../config/profiles';
+import type { DetectedPersona } from '../types';
 import { reportErrorToSentry } from '../utils/observability';
 
 export type NotionConnectStep = 'idle' | 'checking_token' | 'discovering' | 'saving';
@@ -53,14 +60,15 @@ export function useNotionConnection(onConnected: () => void) {
     async (
       token: string,
       ids: Required<ManualNotionIds>,
-      personas: { phaseRowLabels: string[]; noCyclePersonas: string[] },
+      personas: DetectedPersona[],
       mode: 'auto' | 'manual',
     ) => {
       setStep('saving');
       await saveNotionSettings({ apiKey: token, ...ids });
-      const overrides = overridesFromDetectedPersonas(
-        personas.phaseRowLabels,
-        personas.noCyclePersonas,
+      // Reconexión: conserva nombres y «Sigue ciclo» editados en Perfil.
+      const overrides = mergeDetectedOverrides(
+        getProfileOverrides(),
+        overridesFromPersonaList(personas),
       );
       if (overrides.profileCount) {
         await saveProfileOverrides(overrides);
@@ -111,7 +119,7 @@ export function useNotionConnection(onConnected: () => void) {
               mealPrepHubPageId: found.mealPrepHubPageId,
               teasDbId: found.teasDbId,
             },
-            found,
+            found.personas,
             'auto',
           );
         },
@@ -140,7 +148,7 @@ export function useNotionConnection(onConnected: () => void) {
               mealPrepHubPageId: (ids.mealPrepHubPageId ?? '').trim(),
               teasDbId: (ids.teasDbId ?? '').trim(),
             },
-            personas,
+            personas.personas,
             'manual',
           );
         },

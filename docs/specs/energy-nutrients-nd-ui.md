@@ -2,10 +2,13 @@
 
 ## Energía disponible (`src/utils/energy.ts`, `useEnergy`, `EnergyCard`)
 
-- Fuente: tramos «dormida» de `HKCategoryTypeIdentifierSleepAnalysis` (`fetchSleepIntervals`, últimas ~15 noches) de **este teléfono**.
+- Fuente: tramos «dormida» de `HKCategoryTypeIdentifierSleepAnalysis` (`fetchSleepIntervals`, últimas ~60 noches) de **este teléfono**.
 - Noche = día civil de despertar (inicio del tramo + 6 h); los solapes entre fuentes se fusionan.
-- Referencia: mediana de las noches previas si hay 5 o más; si no, 7 h 30.
-- Nivel: **baja** si < 5 h o < 80 % de la referencia; **media** si < 6 h 30 o < 92 %; si no, **alta**. La fase (solo perfiles con ciclo) agrega un matiz de texto en menstrual y lútea y **no** cambia el nivel.
+- Referencia, en orden de preferencia: (1) mediana de tus noches previas **en la misma fase** (4 o más, ventana de 60 noches; la fase de cada noche se reconstruye con el último inicio de periodo y la duración de ciclo); (2) mediana de las últimas 14 noches (5 o más); (3) 7 h 30.
+- Umbrales base: **baja** si < 5 h o < 80 % de la referencia; **media** si < 6 h 30 o < 92 %; si no, **alta**.
+- **Sueño según fase** (personas que menstrúan): en lútea y menstrual el sueño suele ser más fragmentado (la progesterona sube la temperatura; molestias premenstruales y menstruales), así que los umbrales piden más: baja < 5 h 30 o < 85 %; media < 7 h o < 97 %. La nota de fase lo explica en una frase.
+- Sin ajuste por fase si Salud reporta anticonceptivo hormonal, embarazo o lactancia (el patrón cambia): se usa el sueño general y la nota lo dice.
+- Permisos: la energía solo pide lectura de sueño (no el set completo de ciclo), así que un perfil sin ciclo nunca ve una solicitud de datos menstruales.
 - UI: símbolo + palabra (○ Baja, ◐ Media, ● Alta), una sugerencia concreta y «¿Cómo se calcula?» plegable. Es orientativo, no una medición médica (1.4.1).
 - Modo demo: una semana de sueño de ejemplo para App Review.
 

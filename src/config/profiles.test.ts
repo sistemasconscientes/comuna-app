@@ -10,6 +10,8 @@ import {
   isSharedPersona,
   overridesFromDetectedPersonas,
   overridesFromPhaseRowLabels,
+  overridesFromPersonaList,
+  mergeDetectedOverrides,
   profileTracksCycle,
   subscribeProfileOverrides,
   sanitizeProfileOverrides,
@@ -157,5 +159,43 @@ describe('overridesFromPhaseRowLabels con encabezados residuales', () => {
   it('filtra palabras de header aunque lleguen del detector', () => {
     const o = overridesFromPhaseRowLabels(['Persona', 'Diana', 'Estefanía']);
     expect(o.profileLabels).toEqual({ profile_1: 'Diana', profile_2: 'Estefanía' });
+  });
+});
+
+describe('orden de la tabla y reconexión', () => {
+  it('respeta el orden de la tabla aunque una fila «Sin ciclo» vaya primero', () => {
+    const o = overridesFromPersonaList([
+      { label: 'Ana', tracksCycle: false },
+      { label: 'Bea', tracksCycle: true },
+      { label: 'Caro', tracksCycle: true },
+    ]);
+    expect(o.profileLabels).toEqual({ profile_1: 'Ana', profile_2: 'Bea', profile_3: 'Caro' });
+    expect(o.cycleByProfile).toEqual({ profile_1: false, profile_2: true, profile_3: true });
+  });
+
+  it('al reconectar conserva el nombre y «Sigue ciclo» editados, emparejando por persona', () => {
+    const prev = {
+      profileCount: 2,
+      profileLabels: { profile_1: 'Dia 🌿', profile_2: 'Este' },
+      notionByProfile: {
+        profile_1: { supplementPersona: 'Diana', phaseRowLabel: 'Diana' },
+        profile_2: { supplementPersona: 'Estefanía', phaseRowLabel: 'Estefanía' },
+      },
+      cycleByProfile: { profile_2: false },
+    };
+    const detected = overridesFromPersonaList([
+      { label: 'Estefanía', tracksCycle: true },
+      { label: 'Diana', tracksCycle: true },
+      { label: 'Sol', tracksCycle: false },
+    ]);
+    const merged = mergeDetectedOverrides(prev, detected);
+    expect(merged.profileCount).toBe(3);
+    // El orden lo manda Notion; el nombre y el ciclo editados viajan con la persona.
+    expect(merged.profileLabels).toEqual({
+      profile_1: 'Este',
+      profile_2: 'Dia 🌿',
+      profile_3: 'Sol',
+    });
+    expect(merged.cycleByProfile).toEqual({ profile_1: false, profile_2: true, profile_3: false });
   });
 });

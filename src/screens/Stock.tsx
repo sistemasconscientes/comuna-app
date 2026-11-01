@@ -27,8 +27,8 @@ import {
 } from '../api/sharedStock';
 import { useCache } from '../hooks/useCache';
 import { useReduceMotion } from '../hooks/useReduceMotion';
-import { getNutrientsText, saveNutrientsText } from '../api/nutrientsHealth';
-import { formatNutrient, nutrientsToText, parseNutrients } from '../utils/nutrients';
+import { getNutrientsText, saveNutrientsDraftIfChanged } from '../api/nutrientsHealth';
+import { formatNutrient, parseNutrients } from '../utils/nutrients';
 import { useHealthData } from '../hooks/useHealthData';
 import { fetchSupplementsWithStock } from '../hooks/useSupplements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -227,16 +227,12 @@ export default function Stock({ user }: Props) {
 
   /** Guarda nutrientes si cambiaron (Notion o respaldo local). */
   const saveNutrientsIfChanged = async (state: EditState) => {
-    if (
-      state.nutrientsText == null ||
-      state.nutrientsText.trim() === state.nutrientsInitial.trim()
-    ) {
-      return;
-    }
-    const parsed = parseNutrients(state.nutrientsText);
-    const text = parsed.length ? nutrientsToText(parsed) : state.nutrientsText.trim();
-    await saveNutrientsText(state.supplement.notion_id, text);
-    await refreshStockBundle();
+    const saved = await saveNutrientsDraftIfChanged(
+      state.supplement.notion_id,
+      state.nutrientsText,
+      state.nutrientsInitial,
+    );
+    if (saved) await refreshStockBundle();
   };
 
   const handleSave = async () => {

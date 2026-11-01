@@ -12,7 +12,7 @@ import {
   matchNotionTemplate,
   type NotionSearchItem,
 } from '../utils/notionTemplateMatch';
-import type { Phase, Supplement, SupplementPersona, Tea } from '../types';
+import type { DetectedPersona, Phase, Supplement, SupplementPersona, Tea } from '../types';
 import { normalizePhase } from '../utils/phaseUtils';
 import { supplementMatchesCurrentTemporada } from '../utils/temporadaFilter';
 
@@ -165,7 +165,11 @@ interface NotionPropertyValue {
 }
 
 interface NotionDatabaseQueryResponse {
-  results: { id: NotionId; properties: Record<string, NotionPropertyValue> }[];
+  results: {
+    id: NotionId;
+    last_edited_time?: string;
+    properties: Record<string, NotionPropertyValue>;
+  }[];
   has_more: boolean;
   next_cursor: string | null;
 }
@@ -411,7 +415,7 @@ export async function getSupplements(
 
   const pages = await queryDatabaseAll(dbId, { filter });
   if (pages.length) {
-    notionSharedStockAvailable = NOTION_STOCK_PROPS.totalPills in pages[0].properties;
+    setNotionSharedStockAvailable(NOTION_STOCK_PROPS.totalPills in pages[0].properties);
   }
   const month = new Date().getMonth() + 1;
   const sourcePages = applyTemporadaFilter
@@ -450,6 +454,10 @@ export async function getSupplements(
       temporadaLabels,
       persona,
       ...(nutrientsText !== undefined ? { nutrientsText } : {}),
+      // Stock compartido ya viene en la consulta: evita un GET por página.
+      ...(notionSharedStockAvailable
+        ? { notionStock: parseNotionSupplementStock(props, p.last_edited_time) }
+        : {}),
     };
   });
 }
@@ -479,6 +487,32 @@ export const NOTION_STOCK_PROPS = {
 } as const;
 
 let notionSharedStockAvailable = false;
+const SHARED_STOCK_FLAG_KEY = 'notion_shared_stock_props_v1';
+
+/**
+ * Persiste la detección: Stock puede renderizar desde caché antes de que
+ * `getSupplements` corra en esta sesión, y sin el flag trataría el stock
+ * compartido como local.
+ */
+function setNotionSharedStockAvailable(v: boolean): void {
+  if (v === notionSharedStockAvailable) return;
+  notionSharedStockAvailable = v;
+  void import('@react-native-async-storage/async-storage')
+    .then(({ default: AsyncStorage }) =>
+      AsyncStorage.setItem(SHARED_STOCK_FLAG_KEY, v ? 'true' : 'false'),
+    )
+    .catch(() => {});
+}
+
+/** Hidrata la detección guardada; llamar en el boot. */
+export async function loadNotionSharedStockFlag(): Promise<void> {
+  try {
+    const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+    notionSharedStockAvailable = (await AsyncStorage.getItem(SHARED_STOCK_FLAG_KEY)) === 'true';
+  } catch {
+    // sin flag: se detecta en el próximo getSupplements
+  }
+}
 
 /**
  * La DB de suplementos tiene las propiedades de stock (se detecta en
@@ -523,7 +557,14 @@ export function parseNotionSupplementStock(
     return null;
   }
   const opened = props[NOTION_STOCK_PROPS.bottleOpenedAt]?.date?.start;
-  const openedDate = opened ? parseDateLoose(opened) : null;
+  let openedDate: Date | null = null;
+  if (opened) {
+    try {
+      openedDate = parseDateLoose(opened);
+    } catch {
+      openedDate = null; // fecha rara en Notion: no tumbar la consulta de suplementos
+    }
+  }
   return {
     bottleOpenedAt: openedDate,
     totalPills: total,
@@ -843,6 +884,8 @@ export interface NotionTemplateDiscovery {
    * Persona de Suplementos que no tienen fila en la tabla de fases.
    */
   noCyclePersonas: string[];
+  /** Todas las personas en orden (tabla de Fases, luego select Persona). */
+  personas: DetectedPersona[];
 }
 
 /** Texto de la columna Fase que marca a una persona que no sigue ciclo. */
@@ -856,6 +899,8 @@ export function isNoCyclePhaseText(text: string): boolean {
 interface PhaseTableRows {
   cycle: string[];
   noCycle: string[];
+  /** Filas en el orden de la tabla (define el orden de perfiles y columnas de comidas). */
+  ordered: DetectedPersona[];
 }
 
 /**
@@ -891,12 +936,14 @@ async function phaseRowsForPage(
   ) as NotionTableRowBlock[];
   if (table.table.table_width < 3) return null;
   const dataRows = table.table.has_column_header ? rows.slice(1) : rows;
-  const out: PhaseTableRows = { cycle: [], noCycle: [] };
+  const out: PhaseTableRows = { cycle: [], noCycle: [], ordered: [] };
   for (const r of dataRows) {
     if (r.table_row.cells.length < 3) continue;
     const texts = r.table_row.cells.map((c) => cellToText(c).trim());
     if (isPhaseHeaderRow(texts) || !texts[0]) continue;
-    (isNoCyclePhaseText(texts[1]) ? out.noCycle : out.cycle).push(texts[0]);
+    const noCycle = isNoCyclePhaseText(texts[1]);
+    (noCycle ? out.noCycle : out.cycle).push(texts[0]);
+    out.ordered.push({ label: texts[0], tracksCycle: !noCycle });
   }
   if (out.cycle.length || out.noCycle.length) return out;
   return allowEmpty ? out : null;
@@ -922,6 +969,17 @@ async function supplementPersonaOptions(supplementsDbId: string): Promise<string
 function noCyclePersonasFrom(rows: PhaseTableRows, personaOptions: string[]): string[] {
   const inTable = new Set([...rows.cycle, ...rows.noCycle].map(normalizePersonName));
   return [...rows.noCycle, ...personaOptions.filter((o) => !inTable.has(normalizePersonName(o)))];
+}
+
+/** Personas en orden: filas de la tabla de Fases tal cual, luego opciones Persona sin fila. */
+function orderedPersonasFrom(rows: PhaseTableRows, personaOptions: string[]): DetectedPersona[] {
+  const inTable = new Set(rows.ordered.map((p) => normalizePersonName(p.label)));
+  return [
+    ...rows.ordered,
+    ...personaOptions
+      .filter((o) => !inTable.has(normalizePersonName(o)))
+      .map((label) => ({ label, tracksCycle: false })),
+  ];
 }
 
 async function hubHasComidasActivas(pageId: string): Promise<boolean> {
@@ -954,7 +1012,7 @@ export async function discoverNotionTemplate(apiKey: string): Promise<NotionTemp
     }
 
     let phasesPageId = '';
-    let phaseRows: PhaseTableRows = { cycle: [], noCycle: [] };
+    let phaseRows: PhaseTableRows = { cycle: [], noCycle: [], ordered: [] };
     // Primero candidatas por título; si ninguna aplica, barrido acotado del
     // resto de páginas compartidas (títulos distintos a «Fases…»).
     const triedIds = new Set(matches.phasesPageCandidates.map((c) => c.id));
@@ -996,6 +1054,7 @@ export async function discoverNotionTemplate(apiKey: string): Promise<NotionTemp
       teasDbId: matches.teasDbId,
       phaseRowLabels: phaseRows.cycle,
       noCyclePersonas: noCyclePersonasFrom(phaseRows, personaOptions),
+      personas: orderedPersonasFrom(phaseRows, personaOptions),
     };
   });
 }
@@ -1008,7 +1067,11 @@ export async function discoverNotionTemplate(apiKey: string): Promise<NotionTemp
 export async function verifyManualNotionIds(
   apiKey: string,
   ids: { supplementsDbId: string; phasesPageId: string },
-): Promise<{ phaseRowLabels: string[]; noCyclePersonas: string[] }> {
+): Promise<{
+  phaseRowLabels: string[];
+  noCyclePersonas: string[];
+  personas: DetectedPersona[];
+}> {
   return withNotionApiKey(apiKey, async () => {
     await notionFetch(`/databases/${encodeURIComponent(ids.supplementsDbId)}/query`, {
       method: 'POST',
@@ -1022,6 +1085,7 @@ export async function verifyManualNotionIds(
     return {
       phaseRowLabels: rows.cycle,
       noCyclePersonas: noCyclePersonasFrom(rows, personaOptions),
+      personas: orderedPersonasFrom(rows, personaOptions),
     };
   });
 }

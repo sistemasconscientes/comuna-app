@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { fetchSleepIntervals } from '../api/healthkit';
 import { isDemoMode } from '../config/notionSettings';
-import type { CyclePhase } from '../types';
+import type { CyclePhase, HealthKitLifecycleContext } from '../types';
 import {
+  ENERGY_LOOKBACK_NIGHTS,
   estimateEnergy,
   groupSleepByNight,
+  nightKeyToDate,
   todayNightKey,
+  type EnergyCycleContext,
   type EnergyEstimate,
 } from '../utils/energy';
+import { getCurrentCycleInfo } from '../utils/phaseCalculator';
 import { reportErrorToSentry } from '../utils/observability';
 
 const HOUR = 60 * 60 * 1000;
@@ -25,16 +29,30 @@ function demoNights(todayKey: string): { night: string; asleepMs: number }[] {
   return out;
 }
 
+export interface UseEnergyCycle {
+  phase: CyclePhase | null;
+  lastPeriodStart: Date | null;
+  cycleLengthDays: number;
+  lifecycleContext: HealthKitLifecycleContext;
+}
+
 /**
  * Energía disponible de hoy según el sueño registrado en Apple Salud de este
- * teléfono (+ matiz de fase si el perfil sigue ciclo). `estimate = null` si no
- * hay sueño de anoche.
+ * teléfono, ajustada a la fase si el perfil sigue ciclo (`cycle = null` si no).
+ * `estimate = null` si no hay sueño de anoche. `ready = false` mientras la fase
+ * aún carga: evita leer el sueño dos veces (sin y con contexto de ciclo).
  */
-export function useEnergy(phase: CyclePhase | null, calendarDayKey: string) {
+export function useEnergy(cycle: UseEnergyCycle | null, calendarDayKey: string, ready = true) {
   const [estimate, setEstimate] = useState<EnergyEstimate | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const phase = cycle?.phase ?? null;
+  const lastPeriodMs = cycle?.lastPeriodStart?.getTime() ?? null;
+  const cycleLength = cycle?.cycleLengthDays ?? null;
+  const lifecycle = cycle?.lifecycleContext ?? 'none';
+
   useEffect(() => {
+    if (!ready) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -43,9 +61,26 @@ export function useEnergy(phase: CyclePhase | null, calendarDayKey: string) {
         const nights = isDemoMode()
           ? demoNights(todayKey)
           : Platform.OS === 'ios'
-            ? groupSleepByNight(await fetchSleepIntervals())
+            ? groupSleepByNight(await fetchSleepIntervals(ENERGY_LOOKBACK_NIGHTS))
             : [];
-        if (!cancelled) setEstimate(estimateEnergy(nights, todayKey, phase));
+        let ctx: EnergyCycleContext | null = null;
+        if (phase) {
+          ctx = {
+            phase,
+            lifecycleContext: lifecycle,
+            ...(lastPeriodMs != null && cycleLength
+              ? {
+                  phaseOfNight: (night: string) =>
+                    getCurrentCycleInfo(
+                      new Date(lastPeriodMs),
+                      { cycleLength },
+                      nightKeyToDate(night),
+                    ).phase,
+                }
+              : {}),
+          };
+        }
+        if (!cancelled) setEstimate(estimateEnergy(nights, todayKey, ctx));
       } catch (e) {
         reportErrorToSentry(e, { domain: 'energy' });
         if (!cancelled) setEstimate(null);
@@ -56,7 +91,7 @@ export function useEnergy(phase: CyclePhase | null, calendarDayKey: string) {
     return () => {
       cancelled = true;
     };
-  }, [phase, calendarDayKey]);
+  }, [phase, lastPeriodMs, cycleLength, lifecycle, calendarDayKey, ready]);
 
   return { estimate, loading };
 }

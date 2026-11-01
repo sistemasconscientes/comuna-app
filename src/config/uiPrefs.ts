@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-
 /**
  * Preferencias de interfaz por teléfono (enfoque neurodivergente):
  * - `simpleMode`: Inicio muestra solo lo del día (energía + lista); oculta té,
@@ -41,16 +39,10 @@ export async function setUiPref<K extends keyof UiPrefs>(key: K, value: UiPrefs[
   await AsyncStorage.setItem(KEY, JSON.stringify(prefs));
 }
 
-/** Re-render al cambiar preferencias desde Perfil. */
-export function useUiPrefs(): UiPrefs {
-  const [value, setValue] = useState(prefs);
-  useEffect(() => {
-    setValue(prefs);
-    const cb = () => setValue(prefs);
-    listeners.add(cb);
-    return () => {
-      listeners.delete(cb);
-    };
-  }, []);
-  return value;
+/** Suscripción para `useUiPrefs` (src/hooks). */
+export function subscribeUiPrefs(cb: () => void): () => void {
+  listeners.add(cb);
+  return () => {
+    listeners.delete(cb);
+  };
 }

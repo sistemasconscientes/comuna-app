@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ProfileId } from '../config/profiles';
-import { parseNutrients } from '../utils/nutrients';
+import { nutrientsToText, parseNutrients } from '../utils/nutrients';
 import { reportErrorToSentry } from '../utils/observability';
 import { deleteHealthSamples, saveNutrientSamples, type WrittenHealthSample } from './healthkit';
 import { updateSupplementNutrientsInNotion } from './notion';
@@ -71,6 +71,23 @@ export async function saveNutrientsText(
   return 'local';
 }
 
+/**
+ * Guarda el borrador del modal de Stock si cambió respecto al texto cargado.
+ * Si se reconocen nutrientes, se guarda el texto normalizado; si no, tal cual.
+ * Devuelve true si guardó algo.
+ */
+export async function saveNutrientsDraftIfChanged(
+  notionId: string,
+  draft: string | null,
+  initial: string,
+): Promise<boolean> {
+  if (draft == null || draft.trim() === initial.trim()) return false;
+  const parsed = parseNutrients(draft);
+  const text = parsed.length ? nutrientsToText(parsed) : draft.trim();
+  await saveNutrientsText(notionId, text);
+  return true;
+}
+
 // ─── Muestras por toma ───
 
 function logKey(profile: ProfileId, date: string, notionId: string): string {
@@ -108,10 +125,10 @@ export function syncNutrientsForLog(params: SyncParams): Promise<void> {
 async function runSync(params: SyncParams): Promise<void> {
   const { profile, date, notionId, taken } = params;
   try {
-    if (!(await isNutrientsHealthSyncEnabled(profile))) return;
     const key = logKey(profile, date, notionId);
     const written = await readJson<Record<string, WrittenHealthSample[]>>(WRITTEN_KEY, {});
 
+    // Desmarcar borra lo escrito aunque el switch se haya apagado después.
     if (!taken) {
       const prev = written[key];
       if (!prev?.length) return;
@@ -121,6 +138,7 @@ async function runSync(params: SyncParams): Promise<void> {
       return;
     }
 
+    if (!(await isNutrientsHealthSyncEnabled(profile))) return;
     if (written[key]?.length) return; // ya escrito (evita duplicar al re-marcar)
     const text = await getNutrientsText(notionId, params.notionNutrientsText);
     const nutrients = parseNutrients(text);

@@ -33,7 +33,8 @@ import {
   type ProfileId,
 } from '../config/profiles';
 import { isDiagnosticsOptedOut, setDiagnosticsOptedOut } from '../utils/observability';
-import { setUiPref, useUiPrefs } from '../config/uiPrefs';
+import { setUiPref } from '../config/uiPrefs';
+import { useUiPrefs } from '../hooks/useUiPrefs';
 import {
   isNutrientsHealthSyncEnabled,
   setNutrientsHealthSyncEnabled,

@@ -61,12 +61,18 @@ export default function EnergyCard({ estimate, loading }: EnergyCardProps) {
       </TouchableOpacity>
       {howOpen && (
         <Text style={styles.howText}>
-          Compara tu sueño de anoche con{' '}
-          {estimate.usedPersonalBaseline
-            ? `tu sueño habitual (${formatDurationHM(estimate.baselineMs)}, mediana de tus últimas noches)`
-            : `una referencia de ${formatDurationHM(estimate.baselineMs)} (aún hay pocas noches registradas)`}
-          . Menos de 5 h o menos del 80 % = baja; menos de 6 h 30 o del 92 % = media. Usa el sueño
-          registrado en Apple Salud de este teléfono. Es una guía, no una medición médica.
+          Compara tu sueño de anoche ({formatDurationHM(estimate.lastNightMs)}) con{' '}
+          {estimate.baselineKind === 'fase'
+            ? `tu sueño habitual en esta misma fase del ciclo (${formatDurationHM(estimate.baselineMs)})`
+            : estimate.baselineKind === 'personal'
+              ? `tu sueño habitual de las últimas noches (${formatDurationHM(estimate.baselineMs)})`
+              : `una referencia de ${formatDurationHM(estimate.baselineMs)} (aún hay pocas noches registradas)`}
+          .{' '}
+          {estimate.phaseAdjusted
+            ? 'En esta fase el sueño suele ser más ligero, así que pide un poco más: menos de 5 h 30 o del 85 % = baja; menos de 7 h o del 97 % = media.'
+            : 'Menos de 5 h o del 80 % = baja; menos de 6 h 30 o del 92 % = media.'}{' '}
+          Usa el sueño registrado en Apple Salud de este teléfono. Es una guía, no una medición
+          médica.
         </Text>
       )}
     </View>
