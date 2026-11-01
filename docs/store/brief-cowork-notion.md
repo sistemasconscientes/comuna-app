@@ -1,6 +1,6 @@
-# Brief para Cowork: actualizar el template público y el Notion personal
+# Brief: actualizar el template público de Notion
 
-> Pegar en Cowork. Los nombres de propiedades deben quedar **exactos** (mayúsculas, acentos y «?»): la app los busca por nombre.
+> Para pegar en un agente (p. ej. Cowork) o seguir a mano. Los nombres de propiedades deben quedar **exactos** (mayúsculas, acentos y «?»): la app los busca por nombre.
 
 ## Contexto
 
@@ -23,7 +23,7 @@ La app sigue funcionando con el template viejo, así que todos los cambios son a
 
 ---
 
-## A. Template público (workspace del template del Marketplace, NO el personal)
+## A. Template público (workspace del template del Marketplace)
 
 ### A1. Base de datos «Suplementos»
 
@@ -95,26 +95,3 @@ Agrega una sección «Cómo se usa en casa» con 4 viñetas:
 ### A5. Ficha del Marketplace
 
 Actualiza la descripción: hogares y roomies, perfiles sin ciclo, stock compartido entre teléfonos, nutrientes en Apple Salud (opcional) y el aviso de que no es consejo médico. Después re-publica el template.
-
----
-
-## B. Notion personal de Diana (workspace «Hadas»)
-
-Alcance: **solo** la base «Suplementos» dentro de «💊 Salud del hogar» (id `2ac350d3-d7a3-4a6d-b7d0-eda8c2e03f76`) y la **nueva** base de tareas del punto 9. No tocar finanzas, meal plans, guías ni otras páginas (tampoco la página de texto «Tareas del hogar»).
-
-1. **No** renombres `Ambas` ni los títulos de páginas o bases: la app acepta `Ambas`, y puede haber prompts o automatizaciones que lo usen.
-2. Agrega las mismas propiedades que en A1.2: `Frasco abierto`, `Pastillas por frasco`, `Pastillas al día`, `Nutrientes`. Revisa que `Recompra?` exista con ese nombre exacto.
-3. **Nutrientes:** llénalos solo con datos que ya estén en Notion (Dosis, notas, fotos de etiquetas en la página) o en la ficha del producto enlazada en la página. Si no hay fuente, déjalo vacío; Diana lo escanea desde la app. No inventes cantidades.
-4. **Dosis:** donde falte el momento («por la noche», «en ayunas», «al desayuno»…), agrégalo solo si está claro en las notas de la página. Si no, déjalo y lista esos suplementos para que Diana decida.
-5. **Stock de los suplementos `Ambas`:** no lo llenes. Diana copia los conteos actuales del backend de Render a `Frasco abierto` / `Pastillas por frasco` / `Pastillas al día`.
-6. Tabla de Fases: sin cambios (Diana y Estefanía ya están). No escribas «Sin ciclo» en ninguna fila.
-7. **Revisa Temporada:** lista los suplementos con `Disponible` = ✓ y Temporada vacía (hoy no se ven en la app). No la llenes tú; repórtalos para que Diana decida.
-8. **Opciones de Persona:** si el select Persona tiene opciones que ya no son personas del hogar (p. ej. nombres viejos), repórtalas sin borrarlas. La app crearía un perfil «sin ciclo» por cada opción sin fila en Fases.
-9. **Tareas del hogar:** ya existe una _página_ «Tareas del hogar» en Hogarsz y Cuidados (texto con tareas y frecuencias). No la borres ni la edites.
-   - Crea al lado una **base** con el esquema de A3b, titulada «Tareas del hogar — app» (debe contener la palabra «Tareas»).
-   - Pasa cada tarea de la página a una fila, con la frecuencia que diga el texto.
-   - `Persona`: `Diana`, `Estefanía`, o `Ambas` si es de cualquiera. Si menciona a otra persona (por ejemplo, quien ayuda en casa), pon `Ambas` y anota el nombre en `Notas`.
-   - Deja `Última vez` y `Hecha por` vacíos.
-   - Conecta la base a la misma integración que Suplementos (··· → Conexiones).
-   - Lista las tareas cuya frecuencia o persona no estaba clara.
-10. Al terminar, reporta una tabla: suplemento · nutrientes agregados (con fuente) · dosis modificada (sí/no) · Temporada vacía (sí/no) · pendientes para Diana. Agrega la lista de opciones de Persona.
