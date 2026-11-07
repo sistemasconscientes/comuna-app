@@ -1,9 +1,9 @@
-# Spec: Ciclo menstrual — HealthKit + SQLite + Notion
+# Spec: Ciclo menstrual — HealthKit + llavero + Notion
 
 **Hooks:** [`src/hooks/useHealthData.ts`](../../src/hooks/useHealthData.ts)  
 **API:** [`src/api/healthkit.ts`](../../src/api/healthkit.ts) · Notion: [`src/api/notion.ts`](../../src/api/notion.ts) (`getCurrentPhase`, `updatePhase`)  
 **Cálculo de fase:** [`src/utils/phaseCalculator.ts`](../../src/utils/phaseCalculator.ts) (`getCurrentCycleInfo`, `getCurrentCycleInfoWithHealthKitRefinements`, `inferBbtRiseAnchorFromSamples`)  
-**Persistencia:** tabla `cycle_states` en [`src/db/schema.ts`](../../src/db/schema.ts)  
+**Persistencia:** último inicio de periodo por perfil en el llavero (`expo-secure-store`, `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`) vía [`src/utils/cycleStateStore.ts`](../../src/utils/cycleStateStore.ts). No va a SQLite ni a AsyncStorage: ambos entran en el backup de iCloud (guideline 5.1.3(ii)). La tabla legacy `cycle_states` se migra al llavero y se vacía al leer.  
 **UI:** Perfil (avisos Salud irregular/embarazo/lactancia/anticonceptivo, origen del ciclo QA, reintento Salud) · Inicio/Home (fase y día) · pestaña **Salud** (valores HealthKit legibles; ver [`healthkit-data-screen.md`](./healthkit-data-screen.md))
 
 ---
@@ -43,19 +43,19 @@ Fuera de alcance: escritura en Salud, background delivery, UI nativa de permisos
 
 ## Origen de datos (`cycleDataSource`)
 
-| Valor       | Significado                                                                                               |
-| ----------- | --------------------------------------------------------------------------------------------------------- |
-| `healthkit` | Se obtuvo `lastPeriodStart` desde Salud en la última carga exitosa.                                       |
-| `sqlite`    | Fase/día desde `cycle_states` local; Salud no aportó muestra en esta carga (o aún no se ha sincronizado). |
-| `notion`    | Sin `lastPeriodStart` local; fase solo desde Notion (`cycleDay` null).                                    |
+| Valor       | Significado                                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| `healthkit` | Se obtuvo `lastPeriodStart` desde Salud en la última carga exitosa.                                                  |
+| `device`    | Fase/día desde la fecha guardada en el llavero; Salud no aportó muestra en esta carga (o aún no se ha sincronizado). |
+| `notion`    | Sin `lastPeriodStart` local; fase solo desde Notion (`cycleDay` null).                                               |
 
 ---
 
 ## Flujo de carga (orden)
 
 1. En **iOS:** `getHealthKitDiagnostics` + `fetchHealthKitCycleSignals` (dentro: `initHealthKit` + `requestAuthorization` la primera vez). Una sola lectura consolidada sustituye al antiguo `getLastMenstruation` aislado.
-2. **Origen de `lastPeriodStart`:** Si `signals.lastPeriodStart` existe → persistir en SQLite, `cycleDataSource` → `healthkit`. Si no, si hay fila en `cycle_states` → usar esa fecha, `sqlite`. Si no → fase solo Notion (`notion`, `cycleDay` null).
-3. **Fase/día mostrados:** `getCurrentCycleInfoWithHealthKitRefinements(lastPeriodStart, refinements)` con las señales de ovulación/moco/BBT de `fetchHealthKitCycleSignals`. Las banderas `healthKitIrregularCycleHint` y `healthKitLifecycleContext` se rellenan siempre que iOS haya devuelto señales (aunque el origen sea `sqlite` o `notion`).
+2. **Origen de `lastPeriodStart`:** Si `signals.lastPeriodStart` existe → guardar en el llavero, `cycleDataSource` → `healthkit`. Si no, si hay fecha guardada → usarla, `device`. Si no → fase solo Notion (`notion`, `cycleDay` null).
+3. **Fase/día mostrados:** `getCurrentCycleInfoWithHealthKitRefinements(lastPeriodStart, refinements)` con las señales de ovulación/moco/BBT de `fetchHealthKitCycleSignals`. Las banderas `healthKitIrregularCycleHint` y `healthKitLifecycleContext` se rellenan siempre que iOS haya devuelto señales (aunque el origen sea `device` o `notion`).
 4. **Escritura Notion:** **Solo** si `cycleDataSource === 'healthkit'` y `lifecycleContext` **no** es `pregnancy` ni `lactation`: una vez por carga, comparar fase Notion vs fase refinada (normalizadas); si difieren y son comparables, `updatePhase` salvo `NOTION_SKIP_PHASE_WRITE` en dev. Misma regla de próximo ciclo (+28 días civiles locales). Fallos → Sentry / dominio `health_data`.
 
 En la **primera instalación** sin SQLite, en iOS Salud sigue teniendo prioridad sobre Notion para la fecha de último período.
@@ -110,7 +110,8 @@ Feature: Sincronización de ciclo con Salud
 - [ ] Con datos en Salud y permiso: origen **Salud (HealthKit)** y día de ciclo visible si aplica.
 - [ ] Sin permiso: app usable; activar en Ajustes → Salud → La Comuna → datos de menstruación.
 - [ ] Pulsar **Reintentar sincronización con Salud** y verificar actualización.
-- [ ] Cambiar usuario Diana/Estefanía: cada uno mantiene su fila en `cycle_states`.
+- [ ] Cambiar de perfil: cada uno mantiene su propia fecha en el llavero.
+- [ ] Actualizar desde un build ≤1.2.1: la fecha de `cycle_states` pasa al llavero y la tabla queda vacía.
 - [ ] En Xcode consola (dev): tras sync OK, log `[useHealthData] Último inicio de menstruación (HealthKit): … → fase … día …`.
 
 ---

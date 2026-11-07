@@ -29,6 +29,16 @@ Fuera de alcance explícito: CORS (el cliente es nativo).
 
 - Todas las rutas bajo `/stock` requieren header **`x-api-key`** cuyo valor debe coincidir con la variable de entorno **`API_KEY`** del servidor.
 - Si falta el header, no coincide el valor, o **`API_KEY`** no está definida en el proceso: respuesta **401** con body `{ "error": "Unauthorized" }`.
+- La comparación es en tiempo constante (`timingSafeEqual` sobre SHA-256).
+- El body JSON se parsea **después** de validar la key (`express.json({ limit: '10kb' })` montado tras `requireApiKey`): sin key no se lee el body. Más de 10 KB → **413** `{ "error": "payload too large" }`.
+
+## Validación y errores
+
+- `:notionId` debe ser un UUID de Notion (con o sin guiones); si no → **400** `{ "error": "invalid notionId" }`.
+- `PUT`: body debe ser un objeto JSON; `totalPills` / `pillsPerDay` números finitos ≥ 0; `restockFlagged` booleano; `bottleOpenedAt` string ISO o `null`. Tipo inválido (incluido un objeto tipo `{ "$gt": 0 }`) → **400** `{ "error": "invalid <campo>" }`.
+- JSON mal formado → **400** `{ "error": "bad request" }`. Rutas desconocidas → **404** JSON.
+- Errores internos → **500** `{ "error": "internal error" }`, sin stack trace (se loguea solo en el servidor). Sin header `X-Powered-By`.
+- Pendiente: rate limiting (requiere decidir `trust proxy` en Render).
 
 ### Despliegue (Render)
 
@@ -119,6 +129,7 @@ eas secret:create --scope project --name BACKEND_API_KEY --value "<mismo valor q
 | BS4 | Conexión a MongoDB loguea éxito (`MongoDB connected`) o error en fallo.                                                                                                      |
 | BS5 | Servidor escucha en `PORT` o 3000 por defecto; arranque solo tras conectar a la base.                                                                                        |
 | BS6 | Sin `x-api-key` correcto, `GET`/`PUT` bajo `/stock` responden 401 + `{ error: "Unauthorized" }`.                                                                             |
+| BS8 | Body sin key válida no se parsea; > 10 KB → 413; tipos inválidos → 400; 500 sin stack.                                                                                       |
 | BS7 | Con `EXPO_PUBLIC_BACKEND_URL` vacío en el cliente, no se hacen peticiones de stock compartido con URL inválida (`getSharedStock` null, `updateSharedStock` error explícito). |
 
 ---
@@ -127,7 +138,7 @@ eas secret:create --scope project --name BACKEND_API_KEY --value "<mismo valor q
 
 ```gherkin
 Scenario: Obtener stock inexistente
-  When el cliente hace GET a "/stock/id-inexistente" con x-api-key válido
+  When el cliente hace GET a "/stock/00000000-0000-0000-0000-000000000000" con x-api-key válido
   Then la respuesta tiene status 404
   And el body contiene "not found"
 
@@ -137,7 +148,7 @@ Scenario: Sin autenticación
   And el body contiene "Unauthorized"
 
 Scenario: Crear o actualizar stock con PUT
-  When el cliente hace PUT a "/stock/notion-abc" con body JSON válido y x-api-key válido
+  When el cliente hace PUT a "/stock/2f1c3a4b-1234-4abc-9def-0123456789ab" con body JSON válido y x-api-key válido
   Then la respuesta tiene status 200
-  And el documento incluye notionId "notion-abc" y updatedAt reciente
+  And el documento incluye notionId "2f1c3a4b-1234-4abc-9def-0123456789ab" y updatedAt reciente
 ```

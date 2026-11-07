@@ -6,7 +6,7 @@ La app sirve a un hogar completo (pareja, familia, roomies): **1 a 8 perfiles** 
 
 ## Modelo (`src/config/profiles.ts`)
 
-- `ProfileId = profile_${n}`, posicional (1…`MAX_PROFILES` = 8). Los ids son claves en SQLite (`daily_logs.user`, `cycle_states.user`) y en AsyncStorage (`user_emoji_<id>`, `selected_user`), así que **no se renumeran**: solo se agrega o quita el **último** perfil (`addProfile` / `removeLastProfile`). Los registros locales de un perfil quitado se conservan.
+- `ProfileId = profile_${n}`, posicional (1…`MAX_PROFILES` = 8). Los ids son claves en SQLite (`daily_logs.user`), en el llavero (`cycle_last_period_start_<id>`) y en AsyncStorage (`user_emoji_<id>`, `selected_user`), así que **no se renumeran**: solo se agrega o quita el **último** perfil (`addProfile` / `removeLastProfile`). Los registros locales de un perfil quitado se conservan.
 - La cantidad vive en `ProfileOverrides.profileCount` (default `DEFAULT_PROFILE_COUNT` = 2). `getProfiles()` deriva los slots; `profileIdsRecord` itera sobre ellos.
 - `cycleByProfile[id] = false` marca un perfil sin ciclo; `profileTracksCycle(id)` es `true` por defecto.
 - Prioridad de overrides: `profiles.local.ts` > runtime (AsyncStorage `profile_overrides_v1`) > defaults. Quien edite overrides debe conservar el resto (`...prev`), o se pierden `profileCount` y `cycleByProfile`.
