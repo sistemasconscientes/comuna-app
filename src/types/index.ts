@@ -128,7 +128,7 @@ export interface LocalPhase {
 }
 
 /** De dónde sale la fase/día del ciclo en la última carga (ver docs/specs/healthkit-cycle-sync.md). */
-export type CycleDataSource = 'healthkit' | 'sqlite' | 'notion';
+export type CycleDataSource = 'healthkit' | 'device' | 'notion';
 
 export interface HealthKitDiagnostics {
   nativeModuleLoaded: boolean;

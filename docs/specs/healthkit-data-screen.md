@@ -4,6 +4,8 @@
 
 **Relacionado:** [`healthkit-cycle-sync.md`](./healthkit-cycle-sync.md) (lógica de fase y señales)
 
+**Caché:** `useCache(..., { persist: false })`, solo en memoria. Los valores de Salud no se escriben a AsyncStorage (backup de iCloud, guideline 5.1.3(ii)); ver [`swr-local-cache.md`](./swr-local-cache.md).
+
 ---
 
 ## Objetivo

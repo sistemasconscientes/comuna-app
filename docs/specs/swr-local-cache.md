@@ -14,7 +14,8 @@ Mostrar datos persistidos en AsyncStorage al abrir la pantalla (sin spinner si h
 
 ## Formato de almacenamiento
 
-- Clave: prefijo interno + `key` lógica (p. ej. `stock_diana`, `meal_prep_estefania`).
+- Clave: prefijo interno + `key` lógica (p. ej. `stock_profile_1`, `meal_prep_profile_2`).
+- **`persist: false`** (4.º argumento, `{ persist: false }`): la caché vive solo en memoria del proceso y la clave legacy en AsyncStorage se borra al montar. Obligatorio para datos de Apple Salud (pestaña Salud): AsyncStorage entra en el backup de iCloud (guideline 5.1.3(ii)).
 - Valor: JSON `{ value: T, fetchedAt: number }` donde `fetchedAt` es `Date.now()` en ms tras un fetch exitoso.
 - `T` debe ser serializable con `JSON.stringify`. Los objetos con `Date` (p. ej. `SharedStock` en el bundle de Stock) se normalizan al consumir con [`reviveSharedStockMapFromCache`](../../src/api/sharedStock.ts).
 

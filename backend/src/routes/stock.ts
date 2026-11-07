@@ -4,20 +4,34 @@ import { Stock } from '../models/stock';
 const router = Router();
 
 type PutBody = {
-  bottleOpenedAt?: string | Date;
-  totalPills?: number;
-  pillsPerDay?: number;
-  restockFlagged?: boolean;
+  bottleOpenedAt?: unknown;
+  totalPills?: unknown;
+  pillsPerDay?: unknown;
+  restockFlagged?: unknown;
 };
 
-function parseBottleOpenedAt(value: string | Date | undefined): Date | undefined {
-  if (value === undefined) return undefined;
-  if (value instanceof Date) return value;
-  const d = new Date(value);
+/** IDs de página de Notion: UUID con o sin guiones. Evita upserts con claves arbitrarias. */
+const NOTION_ID_RE = /^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$/;
+
+function isValidNotionId(value: unknown): value is string {
+  return typeof value === 'string' && NOTION_ID_RE.test(value);
+}
+
+function isNonNegativeNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+/** El cliente manda ISO string o `null` (null → epoch, como antes). */
+function parseBottleOpenedAt(value: unknown): Date | undefined {
+  if (typeof value !== 'string' && value !== null) return undefined;
+  const d = new Date(value as string);
   return Number.isNaN(d.getTime()) ? undefined : d;
 }
 
 router.get('/:notionId', async (req: Request, res: Response) => {
+  if (!isValidNotionId(req.params.notionId)) {
+    return res.status(400).json({ error: 'invalid notionId' });
+  }
   const doc = await Stock.findOne({ notionId: req.params.notionId }).lean();
   if (!doc) {
     return res.status(404).json({ error: 'not found' });
@@ -27,7 +41,22 @@ router.get('/:notionId', async (req: Request, res: Response) => {
 
 router.put('/:notionId', async (req: Request, res: Response) => {
   const notionId = req.params.notionId;
+  if (!isValidNotionId(notionId)) {
+    return res.status(400).json({ error: 'invalid notionId' });
+  }
+  if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+    return res.status(400).json({ error: 'invalid body' });
+  }
   const body = req.body as PutBody;
+  if (body.totalPills !== undefined && !isNonNegativeNumber(body.totalPills)) {
+    return res.status(400).json({ error: 'invalid totalPills' });
+  }
+  if (body.pillsPerDay !== undefined && !isNonNegativeNumber(body.pillsPerDay)) {
+    return res.status(400).json({ error: 'invalid pillsPerDay' });
+  }
+  if (body.restockFlagged !== undefined && typeof body.restockFlagged !== 'boolean') {
+    return res.status(400).json({ error: 'invalid restockFlagged' });
+  }
 
   const $set: Record<string, unknown> = {
     updatedAt: new Date(),

@@ -59,7 +59,7 @@ const SHOW_HEALTHKIT_QA = false;
 
 const SOURCE_LABELS: Record<CycleDataSource, string> = {
   healthkit: 'Salud (HealthKit)',
-  sqlite: 'Base local (última sync)',
+  device: 'Este teléfono (última sync)',
   notion: 'Notion',
 };
 

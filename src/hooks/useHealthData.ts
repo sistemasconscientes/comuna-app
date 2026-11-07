@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { eq } from 'drizzle-orm';
 import { getCurrentPhase, updatePhase } from '../api/notion';
 import {
   EMPTY_HEALTH_KIT_CYCLE_SIGNALS,
@@ -8,7 +7,7 @@ import {
   getHealthKitDiagnostics,
   resetHealthKitInitForQA,
 } from '../api/healthkit';
-import { db, cycleStates } from '../db';
+import { loadLastPeriodStart, saveLastPeriodStart } from '../utils/cycleStateStore';
 import { cyclePhaseToPhase, normalizePhase, phaseToCyclePhase } from '../utils/phaseUtils';
 import {
   addLocalCalendarDays,
@@ -101,36 +100,6 @@ export function useHealthData(user: User, options?: UseHealthDataOptions): UseHe
   useEffect(() => {
     let cancelled = false;
 
-    async function upsertLastPeriodStart(start: Date) {
-      const now = new Date().toISOString();
-      const iso = start.toISOString();
-
-      const existing = await db
-        .select()
-        .from(cycleStates)
-        .where(eq(cycleStates.user, user))
-        .limit(1);
-
-      if (existing.length) {
-        await db
-          .update(cycleStates)
-          .set({ lastPeriodStart: iso, updatedAt: now })
-          .where(eq(cycleStates.user, user));
-      } else {
-        await db.insert(cycleStates).values({ user, lastPeriodStart: iso, updatedAt: now });
-      }
-    }
-
-    async function loadLastPeriodStartFromDb(): Promise<Date | null> {
-      const rows = await db.select().from(cycleStates).where(eq(cycleStates.user, user)).limit(1);
-      const raw = rows[0]?.lastPeriodStart;
-      if (!raw) return null;
-
-      const d = new Date(raw);
-      if (Number.isNaN(d.getTime())) return null;
-      return d;
-    }
-
     async function fetchHealthData() {
       setLoading(true);
       setError(null);
@@ -153,7 +122,7 @@ export function useHealthData(user: User, options?: UseHealthDataOptions): UseHe
       let hkSignals: HealthKitCycleSignals = { ...EMPTY_HEALTH_KIT_CYCLE_SIGNALS };
 
       try {
-        const lastFromDb = await loadLastPeriodStartFromDb();
+        const lastStored = await loadLastPeriodStart(user);
         const isIos = Platform.OS === 'ios';
 
         if (isIos) {
@@ -188,10 +157,10 @@ export function useHealthData(user: User, options?: UseHealthDataOptions): UseHe
         if (isIos && hkSignals.lastPeriodStart) {
           lastPeriod = hkSignals.lastPeriodStart;
           source = 'healthkit';
-          await upsertLastPeriodStart(lastPeriod);
-        } else if (lastFromDb) {
-          lastPeriod = lastFromDb;
-          source = 'sqlite';
+          await saveLastPeriodStart(user, lastPeriod);
+        } else if (lastStored) {
+          lastPeriod = lastStored;
+          source = 'device';
         }
 
         const cycleLength = hkSignals.estimatedCycleLengthDays ?? DEFAULT_CYCLE_LENGTH_DAYS;
